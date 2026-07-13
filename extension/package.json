@@ -2,7 +2,7 @@
   "name": "standup",
   "displayName": "Standup",
   "description": "Local-first daily stand-up generator. Watches your git, IDE activity & GitHub, drafts your stand-up with a local LLM, posts to Discord/Slack.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "standup-dev",
   "license": "MIT",
   "engines": {
@@ -74,6 +74,16 @@
           "enum": ["done-next-blockers", "yesterday-today-blockers"],
           "default": "done-next-blockers",
           "description": "Stand-up format to generate."
+        },
+        "standup.scope": {
+          "type": "string",
+          "enum": ["workspace", "all"],
+          "enumDescriptions": [
+            "Only activity from the folders open in this window (default)",
+            "Activity from all projects you worked on today, across every workspace"
+          ],
+          "default": "workspace",
+          "description": "Which activity a generated stand-up includes. 'workspace' keeps each project's stand-up clean; 'all' combines your whole day."
         },
         "standup.detail": {
           "type": "string",

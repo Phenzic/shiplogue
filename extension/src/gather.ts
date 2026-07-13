@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import { Store } from "./store";
 import { cfg } from "./config";
 import { collectCommits } from "./git";
@@ -33,20 +34,32 @@ function aggregateTouches(events: ActivityEvent[]): FileTouch[] {
   );
 }
 
-// Pull together everything for the stand-up window.
+// Pull together everything for the stand-up window. With scope="workspace"
+// (the default), only activity belonging to the folders open in THIS window is
+// included — tracked file touches and Cursor prompts from other projects are
+// filtered out. Git commits and GitHub repos are already per-workspace.
 export async function gatherContext(store: Store): Promise<StandupContext> {
   const c = cfg();
   const until = new Date();
   const since = new Date(until.getTime() - c.lookbackHours * 3600_000);
 
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  const scoped = c.scope === "workspace";
+  const folderPaths = scoped ? folders.map((f) => f.uri.fsPath) : null;
+  const folderNames = new Set(folders.map((f) => f.name));
+
   const token = await githubToken(false);
   const [commits, github, cursorPrompts] = await Promise.all([
     collectCommits(since, until),
     collectGitHub(token, c.githubRepos, since),
-    c.cursorEnabled ? collectCursorPrompts(since, until) : Promise.resolve([]),
+    c.cursorEnabled ? collectCursorPrompts(since, until, folderPaths) : Promise.resolve([]),
   ]);
 
-  const touches = aggregateTouches(store.readRange(since, until));
+  let events = store.readRange(since, until);
+  if (scoped) {
+    events = events.filter((ev) => folderNames.has(ev.project));
+  }
+  const touches = aggregateTouches(events);
 
   return { since, until, commits, touches, github, cursorPrompts };
 }

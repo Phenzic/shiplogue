@@ -26,5 +26,6 @@ export function cfg() {
     reminderTime: c.get<string>("reminder.time", "16:00"),
     cursorEnabled: c.get<boolean>("cursor.enabled", true),
     detail: detailGetter(),
+    scope: c.get<"workspace" | "all">("scope", "workspace"),
   };
 }
