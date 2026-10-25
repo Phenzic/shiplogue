@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { Store } from "./store";
 import { ActivityEvent } from "./types";
+import { normalizeFolderPath, normalizeSlashes } from "./paths";
 
 // Watches editor activity and records low-noise events: every save, and at most
 // one "edit" heartbeat per file per throttle window. Skips non-file documents
@@ -35,11 +36,13 @@ export class Tracker {
       return;
     }
     const folder = vscode.workspace.getWorkspaceFolder(doc.uri);
-    const rel = folder
-      ? vscode.workspace.asRelativePath(doc.uri, false)
-      : doc.fileName;
+    // Normalize separators at record time: Windows emits backslashes, and the
+    // stored log must compare cleanly across platforms.
+    const rel = normalizeSlashes(
+      folder ? vscode.workspace.asRelativePath(doc.uri, false) : doc.fileName,
+    );
 
-    if (/(^|\/)(node_modules|\.git|dist|out|build|\.next|coverage)(\/|$)/.test(rel)) {
+    if (/(^|[\\/])(node_modules|\.git|dist|out|build|\.next|coverage)([\\/]|$)/.test(rel)) {
       return;
     }
 
@@ -49,6 +52,7 @@ export class Tracker {
       file: rel,
       lang: doc.languageId,
       project: folder?.name ?? "(no folder)",
+      projectPath: folder ? normalizeFolderPath(folder.uri.fsPath) : undefined,
     };
     this.store.add(ev);
   }

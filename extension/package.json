@@ -1,10 +1,22 @@
 {
   "name": "standup",
   "displayName": "Standup",
-  "description": "Local-first daily stand-up generator. Watches your git, IDE activity & GitHub, drafts your stand-up with a local LLM, posts to Discord/Slack.",
-  "version": "0.0.8",
+  "description": "Local-first daily stand-up generator for VS Code-family editors (VS Code, Cursor). Watches your git, IDE activity & GitHub, drafts your stand-up with a local LLM, posts to Discord/Slack.",
+  "version": "0.1.0",
   "publisher": "standup-dev",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/standup-dev/standup"
+  },
+  "bugs": "https://github.com/standup-dev/standup/issues",
+  "homepage": "https://github.com/standup-dev/standup#readme",
+  "keywords": ["standup", "stand-up", "daily", "ollama", "git", "github", "cursor", "llm", "local"],
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1e3a5f",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -52,6 +64,27 @@
           "default": "llama3.2",
           "description": "Ollama model to use for summarizing your activity."
         },
+        "standup.ollama.numPredict": {
+          "type": "number",
+          "default": 0,
+          "markdownDescription": "Maximum tokens the model may generate. `0` (default) uses the per-detail budget (400/900/1600). Raise this if a reasoning model returns nothing."
+        },
+        "standup.ollama.numCtx": {
+          "type": "number",
+          "default": 8192,
+          "description": "Context window size (tokens) passed to Ollama. Raise it on busy days if your activity is being cut off."
+        },
+        "standup.ollama.think": {
+          "type": "string",
+          "enum": ["auto", "on", "off"],
+          "enumDescriptions": [
+            "Let the model decide; if it returns nothing, Standup retries once with thinking disabled and a larger budget",
+            "Always enable reasoning (think: true)",
+            "Always disable reasoning (think: false)"
+          ],
+          "default": "auto",
+          "markdownDescription": "Control reasoning ('thinking') models such as gpt-oss or deepseek-r1."
+        },
         "standup.github.useBuiltInAuth": {
           "type": "boolean",
           "default": true,
@@ -91,10 +124,22 @@
           "enumDescriptions": [
             "3-4 short points, outcomes only",
             "5-7 points with the key specifics (files, endpoints, issue numbers)",
-            "5-8 thorough points enumerating files, assets, fields and URLs — a full work log"
+            "6-9 thorough points enumerating files, assets, fields and URLs — a full work log"
           ],
           "default": "concise",
           "description": "How detailed the generated stand-up should be. Also switchable from the stand-up panel."
+        },
+        "standup.tone": {
+          "type": "string",
+          "enum": ["neutral", "junior", "mid", "senior"],
+          "enumDescriptions": [
+            "Default voice — no styling added",
+            "Mentions what you learned and where you asked for help",
+            "Plain and factual, with brief reasoning",
+            "Leads with impact and decisions; terse"
+          ],
+          "default": "neutral",
+          "description": "Voice of the generated stand-up. Also switchable from the stand-up panel."
         },
         "standup.webhook.type": {
           "type": "string",
@@ -112,6 +157,16 @@
           "type": "boolean",
           "default": true,
           "description": "Track IDE activity (which files you edit and save). Stored locally only."
+        },
+        "standup.generate.timeoutSeconds": {
+          "type": "number",
+          "default": 180,
+          "markdownDescription": "Abort stand-up generation after this many seconds (a Cancel button is always available too). `0` disables the timeout."
+        },
+        "standup.store.retentionDays": {
+          "type": "number",
+          "default": 14,
+          "markdownDescription": "Delete locally stored activity logs older than this many days on startup. `0` keeps them forever."
         },
         "standup.reminder.enabled": {
           "type": "boolean",
@@ -134,7 +189,10 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test test/*.test.js",
+    "test:e2e": "STANDUP_E2E=1 node --test --test-concurrency=1 test/e2e.ollama.test.js test/e2e.pipeline.test.js",
+    "test:cursor": "CURSOR_REAL_DB=1 node --test test/e2e.local.test.js"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

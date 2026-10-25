@@ -1,11 +1,14 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
 import { postToWebhook } from "./post";
-import { DetailLevel, State } from "./state";
+import { toSlackMrkdwn } from "./format";
+import { DetailLevel, State, Tone } from "./state";
 
 export interface DraftPayload {
   markdown: string;
-  summary: { commits: number; files: number; github: number };
+  summary: { commits: number; files: number; github: number; notes?: string[] };
+  // Non-modal caveats shown in the status line (e.g. grounding removals).
+  warnings?: string[];
 }
 
 // Singleton webview: shows the draft in Markdown + Plain-text tabs, an activity
@@ -15,9 +18,10 @@ export class StandupPanel {
   private panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
 
-  static show(onRegenerate: () => void, state: State): StandupPanel {
+  static show(onRegenerate: () => void, state: State, onCancel?: () => void): StandupPanel {
     if (StandupPanel.current) {
       StandupPanel.current.onRegenerate = onRegenerate;
+      StandupPanel.current.onCancel = onCancel;
       StandupPanel.current.state = state;
       StandupPanel.current.syncDetail();
       StandupPanel.current.panel.reveal();
@@ -29,7 +33,7 @@ export class StandupPanel {
       vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: true },
     );
-    StandupPanel.current = new StandupPanel(panel, onRegenerate, state);
+    StandupPanel.current = new StandupPanel(panel, onRegenerate, state, onCancel);
     return StandupPanel.current;
   }
 
@@ -37,6 +41,7 @@ export class StandupPanel {
     panel: vscode.WebviewPanel,
     private onRegenerate: () => void,
     private state: State,
+    private onCancel?: () => void,
   ) {
     this.panel = panel;
     this.panel.webview.html = this.html();
@@ -55,7 +60,9 @@ export class StandupPanel {
       kind: "draft",
       markdown: p.markdown,
       summary: p.summary,
+      warnings: p.warnings,
       detail: c.detail,
+      tone: c.tone,
       target: c.webhookType === "none" ? "" : c.webhookType,
     });
   }
@@ -64,8 +71,12 @@ export class StandupPanel {
     this.panel.webview.postMessage({ kind: "error", message });
   }
 
+  setCancelled(message = "Cancelled."): void {
+    this.panel.webview.postMessage({ kind: "cancelled", message });
+  }
+
   private syncDetail(): void {
-    this.panel.webview.postMessage({ kind: "init", detail: cfg().detail });
+    this.panel.webview.postMessage({ kind: "init", detail: cfg().detail, tone: cfg().tone });
   }
 
   private async handle(msg: any): Promise<void> {
@@ -77,6 +88,9 @@ export class StandupPanel {
       case "regenerate":
         this.onRegenerate();
         break;
+      case "cancel":
+        this.onCancel?.();
+        break;
       case "setDetail": {
         const detail = msg.detail as DetailLevel;
         await this.state.setDetail(detail);
@@ -86,10 +100,30 @@ export class StandupPanel {
         this.onRegenerate();
         break;
       }
+      case "setTone": {
+        const tone = msg.tone as Tone;
+        await this.state.setTone(tone);
+        await vscode.workspace
+          .getConfiguration("standup")
+          .update("tone", tone, vscode.ConfigurationTarget.Global);
+        this.onRegenerate();
+        break;
+      }
       case "send":
         try {
-          await postToWebhook(msg.text ?? "");
-          vscode.window.showInformationMessage("Stand-up posted.");
+          // Slack gets the Markdown tab converted to mrkdwn regardless of which
+          // tab is active; Discord/plain posts the tab the user is looking at.
+          const text =
+            cfg().webhookType === "slack" ? toSlackMrkdwn(msg.markdown ?? msg.text ?? "") : (msg.text ?? "");
+          const result = await postToWebhook(text);
+          if (result.truncated) {
+            await vscode.env.clipboard.writeText(text);
+            vscode.window.showInformationMessage(
+              `Stand-up posted (${result.posted} messages) — truncated; full text copied to clipboard.`,
+            );
+          } else {
+            vscode.window.showInformationMessage("Stand-up posted.");
+          }
         } catch (e: any) {
           vscode.window.showErrorMessage(`Post failed: ${e.message ?? e}`);
         }
@@ -105,7 +139,9 @@ export class StandupPanel {
 
   private html(): string {
     const detail = cfg().detail;
+    const tone = cfg().tone;
     const sel = (v: string) => (detail === v ? " selected" : "");
+    const selT = (v: string) => (tone === v ? " selected" : "");
     return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -166,11 +202,20 @@ export class StandupPanel {
     <button class="action" id="copy">Copy</button>
     <button class="action secondary" id="send" style="display:none">Send</button>
     <button class="action secondary" id="regen">Regenerate</button>
+    <button class="action secondary" id="cancel" style="display:none">Cancel</button>
     <label style="font-size:12px;opacity:.8;margin-left:auto">Detail
       <select id="detail" style="margin-left:4px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,transparent);border-radius:4px;padding:4px 6px">
         <option value="concise"${sel("concise")}>Concise · 3–4 points</option>
         <option value="standard"${sel("standard")}>Standard · 5–7 points</option>
         <option value="elaborate"${sel("elaborate")}>Elaborate · full work log</option>
+      </select>
+    </label>
+    <label style="font-size:12px;opacity:.8">Tone
+      <select id="tone" style="margin-left:4px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,transparent);border-radius:4px;padding:4px 6px">
+        <option value="neutral"${selT("neutral")}>Neutral</option>
+        <option value="junior"${selT("junior")}>Junior</option>
+        <option value="mid"${selT("mid")}>Mid</option>
+        <option value="senior"${selT("senior")}>Senior</option>
       </select>
     </label>
   </div>
@@ -183,14 +228,27 @@ export class StandupPanel {
   const status = document.getElementById('status');
   const meta = document.getElementById('meta');
   const sendBtn = document.getElementById('send');
+  const cancelBtn = document.getElementById('cancel');
+  const regenBtn = document.getElementById('regen');
+  const detailSel = document.getElementById('detail');
+  const toneSel = document.getElementById('tone');
   let activePane = 'md';
   let txtEdited = false;
+
+  // While a generation runs, Regenerate/Detail are disabled and Cancel shows.
+  function setBusy(b) {
+    regenBtn.disabled = b;
+    detailSel.disabled = b;
+    toneSel.disabled = b;
+    cancelBtn.style.display = b ? 'inline-block' : 'none';
+  }
 
   // Mirror of format.ts toPlainText — keep in sync.
   function toPlainText(s) {
     return s
       .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '$1 ($2)')
       .replace(/\\*\\*([^*]+)\\*\\*/g, '$1')
+      .replace(/\\*([^*\\n]+)\\*/g, '$1')
       .replace(/^\\s{0,3}#{1,6}\\s+/gm, '')
       .replace(/^\\s*[-*]\\s+/gm, '• ')
       .trim();
@@ -212,18 +270,23 @@ export class StandupPanel {
 
   document.getElementById('copy').onclick = () =>
     vscode.postMessage({ kind: 'copy', text: activeText(), label: activePane === 'txt' ? 'plain text' : 'markdown' });
-  document.getElementById('regen').onclick = () => vscode.postMessage({ kind: 'regenerate' });
-  document.getElementById('detail').onchange = (e) =>
+  regenBtn.onclick = () => vscode.postMessage({ kind: 'regenerate' });
+  cancelBtn.onclick = () => vscode.postMessage({ kind: 'cancel' });
+  detailSel.onchange = (e) =>
     vscode.postMessage({ kind: 'setDetail', detail: e.target.value });
-  sendBtn.onclick = () => vscode.postMessage({ kind: 'send', text: activeText() });
+  toneSel.onchange = (e) =>
+    vscode.postMessage({ kind: 'setTone', tone: e.target.value });
+  sendBtn.onclick = () => vscode.postMessage({ kind: 'send', text: activeText(), markdown: md.value });
 
   window.addEventListener('message', (e) => {
     const m = e.data;
     if (m.kind === 'loading') {
+      setBusy(true);
       md.value = ''; txt.value = ''; txtEdited = false;
       md.placeholder = m.label; status.textContent = m.label; status.className = '';
     } else if (m.kind === 'init' || m.kind === 'draft') {
       if (m.kind === 'draft') {
+        setBusy(false);
         txtEdited = false;
         md.value = m.markdown; syncPlain();
         const s = m.summary || {};
@@ -232,13 +295,24 @@ export class StandupPanel {
           s.files ? s.files + ' files' : '',
           s.github ? s.github + ' GitHub items' : ''
         ].filter(Boolean).join(' · ');
-        status.textContent = 'Review and edit, then copy or send.'; status.className = '';
+        if (s.notes && s.notes.length) {
+          meta.textContent += (meta.textContent ? ' — ' : '') + s.notes.join('; ');
+        }
+        status.textContent = (m.warnings && m.warnings.length)
+          ? m.warnings.join(' ')
+          : 'Review and edit, then copy or send.';
+        status.className = '';
         if (m.target) { sendBtn.style.display = 'inline-block'; sendBtn.textContent = 'Send to ' + m.target; }
         else { sendBtn.style.display = 'none'; }
       }
-      if (m.detail) document.getElementById('detail').value = m.detail;
+      if (m.detail) detailSel.value = m.detail;
+      if (m.tone) toneSel.value = m.tone;
     } else if (m.kind === 'error') {
+      setBusy(false);
       status.textContent = m.message; status.className = 'err';
+    } else if (m.kind === 'cancelled') {
+      setBusy(false);
+      status.textContent = m.message || 'Cancelled.'; status.className = '';
     }
   });
 </script>

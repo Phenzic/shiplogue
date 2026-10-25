@@ -5,3 +5,9 @@ dist/
 .DS_Store
 .env
 *.log
+
+# Local launch copy and drafts — not part of the extension
+marketing/
+/extension/IMPLEMENTATION_PLAN.md
+/extension/IMPLEMENTATION_STATUS.md
+/extension/TEST_REPORT.md

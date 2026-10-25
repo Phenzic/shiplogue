@@ -35,8 +35,9 @@ interface SearchItem {
   pull_request?: unknown;
 }
 
-async function gh(path: string, token: string): Promise<any> {
+async function gh(path: string, token: string, signal?: AbortSignal): Promise<any> {
   const res = await fetch(`${API}${path}`, {
+    signal,
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
@@ -50,13 +51,13 @@ async function gh(path: string, token: string): Promise<any> {
   return res.json();
 }
 
-async function resolveRepos(configured: string[]): Promise<string[]> {
+async function resolveRepos(configured: string[], signal?: AbortSignal): Promise<string[]> {
   if (configured.length > 0) {
     return configured;
   }
   const slugs = new Set<string>();
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
-    const slug = await repoSlug(folder.uri.fsPath);
+    const slug = await repoSlug(folder.uri.fsPath, signal);
     if (slug) {
       slugs.add(slug);
     }
@@ -70,14 +71,15 @@ export async function collectGitHub(
   token: string,
   configuredRepos: string[],
   since: Date,
+  signal?: AbortSignal,
 ): Promise<GitHubItem[]> {
   if (!token) {
     return [];
   }
   try {
-    const me = await gh("/user", token);
+    const me = await gh("/user", token, signal);
     const login: string = me.login;
-    const repos = await resolveRepos(configuredRepos);
+    const repos = await resolveRepos(configuredRepos, signal);
     if (repos.length === 0) {
       return [];
     }
@@ -92,7 +94,7 @@ export async function collectGitHub(
       ];
       for (const { kind, q } of queries) {
         try {
-          const data = await gh(`/search/issues?q=${encodeURIComponent(q)}&per_page=30`, token);
+          const data = await gh(`/search/issues?q=${encodeURIComponent(q)}&per_page=30`, token, signal);
           for (const it of (data.items ?? []) as SearchItem[]) {
             out.push({
               kind,

@@ -44,7 +44,6 @@ export class Store {
       return;
     }
     const pending = this.buffer;
-    this.buffer = [];
 
     // Group by day in case a flush straddles midnight.
     const byDay = new Map<string, ActivityEvent[]>();
@@ -54,16 +53,73 @@ export class Store {
       arr.push(ev);
       byDay.set(key, arr);
     }
+
+    // Only clear the buffer for days that were actually written — a failed
+    // write re-queues its events (bounded) so activity is never silently lost.
+    const failed: ActivityEvent[] = [];
     for (const [key, evs] of byDay) {
       const file = this.fileFor(key);
-      const existing = this.readFile(file);
-      existing.push(...evs);
+      const tmp = `${file}.tmp`;
       try {
-        fs.writeFileSync(file, JSON.stringify(existing), "utf8");
+        const existing = this.readFile(file);
+        existing.push(...evs);
+        // Temp file + rename: a crash mid-write never leaves a torn JSON file.
+        fs.writeFileSync(tmp, JSON.stringify(existing), "utf8");
+        fs.renameSync(tmp, file);
       } catch (e) {
-        console.error("[standup] failed to write activity:", e);
+        console.error("[standup] failed to write activity — events kept for the next flush:", e);
+        failed.push(...evs);
+        try {
+          fs.rmSync(tmp, { force: true });
+        } catch {
+          /* ignore */
+        }
       }
     }
+
+    if (failed.length === 0) {
+      this.buffer = [];
+    } else {
+      // Bound memory if the disk keeps failing.
+      const MAX_REQUEUE = 500;
+      if (failed.length > MAX_REQUEUE) {
+        console.error(`[standup] dropping ${failed.length - MAX_REQUEUE} activity events — storage keeps failing`);
+      }
+      this.buffer = failed.slice(0, MAX_REQUEUE);
+    }
+  }
+
+  // Delete day files older than the retention window (0 = keep forever).
+  // Returns the number of files removed.
+  pruneOld(retentionDays: number): number {
+    if (retentionDays <= 0) {
+      return 0;
+    }
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - retentionDays);
+    const cutoffKey = Store.dateKey(cutoff); // YYYY-MM-DD compares lexicographically
+    let files: string[] = [];
+    try {
+      files = fs.readdirSync(this.dir);
+    } catch {
+      return 0;
+    }
+    let removed = 0;
+    for (const f of files) {
+      const m = f.match(/^activity-(\d{4}-\d{2}-\d{2})\.json$/);
+      if (m && m[1] < cutoffKey) {
+        try {
+          fs.rmSync(path.join(this.dir, f));
+          removed++;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    if (removed > 0) {
+      console.log(`[standup] pruned ${removed} activity file(s) older than ${retentionDays} days`);
+    }
+    return removed;
   }
 
   private readFile(file: string): ActivityEvent[] {

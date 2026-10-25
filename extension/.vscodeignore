@@ -1,5 +1,7 @@
 .vscode/**
 src/**
+test/**
+TEST_REPORT.md
 **/*.ts
 **/*.map
 tsconfig.json
