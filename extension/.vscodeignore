@@ -2,6 +2,7 @@
 src/**
 test/**
 TEST_REPORT.md
+IMPLEMENTATION_*.md
 **/*.ts
 **/*.map
 tsconfig.json
