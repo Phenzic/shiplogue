@@ -3,6 +3,23 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.1] — 2026-10-28
+
+Beta packaging pass. No behaviour changes.
+
+### Changed
+
+- Publisher id is `phenzic`; repository, bugs and homepage now point at
+  `Phenzic/standup` instead of placeholder URLs.
+- Declared `extensionKind: workspace` and capabilities for untrusted and virtual
+  workspaces, so the extension is disabled rather than half-working in Restricted
+  Mode or on virtual filesystems.
+- Activity storage path follows the publisher id: `globalStorage/phenzic.standup/`.
+  Logs from `standup-dev` dev builds are not migrated (0.1.0 was never public).
+- `npm test` now discovers suites recursively under `test/`, so future
+  `test/model` and `test/core` suites cannot be silently skipped.
+- Added a pinned `npm run package` script (`@vscode/vsce` 4.1.0).
+
 ## [0.1.0] — 2026-10-25
 
 ### Added

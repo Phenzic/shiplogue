@@ -13,12 +13,13 @@ It is local-first by default. Today that means a local Ollama server; the next
 build adds a small bundled quantized model so Ollama is optional. A higher-capacity
 hosted model is planned as an opt-in paid option.
 
-> **Status:** **0.1.0** development build. There is no Marketplace/Open VSX
-> listing or public release yet — run from source.
+> **Status:** **0.1.1** beta. No Marketplace/Open VSX listing yet — install from the
+> release VSIX (or run from source). This build still needs Ollama.
 >
-> **Current vs planned:** today: Ollama, manual review, manual posting. Planned:
-> bundled local model, hosted model, paid plans, automatic posting. Nothing paid
-> or hosted exists yet.
+> **Current vs planned:** today: Ollama, manual review, manual posting. Next: bring
+> your own API key (Anthropic / OpenAI / Google / OpenAI-compatible) so testers can
+> skip the Ollama install. Later: bundled local model, hosted model, paid plans,
+> automatic posting. Nothing paid or hosted exists yet.
 >
 > **Screenshot/GIF placeholder** — capture the Stand-up panel with a generated
 > draft and replace this block before publishing.
@@ -244,8 +245,9 @@ The full current policy is in [`PRIVACY.md`](PRIVACY.md).
 Today:
 
 - Activity logs live under the editor's global storage:
-  `.../User/globalStorage/standup-dev.standup/activity/` (one JSON file per local
-  day).
+  `.../User/globalStorage/phenzic.standup/activity/` (one JSON file per local
+  day). If you installed an earlier `standup-dev` dev build, its logs live under
+  `standup-dev.standup/` and are not migrated automatically.
 - Cursor's chat database is opened read-only with `immutable=1`; it is never
   modified.
 - With Ollama on `localhost`, no activity text leaves the machine for

@@ -1,6 +1,10 @@
 .vscode/**
+.vscode-test/**
 src/**
 test/**
+scripts/**
+coverage/**
+**/*.vsix
 TEST_REPORT.md
 IMPLEMENTATION_*.md
 **/*.ts

@@ -2,16 +2,16 @@
   "name": "standup",
   "displayName": "Standup",
   "description": "Local-first daily stand-up generator for VS Code-family editors (VS Code, Cursor). Watches your git, IDE activity & GitHub, drafts your stand-up with a local LLM, posts to Discord/Slack.",
-  "version": "0.1.0",
-  "publisher": "standup-dev",
+  "version": "0.1.1",
+  "publisher": "phenzic",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/standup-dev/standup"
+    "url": "https://github.com/Phenzic/standup"
   },
-  "bugs": "https://github.com/standup-dev/standup/issues",
-  "homepage": "https://github.com/standup-dev/standup#readme",
-  "keywords": ["standup", "stand-up", "daily", "ollama", "git", "github", "cursor", "llm", "local"],
+  "bugs": "https://github.com/Phenzic/standup/issues",
+  "homepage": "https://github.com/Phenzic/standup#readme",
+  "keywords": ["standup", "stand-up", "daily", "ollama", "byok", "git", "github", "cursor", "llm", "local", "privacy"],
   "icon": "images/icon.png",
   "galleryBanner": {
     "color": "#1e3a5f",
@@ -21,9 +21,21 @@
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "SCM Providers"
   ],
   "main": "./out/extension.js",
+  "extensionKind": ["workspace"],
+  "capabilities": {
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Standup reads real repository history and local editor activity, which virtual workspaces do not provide."
+    },
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Standup runs git commands in the workspace and records local activity, so it requires a trusted workspace."
+    }
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -190,9 +202,10 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "npm run compile && node --test test/*.test.js",
+    "test": "npm run compile && node scripts/run-tests.mjs",
     "test:e2e": "STANDUP_E2E=1 node --test --test-concurrency=1 test/e2e.ollama.test.js test/e2e.pipeline.test.js",
-    "test:cursor": "CURSOR_REAL_DB=1 node --test test/e2e.local.test.js"
+    "test:cursor": "CURSOR_REAL_DB=1 node --test test/e2e.local.test.js",
+    "package": "npx --yes @vscode/vsce@4.1.0 package"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
