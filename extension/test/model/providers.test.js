@@ -223,6 +223,30 @@ test("OpenAI-compatible: needs a base URL and tolerates a pasted full endpoint",
   }
 });
 
+test("OpenAI-compatible: an empty content with reasoning yields an actionable error", async () => {
+  const server = await startServer(() => ({
+    body: { choices: [{ message: { content: null, reasoning_content: "Let me think…" } }] },
+  }));
+  try {
+    await assert.rejects(
+      () =>
+        compatibleAdapter.generate(
+          { prompt: "x", temperature: 0, maxTokens: 10 },
+          config({ baseUrl: server.url }),
+        ),
+      (e) => {
+        assert.ok(e instanceof ProviderError);
+        assert.equal(e.code, "bad_response");
+        assert.match(e.message, /reasoning but no final answer/);
+        assert.ok(e.userFacing);
+        return true;
+      },
+    );
+  } finally {
+    await server.close();
+  }
+});
+
 test("HTTP errors map to actionable, key-free messages", async () => {
   const cases = [
     { status: 401, body: { error: { message: "bad key sk-secretsecret123" } }, code: "auth" },

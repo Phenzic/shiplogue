@@ -63,7 +63,13 @@ export const compatibleAdapter: ProviderAdapter = {
     ).trim();
 
     if (!text) {
-      throw new ProviderError("The endpoint returned an empty response.", "bad_response");
+      const reasoning = data?.choices?.[0]?.message?.reasoning_content;
+      throw new ProviderError(
+        reasoning
+          ? "The endpoint returned reasoning but no final answer content. If you use a reasoning model (for example deepseek-reasoner), switch to the non-reasoning model (for example deepseek-chat) or raise the output budget."
+          : "The endpoint returned an empty response.",
+        "bad_response",
+      );
     }
     return {
       text,

@@ -11,7 +11,19 @@
   },
   "bugs": "https://github.com/Phenzic/standup/issues",
   "homepage": "https://github.com/Phenzic/standup#readme",
-  "keywords": ["standup", "stand-up", "daily", "ollama", "byok", "git", "github", "cursor", "llm", "local", "privacy"],
+  "keywords": [
+    "standup",
+    "stand-up",
+    "daily",
+    "ollama",
+    "byok",
+    "git",
+    "github",
+    "cursor",
+    "llm",
+    "local",
+    "privacy"
+  ],
   "icon": "images/icon.png",
   "galleryBanner": {
     "color": "#1e3a5f",
@@ -25,7 +37,9 @@
     "SCM Providers"
   ],
   "main": "./out/extension.js",
-  "extensionKind": ["workspace"],
+  "extensionKind": [
+    "workspace"
+  ],
   "capabilities": {
     "virtualWorkspaces": {
       "supported": false,
@@ -100,7 +114,11 @@
         },
         "standup.ollama.think": {
           "type": "string",
-          "enum": ["auto", "on", "off"],
+          "enum": [
+            "auto",
+            "on",
+            "off"
+          ],
           "enumDescriptions": [
             "Let the model decide; if it returns nothing, Standup retries once with thinking disabled and a larger budget",
             "Always enable reasoning (think: true)",
@@ -111,7 +129,12 @@
         },
         "standup.model.backend": {
           "type": "string",
-          "enum": ["auto", "local", "provider", "ollama"],
+          "enum": [
+            "auto",
+            "local",
+            "provider",
+            "ollama"
+          ],
           "enumDescriptions": [
             "Use a configured API provider if there is one, otherwise Ollama",
             "Bundled local model (not included in the 0.1.x beta)",
@@ -123,7 +146,13 @@
         },
         "standup.provider.type": {
           "type": "string",
-          "enum": ["none", "anthropic", "openai", "google", "openai-compatible"],
+          "enum": [
+            "none",
+            "anthropic",
+            "openai",
+            "google",
+            "openai-compatible"
+          ],
           "enumDescriptions": [
             "No API provider configured",
             "Anthropic (Claude)",
@@ -163,19 +192,27 @@
         },
         "standup.github.repos": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "markdownDescription": "Repos to check, as `owner/name`. If empty, Standup auto-detects from the current workspace's git `origin` remote."
         },
         "standup.format": {
           "type": "string",
-          "enum": ["done-next-blockers", "yesterday-today-blockers"],
+          "enum": [
+            "done-next-blockers",
+            "yesterday-today-blockers"
+          ],
           "default": "done-next-blockers",
           "description": "Stand-up format to generate."
         },
         "standup.scope": {
           "type": "string",
-          "enum": ["workspace", "all"],
+          "enum": [
+            "workspace",
+            "all"
+          ],
           "enumDescriptions": [
             "Only activity from the folders open in this window (default)",
             "Activity from all projects you worked on today, across every workspace"
@@ -185,7 +222,11 @@
         },
         "standup.detail": {
           "type": "string",
-          "enum": ["concise", "standard", "elaborate"],
+          "enum": [
+            "concise",
+            "standard",
+            "elaborate"
+          ],
           "enumDescriptions": [
             "3-4 short points, outcomes only",
             "5-7 points with the key specifics (files, endpoints, issue numbers)",
@@ -196,7 +237,12 @@
         },
         "standup.tone": {
           "type": "string",
-          "enum": ["neutral", "junior", "mid", "senior"],
+          "enum": [
+            "neutral",
+            "junior",
+            "mid",
+            "senior"
+          ],
           "enumDescriptions": [
             "Default voice — no styling added",
             "Mentions what you learned and where you asked for help",
@@ -208,7 +254,11 @@
         },
         "standup.webhook.type": {
           "type": "string",
-          "enum": ["none", "discord", "slack"],
+          "enum": [
+            "none",
+            "discord",
+            "slack"
+          ],
           "default": "none",
           "description": "Where the Send button posts your stand-up."
         },
@@ -264,5 +314,8 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "package": "^1.0.1"
   }
 }

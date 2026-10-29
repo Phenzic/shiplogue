@@ -20,11 +20,11 @@ Google). Never paste a key into a scratch file or the QA log.
 
 - [x] Generate at all three detail levels (concise / standard / elaborate) on a heavy day; all complete without empty-response errors.
 - [x] Progress shows the current phase with elapsed seconds ("Writing your stand-up… (42s)").
-- [ ] On a day with >25 commits or >20 AI prompts, the panel meta line shows "showing N of M" and the prompt (via "Standup: Show Tracked Activity") shows the same markers.
-- [ ] If the draft mentions an unverifiable file or #number, the status line shows "⚠ Removed N unverifiable mention(s): …" and the draft does not contain them.
-- [ ] Compare the draft against "Standup: Show Tracked Activity" output: no invented filenames, issues, or PRs.
-- [ ] Inferred "Next" items render italic as `*(inferred)* …`.
-- [ ] `standup.tone: senior` reads distinctly terser than `neutral`.
+- [x] On a day with >25 commits or >20 AI prompts, the panel meta line shows "showing N of M" and the prompt (via "Standup: Show Tracked Activity") shows the same markers.
+- [x] If the draft mentions an unverifiable file or #number, the status line shows "⚠ Removed N unverifiable mention(s): …" and the draft does not contain them.
+- [x] Compare the draft against "Standup: Show Tracked Activity" output: no invented filenames, issues, or PRs.
+- [x] Inferred "Next" items render italic as `*(inferred)* …`.
+- [x] `standup.tone: senior` reads distinctly terser than `neutral`.
 
 ## 3. Cancel & races
 
@@ -68,6 +68,6 @@ Google). Never paste a key into a scratch file or the QA log.
 
 ## 8. Launch
 
-- [ ] `npm run package` produces `standup-0.1.1.vsix` without warnings.
-- [ ] `npm test` passes locally (CI is blocked by a GitHub billing issue — record the local run in the release notes).
-- [ ] Sign-off → create the GitHub Release, attach the VSIX, then `vsce publish` / Open VSX when the publisher account exists.
+- [x] `npm run package` produces `standup-0.1.1.vsix` without warnings.
+- [x] `npm test` passes locally (CI is blocked by a GitHub billing issue — record the local run in the release notes).
+- [x] Sign-off → create the GitHub Release, attach the VSIX, then `vsce publish` / Open VSX when the publisher account exists.
