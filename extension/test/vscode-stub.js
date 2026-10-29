@@ -28,6 +28,7 @@ const stub = {
   saveListeners: [],
   changeListeners: [],
   disposeCount: 0,
+  secrets: {},
   commandRegistry: new Map(),
 
   reset() {
@@ -53,6 +54,7 @@ const stub = {
     this.saveListeners = [];
     this.changeListeners = [];
     this.disposeCount = 0;
+    this.secrets = {};
     this.commandRegistry.clear();
   },
 

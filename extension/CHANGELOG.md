@@ -3,9 +3,26 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.1.1] — 2026-10-28
+## [0.1.1] — unreleased
 
-Beta packaging pass. No behaviour changes.
+Beta packaging and BYOK.
+
+### Added
+
+- **Bring your own API key.** Anthropic, OpenAI, Google Gemini and any
+  OpenAI-compatible endpoint can now write stand-ups, so Ollama is no longer
+  required. Keys are stored with VS Code SecretStorage (OS keychain) and never
+  written to settings or logs.
+- Commands **Standup: Set API Key**, **Standup: Clear API Key** and
+  **Standup: Test Provider**. Setup lists the provider's models and can fall back
+  to a manually typed model id.
+- Settings `standup.model.backend`, `standup.provider.type`,
+  `standup.provider.model`, `standup.provider.baseUrl`,
+  `standup.provider.maxOutputTokens`.
+- The review panel shows which engine wrote the draft (`via Ollama · llama3.2`,
+  `via OpenAI · gpt-4o-mini`, …).
+- Provider errors are actionable and key-free (auth, quota, rate limit, context
+  length, unavailable). There is no silent fallback from a provider to Ollama.
 
 ### Changed
 
@@ -19,6 +36,8 @@ Beta packaging pass. No behaviour changes.
 - `npm test` now discovers suites recursively under `test/`, so future
   `test/model` and `test/core` suites cannot be silently skipped.
 - Added a pinned `npm run package` script (`@vscode/vsce` 4.1.0).
+- The startup Ollama health check only runs when Ollama is the backend that would
+  actually be used.
 
 ## [0.1.0] — 2026-10-25
 

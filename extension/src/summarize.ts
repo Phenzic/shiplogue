@@ -2,6 +2,12 @@ import { cfg } from "./config";
 import { StandupContext } from "./types";
 import { contextToText } from "./gather";
 import { enforceSublists, verifyGrounding } from "./format";
+import { resolveBackend } from "./model/registry";
+import { BackendMeta } from "./model/types";
+
+// Re-exported for compatibility: tests and the e2e suite import OllamaError
+// from here, while the implementation lives with the backend.
+export { OllamaError } from "./model/ollama";
 
 // Each detail level compiles to MEASURABLE constraints (point counts, sentence
 // budgets, specificity rules) — vague adjectives like "be detailed" don't
@@ -105,98 +111,6 @@ function buildPrompt(ctx: StandupContext): string {
   ].join("\n");
 }
 
-export class OllamaError extends Error {}
-
-// Calls the local Ollama server with the style-guided prompt. Throws
-// OllamaError with a friendly message if it can't be reached / model missing.
-async function callOllama(
-  prompt: string,
-  predict: number,
-  temperature: number,
-  signal?: AbortSignal,
-): Promise<string> {
-  const c = cfg();
-  // A user-set numPredict overrides the per-detail budget (reasoning models
-  // often need far more room than the defaults).
-  const budget = c.ollamaNumPredict > 0 ? c.ollamaNumPredict : predict;
-
-  const request = async (numPredict: number, forceThinkOff: boolean) => {
-    const body: Record<string, unknown> = {
-      model: c.ollamaModel,
-      prompt,
-      stream: false,
-      options: { temperature, num_ctx: c.ollamaNumCtx, num_predict: numPredict },
-    };
-    // "auto" sends nothing (server default); the empty-response retry below
-    // forces thinking off so the budget goes to the actual answer.
-    const think =
-      forceThinkOff || c.ollamaThink === "off" ? false : c.ollamaThink === "on" ? true : undefined;
-    if (think !== undefined) {
-      body.think = think;
-    }
-
-    let res: Response;
-    try {
-      res = await fetch(`${c.ollamaUrl}/api/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal,
-      });
-    } catch (e: any) {
-      // Cancellation is not a connection problem — let it propagate.
-      if (e?.name === "AbortError" || signal?.aborted) {
-        throw e;
-      }
-      throw new OllamaError(
-        `Couldn't reach Ollama at ${c.ollamaUrl}. Is it running? Start it with \`brew services start ollama\` and make sure you've pulled a model (\`ollama pull ${c.ollamaModel}\`).`,
-      );
-    }
-
-    if (res.status === 404) {
-      throw new OllamaError(
-        `Model "${c.ollamaModel}" not found in Ollama. Run \`ollama pull ${c.ollamaModel}\`, or change "standup.ollama.model" in settings.`,
-      );
-    }
-    if (!res.ok) {
-      throw new OllamaError(`Ollama returned ${res.status} ${res.statusText}.`);
-    }
-    return (await res.json()) as { response?: string; thinking?: string; done_reason?: string };
-  };
-
-  const first = await request(budget, false);
-  const text = (first.response ?? "").trim();
-
-  // The stand-up template always ends with a **Blockers** section, so a
-  // response cut short by num_predict (done_reason "length") without it is
-  // incomplete — treat it like the empty-reasoning case and retry.
-  const truncated = text.length > 0 && first.done_reason === "length" && !text.includes("**Blockers**");
-  if (text && !truncated) {
-    return text;
-  }
-
-  // Reasoning models (gpt-oss, deepseek-r1, …) can spend the whole output
-  // budget on `thinking` and return nothing. Retry once with a much larger
-  // budget and — under "auto" — thinking disabled.
-  const reasoned = (first.thinking ?? "").trim().length > 0 || first.done_reason === "length";
-  if ((!text && reasoned) || truncated) {
-    const retry = await request(Math.max(budget * 4, 4096), c.ollamaThink === "auto");
-    const retryText = (retry.response ?? "").trim();
-    if (retryText && (!truncated || retryText.includes("**Blockers**"))) {
-      return retryText;
-    }
-    if (truncated) {
-      // Both attempts came back cut short — keep the more complete partial.
-      return retryText.length > text.length ? retryText : text;
-    }
-    throw new OllamaError(
-      "Model spent its whole output budget on reasoning and returned nothing. Increase standup.ollama.numPredict or pick a non-reasoning model (e.g. llama3.2).",
-    );
-  }
-  throw new OllamaError("Ollama returned an empty response.");
-}
-
-// Top-level bullets in the first (Done/Yesterday) section.
 function countDoneBullets(text: string): number {
   const lines = text.split("\n");
   let inDone = false;
@@ -223,6 +137,9 @@ export interface GenerateResult {
   // Human-readable notes about deterministic post-processing (e.g. grounding
   // removals) — surfaced in the panel status line.
   warnings: string[];
+  // Which engine produced the draft, so the panel can show it. Absent only if
+  // the backend failed before returning text.
+  backend?: BackendMeta;
 }
 
 export async function generateStandup(ctx: StandupContext, signal?: AbortSignal): Promise<GenerateResult> {
@@ -230,7 +147,17 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
   const level = DETAIL_LEVELS[c.detail] ?? DETAIL_LEVELS.concise;
   const prompt = buildPrompt(ctx);
 
-  let text = await callOllama(prompt, level.predict, level.temperature, signal);
+  // Resolve once per run: a backend switch mid-generation would produce a
+  // draft whose label doesn't match its source.
+  const backend = await resolveBackend();
+  const first = await backend.generate({
+    prompt,
+    temperature: level.temperature,
+    maxTokens: level.predict,
+    signal,
+  });
+  let text = first.text;
+  let meta = first.meta;
 
   // One self-repair pass: models often under-split into 2-3 bullets no matter
   // what the rules say. Only retry when the activity actually has enough
@@ -251,7 +178,14 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
       "Output only the stand-up, nothing else.",
     ].join("\n");
     try {
-      text = await callOllama(repair, level.predict, level.temperature, signal);
+      const repaired = await backend.generate({
+        prompt: repair,
+        temperature: level.temperature,
+        maxTokens: level.predict,
+        signal,
+      });
+      text = repaired.text;
+      meta = repaired.meta;
     } catch (e: any) {
       // A cancelled repair must not silently fall back to the first draft.
       if (e?.name === "AbortError" || signal?.aborted) {
@@ -267,5 +201,5 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
     removed.length > 0
       ? [`⚠ Removed ${removed.length} unverifiable mention(s): ${[...new Set(removed)].join(", ")}`]
       : [];
-  return { text: cleanDraft, warnings };
+  return { text: cleanDraft, warnings, backend: meta };
 }

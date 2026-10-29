@@ -50,6 +50,18 @@
         "title": "Standup: Show Tracked Activity (debug)"
       },
       {
+        "command": "standup.setProviderKey",
+        "title": "Standup: Set API Key (Bring Your Own)"
+      },
+      {
+        "command": "standup.clearProviderKey",
+        "title": "Standup: Clear API Key"
+      },
+      {
+        "command": "standup.testProvider",
+        "title": "Standup: Test Provider"
+      },
+      {
         "command": "standup.setReminderTime",
         "title": "Standup: Set Reminder Time"
       },
@@ -96,6 +108,47 @@
           ],
           "default": "auto",
           "markdownDescription": "Control reasoning ('thinking') models such as gpt-oss or deepseek-r1."
+        },
+        "standup.model.backend": {
+          "type": "string",
+          "enum": ["auto", "local", "provider", "ollama"],
+          "enumDescriptions": [
+            "Use a configured API provider if there is one, otherwise Ollama",
+            "Bundled local model (not included in the 0.1.x beta)",
+            "Use the configured provider (Anthropic, OpenAI, Google or OpenAI-compatible)",
+            "Use the local Ollama server"
+          ],
+          "default": "auto",
+          "markdownDescription": "Which engine writes your stand-up. `auto` never falls back silently between hosted providers; with no provider configured it uses Ollama."
+        },
+        "standup.provider.type": {
+          "type": "string",
+          "enum": ["none", "anthropic", "openai", "google", "openai-compatible"],
+          "enumDescriptions": [
+            "No API provider configured",
+            "Anthropic (Claude)",
+            "OpenAI",
+            "Google Gemini",
+            "Any endpoint that speaks the OpenAI Chat Completions API — OpenRouter, Groq, Together, LM Studio, llama.cpp"
+          ],
+          "default": "none",
+          "description": "API provider used when standup.model.backend is 'provider' or 'auto'."
+        },
+        "standup.provider.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Model id for the configured provider (for example `claude-sonnet-4-5`, `gpt-4o-mini`, `gemini-2.5-flash`). Run **Standup: Set API Key** to pick from the provider's model list."
+        },
+        "standup.provider.baseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Endpoint base URL for `openai-compatible` providers, e.g. `http://localhost:1234/v1` or `https://openrouter.ai/api/v1`. Paths should not include `/chat/completions`."
+        },
+        "standup.provider.maxOutputTokens": {
+          "type": "number",
+          "default": 1200,
+          "minimum": 0,
+          "markdownDescription": "Hard cap on tokens the provider may generate. `0` uses the per-detail budget (400/900/1600); a positive value caps it with `Math.min`."
         },
         "standup.github.useBuiltInAuth": {
           "type": "boolean",

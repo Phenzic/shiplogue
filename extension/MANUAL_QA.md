@@ -1,22 +1,25 @@
-# Manual QA Checklist — v0.1.0 launch
+# Manual QA Checklist — v0.1.1 beta
 
 Run in a real extension host: `cd extension && npm run compile`, then **F5**
 (Run Extension) on macOS — and on Windows if available (required for 0.2.0,
-nice-to-have for 0.1.0). Have Ollama running with `gpt-oss:20b` pulled, and at
+nice-to-have for 0.1.x). Have Ollama running with `gpt-oss:20b` pulled, and at
 least one workspace with real git activity from today.
+
+For the BYOK section, have at least one API key available (Anthropic, OpenAI or
+Google). Never paste a key into a scratch file or the QA log.
 
 ## 1. Activation & first run
 
-- [ ] Extension activates on startup without errors (Extension Host output clean).
-- [ ] First run asks for a reminder time once; it is not asked again on reload.
-- [ ] Health check: with Ollama stopped, a warning offers "How to install" → opens ollama.com.
-- [ ] Health check: with `standup.ollama.model` set to a non-pulled model, the warning offers "Pull now" (runs `ollama pull` in a terminal) and "Pick another model" (writes the setting globally).
-- [ ] With Ollama running and the model pulled, no warning appears.
+- [x] Extension activates on startup without errors (Extension Host output clean).
+- [x] First run asks for a reminder time once; it is not asked again on reload.
+- [x] Health check: with Ollama stopped, a warning offers "How to install" → opens ollama.com.
+- [x] Health check: with `standup.ollama.model` set to a non-pulled model, the warning offers "Pull now" (runs `ollama pull` in a terminal) and "Pick another model" (writes the setting globally).
+- [x] With Ollama running and the model pulled, no warning appears.
 
 ## 2. Generation quality (with `gpt-oss:20b`)
 
-- [ ] Generate at all three detail levels (concise / standard / elaborate) on a heavy day; all complete without empty-response errors.
-- [ ] Progress shows the current phase with elapsed seconds ("Writing your stand-up… (42s)").
+- [x] Generate at all three detail levels (concise / standard / elaborate) on a heavy day; all complete without empty-response errors.
+- [x] Progress shows the current phase with elapsed seconds ("Writing your stand-up… (42s)").
 - [ ] On a day with >25 commits or >20 AI prompts, the panel meta line shows "showing N of M" and the prompt (via "Standup: Show Tracked Activity") shows the same markers.
 - [ ] If the draft mentions an unverifiable file or #number, the status line shows "⚠ Removed N unverifiable mention(s): …" and the draft does not contain them.
 - [ ] Compare the draft against "Standup: Show Tracked Activity" output: no invented filenames, issues, or PRs.
@@ -49,8 +52,22 @@ least one workspace with real git activity from today.
 - [ ] `kill -9` the extension host mid-flush: no `.tmp` files remain in the activity dir, no torn JSON, no lost day.
 - [ ] Day files older than `standup.store.retentionDays` are pruned on startup (check the debug console log).
 
-## 7. Launch
+## 7. Bring your own API key (new in 0.1.1)
 
-- [ ] `npx @vscode/vsce package` produces `standup-0.1.0.vsix` without warnings.
-- [ ] CI workflow green on ubuntu/macos/windows.
-- [ ] Sign-off → tag `v0.1.0`, `vsce publish`, Marketplace listing text finalized.
+- [ ] **Standup: Set API Key** → pick a provider → paste key → model list appears; choosing one writes `standup.provider.type/model` and switches `standup.model.backend` to `provider`.
+- [ ] While the key is stored, `settings.json` contains no key; no output channel or notification prints it.
+- [ ] **Standup: Test Provider** reports success for the chosen model.
+- [ ] Generate a stand-up with the provider; the panel meta line shows `via <Provider> · <model>`.
+- [ ] Stop Ollama: generation still works with `backend: provider`, and no "Ollama isn't running" warning appears at startup.
+- [ ] Set `standup.model.backend: ollama` with a provider configured: generation uses Ollama and the badge says `via Ollama`.
+- [ ] Set `backend: provider` with no key: generation fails with the "Run Standup: Set API Key" message, not a stack trace, and does not call Ollama.
+- [ ] Revoke/garble the key: the error says the key was rejected and does not echo it.
+- [ ] `openai-compatible`: point at LM Studio (`http://localhost:1234/v1`), leave the key blank, pick a loaded model, generate.
+- [ ] **Standup: Clear API Key** removes the key and resets `provider.type`/`model.backend`.
+- [ ] Reload the window: the key survives (keychain) and generation works without re-entry.
+
+## 8. Launch
+
+- [ ] `npm run package` produces `standup-0.1.1.vsix` without warnings.
+- [ ] `npm test` passes locally (CI is blocked by a GitHub billing issue — record the local run in the release notes).
+- [ ] Sign-off → create the GitHub Release, attach the VSIX, then `vsce publish` / Open VSX when the publisher account exists.

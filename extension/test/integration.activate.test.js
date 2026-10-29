@@ -68,7 +68,7 @@ async function cleanup() {
   if (ext.healthCheckDone) await ext.healthCheckDone;
 }
 
-async function withActivation(t, { repoDir, storage, config, setupDone = true, lastReminder, inputAnswers = [], warningAnswers = [], quickPickAnswers = [] }) {
+async function withActivation(t, { repoDir, storage, config, setupDone = true, lastReminder, inputAnswers = [], warningAnswers = [], quickPickAnswers = [], secrets = {} }) {
   stub.reset();
   stub.setFolders([{ fsPath: repoDir, name: "demo" }]);
   stub.setConfig(config);
@@ -76,6 +76,7 @@ async function withActivation(t, { repoDir, storage, config, setupDone = true, l
   stub.warningAnswers.push(...warningAnswers);
   stub.quickPickAnswers.push(...quickPickAnswers);
   const ctx = makeContext(storage);
+  for (const [key, value] of Object.entries(secrets)) ctx.__secrets.set(key, value);
   if (setupDone) await ctx.globalState.update("setupDone", true);
   if (lastReminder) await ctx.globalState.update("lastReminderYmd", lastReminder);
   activate(ctx);
@@ -117,10 +118,18 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
     lastReminder: ymd(),
   });
 
-  // The extension registered all four commands.
+  // The extension registered every command it contributes.
   assert.deepEqual(
     [...stub.commandRegistry.keys()].sort(),
-    ["standup.connectGitHub", "standup.generate", "standup.setReminderTime", "standup.showActivity"],
+    [
+      "standup.clearProviderKey",
+      "standup.connectGitHub",
+      "standup.generate",
+      "standup.setProviderKey",
+      "standup.setReminderTime",
+      "standup.showActivity",
+      "standup.testProvider",
+    ],
   );
   // Tracking is live: a save in this window is recorded.
   assert.equal(stub.listenerCount(), 2);
@@ -133,7 +142,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   const loading = panel.messages.filter((m) => m.kind === "loading");
   assert.deepEqual(
     loading.map((m) => m.label),
-    ["Gathering commits…", "Gathering GitHub activity…", "Writing your stand-up with the local model…"],
+    ["Gathering commits…", "Gathering GitHub activity…", "Writing your stand-up…"],
   );
 
   const draft = panel.messages.find((m) => m.kind === "draft");
@@ -146,6 +155,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.deepEqual(draft.summary, { commits: 2, files: 1, github: 2 });
   assert.equal(draft.detail, "concise");
   assert.equal(draft.target, "");
+  assert.equal(draft.modelLabel, "Ollama · test-model");
 
   // What the model actually received. (The activation-time health check also
   // hits the mock server with GET /api/tags — filter to generate calls.)
@@ -279,6 +289,27 @@ test("health check: unreachable Ollama warns, and 'How to install' opens ollama.
   assert.match(warn.message, /Ollama isn't running/);
   assert.deepEqual(warn.items, ["How to install", "Dismiss"]);
   assert.deepEqual(stub.openedUrls, ["https://ollama.com"]);
+});
+
+test("health check: a configured provider skips the Ollama probe entirely", async (t) => {
+  const dir = tmpDir("standup-plain-");
+  const storage = tmpDir();
+  await withActivation(t, {
+    repoDir: dir,
+    storage,
+    config: baseConfig({
+      "standup.model.backend": "provider",
+      "standup.ollama.url": "http://127.0.0.1:1",
+      "standup.provider.type": "openai",
+      "standup.provider.model": "gpt-test",
+    }),
+    secrets: { "standup.provider.openai.apiKey": "sk-test" },
+    lastReminder: ymd(),
+    warningAnswers: ["How to install"],
+  });
+  await ext.healthCheckDone;
+  assert.equal(stub.notifications.filter((n) => n.warning).length, 0);
+  assert.deepEqual(stub.openedUrls, []);
 });
 
 test("health check: a missing model offers 'Pull now' in a terminal", async (t) => {

@@ -38,6 +38,17 @@ export function cfg() {
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),
     cursorEnabled: c.get<boolean>("cursor.enabled", true),
+    // Which drafting backend to use. "local" (bundled model) lands in 0.2.0;
+    // until then it produces an actionable message rather than a crash.
+    modelBackend: c.get<"auto" | "local" | "provider" | "ollama">("model.backend", "auto"),
+    providerType: c.get<"none" | "anthropic" | "openai" | "google" | "openai-compatible">(
+      "provider.type",
+      "none",
+    ),
+    providerModel: c.get<string>("provider.model", "").trim(),
+    providerBaseUrl: c.get<string>("provider.baseUrl", "").trim().replace(/\/+$/, ""),
+    // Hard cap for BYOK output; 0 = use the detail level's budget.
+    providerMaxOutputTokens: c.get<number>("provider.maxOutputTokens", 1200),
     detail: detailGetter(),
     tone: toneGetter(),
     scope: c.get<"workspace" | "all">("scope", "workspace"),

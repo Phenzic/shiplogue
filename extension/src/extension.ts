@@ -5,10 +5,15 @@ import { State } from "./state";
 import { Reminder } from "./reminder";
 import { cfg, setDetailGetter, setToneGetter } from "./config";
 import { gatherContext, contextToText } from "./gather";
-import { generateStandup, OllamaError } from "./summarize";
+import { generateStandup } from "./summarize";
 import { githubToken } from "./github";
 import { buildReferences } from "./format";
 import { StandupPanel } from "./standupPanel";
+import { setSecretStorage } from "./model/secrets";
+import { loadProviderConfig, providerDisplayName } from "./model/registry";
+import { BackendMeta } from "./model/types";
+import { clearProviderKey, setProviderKey, testProvider } from "./commands/providerKeys";
+import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
 let state: State;
@@ -28,6 +33,11 @@ export let healthCheckDone: Promise<void> | undefined;
 export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
   state = new State(context);
+  // Provider keys live only in SecretStorage (OS keychain). Guard because a
+  // few hosts (and the test stub) do not implement it.
+  if (context.secrets) {
+    setSecretStorage(context.secrets);
+  }
   store.pruneOld(cfg().storeRetentionDays);
 
   // Migrate a previously saved workspace setting into globalState once.
@@ -60,6 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("standup.generate", () => runGenerate()),
     vscode.commands.registerCommand("standup.showActivity", () => runShowActivity()),
+    vscode.commands.registerCommand("standup.setProviderKey", () => setProviderKey()),
+    vscode.commands.registerCommand("standup.clearProviderKey", () => clearProviderKey()),
+    vscode.commands.registerCommand("standup.testProvider", () => testProvider()),
     vscode.commands.registerCommand("standup.setReminderTime", () =>
       reminder?.pickTime("What time should Standup remind you daily? (24h, local)"),
     ),
@@ -120,8 +133,8 @@ async function runGenerate(): Promise<void> {
       }
       return;
     }
-    setPhase("Writing your stand-up with the local model…");
-    const { text: draft, warnings } = await generateStandup(ctx, controller.signal);
+    setPhase("Writing your stand-up…");
+    const { text: draft, warnings, backend } = await generateStandup(ctx, controller.signal);
     if (controller.signal.aborted) {
       throw new DOMException("Generation aborted", "AbortError");
     }
@@ -153,6 +166,7 @@ async function runGenerate(): Promise<void> {
           ...(notes.length ? { notes } : {}),
         },
         ...(warnings.length ? { warnings } : {}),
+        ...(backend ? { modelLabel: backendLabel(backend) } : {}),
       });
     }
   } catch (e: any) {
@@ -167,7 +181,9 @@ async function runGenerate(): Promise<void> {
         );
       }
     } else if (epoch === generationEpoch) {
-      const msg = e instanceof OllamaError ? e.message : `Something went wrong: ${e.message ?? e}`;
+      // Adapter/backend errors are written for humans; anything else is
+      // unexpected and gets a prefix so it isn't mistaken for advice.
+      const msg = e?.userFacing === true ? e.message : `Something went wrong: ${e.message ?? e}`;
       panel.setError(msg);
     }
   } finally {
@@ -181,12 +197,34 @@ async function runGenerate(): Promise<void> {
   }
 }
 
+// Human label for the panel's "via …" badge.
+function backendLabel(meta: BackendMeta): string {
+  if (meta.kind === "provider") {
+    const name = meta.provider
+      ? providerDisplayName(meta.provider as ActiveProviderType)
+      : "Provider";
+    return `${name} · ${meta.model}`;
+  }
+  if (meta.kind === "ollama") {
+    return `Ollama · ${meta.model}`;
+  }
+  return `Local model · ${meta.model}`;
+}
+
 // First-run health check: ping Ollama and verify the configured model is
 // pulled. Fire-and-forget from activate() — a slow or down server must never
 // delay or break activation, so every path is caught.
 async function checkOllamaHealth(): Promise<void> {
   try {
     const c = cfg();
+    // Only probe Ollama when it is the backend that would actually be used.
+    // A configured provider must not trigger an "Ollama isn't running" warning.
+    if (c.modelBackend === "provider" || c.modelBackend === "local") {
+      return;
+    }
+    if (c.modelBackend === "auto" && (await loadProviderConfig())) {
+      return;
+    }
     let models: string[];
     try {
       const res = await fetch(`${c.ollamaUrl}/api/tags`, { signal: AbortSignal.timeout(2000) });

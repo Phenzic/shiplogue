@@ -31,9 +31,14 @@ function tmpDir(prefix = "standup-test-") {
 // Fake ExtensionContext: on-disk storage + in-memory globalState that persists
 // across contexts for the same storage dir (mirrors VS Code globalState).
 const stateStores = new Map();
+// SecretStorage is separate from globalState and also persists per storage dir,
+// mirroring the OS keychain surviving a reload.
+const secretStores = new Map();
 function makeContext(storageDir) {
   if (!stateStores.has(storageDir)) stateStores.set(storageDir, new Map());
   const state = stateStores.get(storageDir);
+  if (!secretStores.has(storageDir)) secretStores.set(storageDir, new Map());
+  const secretValues = secretStores.get(storageDir);
   return {
     globalStorageUri: { fsPath: storageDir },
     globalState: {
@@ -45,9 +50,26 @@ function makeContext(storageDir) {
         return Promise.resolve();
       },
     },
+    secrets: {
+      get(key) {
+        return Promise.resolve(secretValues.get(key));
+      },
+      store(key, value) {
+        secretValues.set(key, value);
+        return Promise.resolve();
+      },
+      delete(key) {
+        secretValues.delete(key);
+        return Promise.resolve();
+      },
+      onDidChange() {
+        return { dispose() {} };
+      },
+    },
     subscriptions: [],
     extensionPath: process.cwd(),
     __state: state,
+    __secrets: secretValues,
   };
 }
 

@@ -9,17 +9,18 @@ and issues, and (in Cursor) the prompts you gave your AI assistant — then asks
 model to write your stand-up. You review and edit the draft, then copy it or send
 it to Slack/Discord.
 
-It is local-first by default. Today that means a local Ollama server; the next
-build adds a small bundled quantized model so Ollama is optional. A higher-capacity
-hosted model is planned as an opt-in paid option.
+It is local-first by default: a local Ollama server, or a bundled quantized model
+in a later build. Bring-your-own-key providers (Anthropic, OpenAI, Google, or an
+OpenAI-compatible endpoint) are available now if you would rather not run a local
+model. A higher-capacity hosted model is planned as an opt-in paid option.
 
 > **Status:** **0.1.1** beta. No Marketplace/Open VSX listing yet — install from the
-> release VSIX (or run from source). This build still needs Ollama.
+> release VSIX (or run from source). This build uses Ollama or your own API key.
 >
-> **Current vs planned:** today: Ollama, manual review, manual posting. Next: bring
-> your own API key (Anthropic / OpenAI / Google / OpenAI-compatible) so testers can
-> skip the Ollama install. Later: bundled local model, hosted model, paid plans,
-> automatic posting. Nothing paid or hosted exists yet.
+> **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
+> OpenAI / Google / OpenAI-compatible), manual review, manual posting. Later:
+> bundled local model, hosted model, paid plans, automatic posting. Nothing paid
+> or hosted by us exists yet.
 >
 > **Screenshot/GIF placeholder** — capture the Stand-up panel with a generated
 > draft and replace this block before publishing.
@@ -29,12 +30,15 @@ hosted model is planned as an opt-in paid option.
 - **A VS Code-compatible editor:** VS Code 1.85+, Cursor, Antigravity, VSCodium,
   Windsurf or a similar fork. VS Code, Cursor and Antigravity are the supported
   targets; runtime QA on some forks is still pending.
-- **A model backend.** The current build uses **Ollama**:
-  ```bash
-  ollama pull llama3.2
-  ```
-  A bundled quantized model (no Ollama) and an optional hosted model are planned,
-  not available yet.
+- **A model backend** — either:
+  - **Ollama** (local, free):
+    ```bash
+    ollama pull llama3.2
+    ```
+  - or **your own API key** for Anthropic, OpenAI, Google Gemini, or any
+    OpenAI-compatible endpoint. Run **Standup: Set API Key** and pick a model.
+    The key is stored in the OS keychain, not in settings.
+  A bundled quantized model (no Ollama, no key) is planned, not available yet.
 - **Node/npm** for the development install.
 - Optional: **GitHub** sign-in or a personal access token for merged-PR and
   closed-issue context.
@@ -45,11 +49,40 @@ hosted model is planned as an opt-in paid option.
 | Backend | Status | Setup | Where activity goes |
 | --- | --- | --- | --- |
 | Ollama | **Available now** | Install Ollama, pull a model | Your local Ollama server |
+| Your own API key (BYOK) | **Available now** | `Standup: Set API Key` | The provider you choose (Anthropic, OpenAI, Google, or your compatible endpoint) |
 | Bundled quantized model | Planned (free) | None | On-device |
 | Hosted higher-capacity model | Planned (paid) | Opt-in account | Hosted API; raw diffs not retained |
 
-Today only the Ollama backend exists. The rest of this README describes current
-behaviour and marks planned features explicitly.
+`standup.model.backend` controls selection:
+
+- `auto` (default) — a fully configured provider wins; otherwise Ollama.
+- `provider` — only the configured provider; fails loudly if it isn't set up.
+- `ollama` — only Ollama.
+- `local` — reserved for the bundled model; in 0.1.x it explains that the model
+  isn't included.
+
+There is **no silent fallback** between a cloud provider and Ollama: if you chose
+a provider, a failure is reported instead of sending your activity somewhere else.
+The panel shows which engine wrote each draft (`via Ollama · llama3.2`,
+`via OpenAI · gpt-4o-mini`, …).
+
+### Bring your own API key
+
+1. Run **Standup: Set API Key** from the Command Palette.
+2. Pick a provider.
+3. Paste the key (stored with VS Code SecretStorage → OS keychain).
+4. Pick a model from the provider's list, or type an id if listing fails.
+
+For `openai-compatible`, enter the base URL too, e.g.
+`http://localhost:1234/v1` (LM Studio) or `https://openrouter.ai/api/v1`.
+
+Other commands:
+
+- **Standup: Test Provider** — one tiny request to prove key, endpoint and model.
+- **Standup: Clear API Key** — deletes the stored key for a provider.
+
+Keys are never written to `settings.json`, logs, or error messages. See
+[`PRIVACY.md`](PRIVACY.md) for what a cloud provider receives.
 
 ## Install and run (development)
 
@@ -93,8 +126,9 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
 
 ### Drafting
 
-- **Ollama today** (default `llama3.2` at `http://localhost:11434`); backend
-  selection arrives with the planned bundled and hosted backends.
+- **Two backend families:** local Ollama, or a BYOK provider (Anthropic, OpenAI,
+  Google Gemini, OpenAI-compatible). Selection is explicit; `auto` prefers a
+  configured provider, then Ollama, and never falls back silently.
 - **Three detail levels:** concise (3–4 points), standard (5–7), elaborate (6–9,
   files enumerated).
 - **Four tones:** neutral, junior, mid, senior.
@@ -113,8 +147,9 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
   are built from fetched GitHub data, so links cannot be hallucinated.
 - **Prompt-injection hygiene:** activity is wrapped as untrusted data, and
   instruction-looking lines are neutralised before reaching the model.
-- **Startup health check:** warns if Ollama is unreachable or the configured
-  model is not pulled, with actions to install, pull it, or pick another model.
+- **Startup health check:** when Ollama is the actual backend, warns if it is
+  unreachable or the configured model is not pulled, with actions to install,
+  pull it, or pick another model. A configured provider skips this check.
 - **Input caps:** 25 commits, 20 Cursor prompts and 30 GitHub items, with
   “showing N of M” notes so omitted activity stays visible. A preflight
   token-budget check and priority trimming are planned.
@@ -146,6 +181,11 @@ backends ship.
 | `standup.ollama.numPredict` | `0` | Output token budget; `0` uses the per-detail default (400/900/1600) |
 | `standup.ollama.numCtx` | `8192` | Context window passed to Ollama; raise for very busy days |
 | `standup.ollama.think` | `auto` | Reasoning control: `auto` (retry with thinking off if empty), `on`, `off` |
+| `standup.model.backend` | `auto` | `auto` / `local` / `provider` / `ollama` |
+| `standup.provider.type` | `none` | `anthropic` / `openai` / `google` / `openai-compatible` |
+| `standup.provider.model` | `""` | Model id, normally set by **Standup: Set API Key** |
+| `standup.provider.baseUrl` | `""` | Endpoint override, mainly for `openai-compatible` |
+| `standup.provider.maxOutputTokens` | `1200` | Hard cap on provider output; `0` uses the detail budget |
 | `standup.github.useBuiltInAuth` | `true` | Use the editor's GitHub sign-in instead of a PAT |
 | `standup.github.token` | `""` | Optional PAT; overrides built-in auth |
 | `standup.github.repos` | `[]` | `owner/name` list; auto-detected from git `origin` when empty |
@@ -252,6 +292,15 @@ Today:
   modified.
 - With Ollama on `localhost`, no activity text leaves the machine for
   summarisation. A remote `standup.ollama.url` sends it there by your choice.
+- **With a BYOK provider, the assembled activity context and prompt are sent to
+  that provider** (Anthropic, OpenAI, Google, or the OpenAI-compatible endpoint
+  you configured) so it can write the draft. That is inherent to using a cloud
+  model; pick Ollama if activity must stay on-device. Standup adds no other
+  network calls for drafting.
+- Provider API keys are stored with VS Code SecretStorage (OS keychain) and are
+  never written to `settings.json`, logs, or error messages. Uninstalling the
+  extension does not necessarily remove them — use **Standup: Clear API Key** or
+  your OS keychain.
 - GitHub API calls happen only when GitHub context is enabled and credentials
   exist.
 - Only the draft you explicitly post is sent to your webhook. There is no
@@ -273,7 +322,22 @@ Planned hosted model (opt-in, paid):
 **“Ollama isn't running” warning at startup**
 Start Ollama (`ollama serve`, or `brew services start ollama` on macOS), then
 check `standup.ollama.url`. The warning offers an install link; it never blocks
-activation. The current build needs Ollama; the bundled model is planned.
+activation. It only appears when Ollama is the backend that would be used — a
+configured provider skips it.
+
+**“Anthropic rejected the API key” / “OpenAI is rate limiting this key”**
+Run **Standup: Test Provider** to isolate key, endpoint and model in one request.
+Replace the key with **Standup: Set API Key**; rate limits and quota are enforced
+by the provider, not Standup. Error text never includes the key.
+
+**“could not find that model”**
+The model id is not available to that key (or was retired). Run **Standup: Set API
+Key** again and pick from the list, or update `standup.provider.model`.
+
+**A provider is configured but Standup still talks to Ollama**
+Check `standup.model.backend`. `provider` never falls back; `auto` uses the
+provider only when type, model and key (if required) are all present. A local
+OpenAI-compatible endpoint also needs `standup.provider.baseUrl`.
 
 **“Model 'X' isn't pulled” warning**
 Use **Pull now** to run `ollama pull X`, or **Pick another model** to choose an
@@ -321,13 +385,14 @@ no folder open, Standup falls back to all projects.
 **Context or token limits**
 The current build caps input at 25 commits, 20 Cursor prompts and 30 GitHub
 items and shows “showing N of M”. If your model still reports a context problem,
-raise `standup.ollama.numCtx` or reduce `standup.lookbackHours`. A preflight
-budget check with a clear warning is planned.
+raise `standup.ollama.numCtx` (Ollama) or reduce `standup.lookbackHours` / lower
+`standup.detail` (providers). A preflight budget check with a clear warning is
+planned.
 
 ## Known limitations
 
-- **Current build needs Ollama.** Bundled local and hosted models are planned, not
-  available.
+- **Ollama or an API key is required.** There is no bundled model yet; hosted
+  plans are planned, not available.
 - **VS Code-compatible editors only.** Supported targets include VS Code, Cursor,
   Antigravity, VSCodium and Windsurf; JetBrains, Zed, Neovim and Sublime need
   separate adapters.
@@ -355,13 +420,14 @@ budget check with a clear warning is planned.
 
 ## Roadmap
 
-**0.1.0 — current development build**
+**0.1.1 — beta (current)**
 
-- CI across operating systems, Marketplace metadata, changelog, privacy
-  statement, icon and version bump are in place.
-- Remaining: manual QA in a real extension host (health check, real GitHub
-  sign-in, real Discord/Slack webhooks, multi-root and no-folder windows, cancel
-  and soak tests), then publish.
+- Ollama, plus bring-your-own-key Anthropic / OpenAI / Google / OpenAI-compatible
+  providers with keys in the OS keychain.
+- Packaging, publisher and test-runner metadata are in place.
+- Remaining: manual QA in a real extension host (BYOK setup, health check, real
+  GitHub sign-in, real Discord/Slack webhooks, multi-root and no-folder windows,
+  cancel and soak tests), then a GitHub Release VSIX.
 
 **Next build — hardening and productization (working title 0.2.0)**
 

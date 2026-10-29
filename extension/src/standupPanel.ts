@@ -9,6 +9,8 @@ export interface DraftPayload {
   summary: { commits: number; files: number; github: number; notes?: string[] };
   // Non-modal caveats shown in the status line (e.g. grounding removals).
   warnings?: string[];
+  // Which engine wrote the draft, e.g. "Ollama · llama3.2".
+  modelLabel?: string;
 }
 
 // Singleton webview: shows the draft in Markdown + Plain-text tabs, an activity
@@ -61,6 +63,7 @@ export class StandupPanel {
       markdown: p.markdown,
       summary: p.summary,
       warnings: p.warnings,
+      modelLabel: p.modelLabel,
       detail: c.detail,
       tone: c.tone,
       target: c.webhookType === "none" ? "" : c.webhookType,
@@ -293,7 +296,8 @@ export class StandupPanel {
         meta.textContent = [
           s.commits ? s.commits + ' commits' : '',
           s.files ? s.files + ' files' : '',
-          s.github ? s.github + ' GitHub items' : ''
+          s.github ? s.github + ' GitHub items' : '',
+          m.modelLabel ? 'via ' + m.modelLabel : ''
         ].filter(Boolean).join(' · ');
         if (s.notes && s.notes.length) {
           meta.textContent += (meta.textContent ? ' — ' : '') + s.notes.join('; ');
