@@ -6,7 +6,9 @@ nice-to-have for 0.1.x). Have Ollama running with `gpt-oss:20b` pulled, and at
 least one workspace with real git activity from today.
 
 For the BYOK section, have at least one API key available (Anthropic, OpenAI or
-Google). Never paste a key into a scratch file or the QA log.
+Google). Never paste a key into a scratch file or the QA log. For §8, also have a
+thinking-by-default endpoint/model (for example DeepSeek `deepseek-flash`, or a
+reasoning model served through OpenRouter/vLLM).
 
 ## 1. Activation & first run
 
@@ -66,7 +68,21 @@ Google). Never paste a key into a scratch file or the QA log.
 - [ ] **Standup: Clear API Key** removes the key and resets `provider.type`/`model.backend`.
 - [ ] Reload the window: the key survives (keychain) and generation works without re-entry.
 
-## 8. Launch
+## 8. Reasoning-by-default BYOK endpoint (0.1.1 fix)
+
+Use a provider/model that enables thinking by default (e.g. DeepSeek
+`deepseek-flash`, or a reasoning model on OpenRouter/vLLM). The request is sent
+without a `thinking`/`reasoning_effort` field, so the endpoint's default applies.
+
+- [ ] **Standup: Test Provider** succeeds (the probe budget is ≥512 tokens, not 16).
+- [ ] Generate at `concise`: the first reply may be reasoning-only; a draft still appears (recovery request at ≥4096 tokens with `reasoning_effort: "none"`).
+- [ ] Generate at `standard`: same, with a draft in the panel.
+- [ ] On an endpoint that rejects `reasoning_effort` with HTTP 400, generation still succeeds via the budget-only retry (provider request log shows 2–3 calls).
+- [ ] Force both attempts to fail (e.g. `standup.provider.maxOutputTokens: 64`): the error names `finish_reason` and a reasoning-token count, and never echoes the key.
+- [ ] The panel badge still shows `via <Provider> · <model>`.
+- [ ] With `standup.model.backend: ollama`, the same project still generates through Ollama (no provider calls).
+
+## 9. Launch
 
 - [x] `npm run package` produces `standup-0.1.1.vsix` without warnings.
 - [x] `npm test` passes locally (CI is blocked by a GitHub billing issue — record the local run in the release notes).

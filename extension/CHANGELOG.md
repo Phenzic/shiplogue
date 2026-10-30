@@ -39,6 +39,17 @@ Beta packaging and BYOK.
 - The startup Ollama health check only runs when Ollama is the backend that would
   actually be used.
 
+### Fixed
+
+- BYOK generation on thinking-by-default endpoints (DeepSeek, reasoning models served through
+  OpenRouter/vLLM/llama.cpp): a reasoning-only response now retries once with a raised budget
+  (4× the detail budget, at least 4096 tokens) and `reasoning_effort: "none"`, falling back to
+  the bigger budget alone when the endpoint rejects that parameter.
+- **Standup: Test Provider** probes with a realistic budget (at least 512 tokens) instead of 16,
+  which could never complete a thinking pass and always reported a false failure.
+- Empty-response errors now include `finish_reason` and the reasoning-token count, so truncation
+  is distinguishable from a genuinely empty answer.
+
 ## [0.1.0] — 2026-10-25
 
 ### Added

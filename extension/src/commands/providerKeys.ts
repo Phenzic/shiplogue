@@ -221,12 +221,16 @@ export async function testProvider(): Promise<void> {
   }
 
   const label = labelOf(config.type);
+  // Reasoning models spend output tokens on hidden thinking before the answer
+  // starts. A 16-token probe is spent entirely on that CoT and always reports a
+  // failure, so probe with a realistic budget (and honour a larger user cap).
+  const probeBudget = Math.max(cfg().providerMaxOutputTokens, 512);
   try {
     const res = await adapterFor(config.type).generate(
       {
         prompt: "Reply with the single word OK.",
         temperature: 0,
-        maxTokens: 16,
+        maxTokens: probeBudget,
       },
       config,
     );

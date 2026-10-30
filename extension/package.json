@@ -1,7 +1,7 @@
 {
   "name": "standup",
   "displayName": "Standup",
-  "description": "Local-first daily stand-up generator for VS Code-family editors (VS Code, Cursor). Watches your git, IDE activity & GitHub, drafts your stand-up with a local LLM, posts to Discord/Slack.",
+  "description": "Local-first daily stand-up generator for VS Code-family editors (VS Code, Cursor). Watches your git, IDE activity & GitHub, drafts your stand-up with a local model or your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), posts to Discord/Slack.",
   "version": "0.1.1",
   "publisher": "phenzic",
   "license": "MIT",
@@ -177,7 +177,7 @@
           "type": "number",
           "default": 1200,
           "minimum": 0,
-          "markdownDescription": "Hard cap on tokens the provider may generate. `0` uses the per-detail budget (400/900/1600); a positive value caps it with `Math.min`."
+          "markdownDescription": "Hard cap on tokens the provider may generate. `0` uses the per-detail budget (400/900/1600); a positive value caps it with `Math.min`. If a thinking model returns no answer because it spent the budget on reasoning, Standup retries once with a larger budget (at least 4096) and thinking disabled."
         },
         "standup.github.useBuiltInAuth": {
           "type": "boolean",

@@ -78,7 +78,9 @@ For `openai-compatible`, enter the base URL too, e.g.
 
 Other commands:
 
-- **Standup: Test Provider** — one tiny request to prove key, endpoint and model.
+- **Standup: Test Provider** — a short request with a realistic output budget
+  (thinking-by-default endpoints would otherwise fail spuriously), to prove key,
+  endpoint and model.
 - **Standup: Clear API Key** — deletes the stored key for a provider.
 
 Keys are never written to `settings.json`, logs, or error messages. See
@@ -104,6 +106,8 @@ launch the Extension Development Host. In that window:
 - **Standup: Set Reminder Time** — choose the local time for the daily nudge.
 - **Standup: Connect GitHub** — start the editor's GitHub sign-in for PR/issue
   context.
+- **Standup: Set API Key** / **Clear API Key** / **Test Provider** — configure,
+  remove or verify a BYOK provider.
 
 If you prefer a VSIX, package one locally with `npx @vscode/vsce package` and
 install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
@@ -136,7 +140,9 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
   Blockers.
 - **Reasoning-model support:** if a model spends its output budget on
   `thinking` and returns nothing, Standup retries once with a larger budget and
-  thinking disabled (configurable via `numPredict`, `numCtx`, `think`).
+  thinking disabled. Ollama uses `numPredict` / `numCtx` / `think`; a BYOK
+  endpoint gets a retry at ≥4096 tokens with `reasoning_effort: "none"`, falling
+  back to the budget alone if the endpoint rejects that parameter.
 - **Automatic repair pass** if the model under-splits and the activity supports
   the requested minimum. It splits real work; it does not pad with invented
   items.
@@ -185,7 +191,7 @@ backends ship.
 | `standup.provider.type` | `none` | `anthropic` / `openai` / `google` / `openai-compatible` |
 | `standup.provider.model` | `""` | Model id, normally set by **Standup: Set API Key** |
 | `standup.provider.baseUrl` | `""` | Endpoint override, mainly for `openai-compatible` |
-| `standup.provider.maxOutputTokens` | `1200` | Hard cap on provider output; `0` uses the detail budget |
+| `standup.provider.maxOutputTokens` | `1200` | Hard cap on provider output; `0` uses the detail budget. A reasoning-only reply may trigger one recovery request above this cap |
 | `standup.github.useBuiltInAuth` | `true` | Use the editor's GitHub sign-in instead of a PAT |
 | `standup.github.token` | `""` | Optional PAT; overrides built-in auth |
 | `standup.github.repos` | `[]` | `owner/name` list; auto-detected from git `origin` when empty |
@@ -348,11 +354,18 @@ You currently need a model backend. The planned free build will include a small
 quantized local model; the planned paid build adds an optional hosted model. Until
 then, Ollama is the supported backend.
 
-**The draft is empty or cut off**
-Reasoning models can spend the whole output budget on `thinking`. Standup
-retries once with a larger budget and thinking disabled. If it still happens,
-raise `standup.ollama.numPredict` (e.g. 4096–8192), raise
+**The draft is empty or cut off (Ollama)**
+Raise `standup.ollama.numPredict` (e.g. 4096–8192), raise
 `standup.ollama.numCtx`, or use a non-reasoning model such as `llama3.2`.
+Ollama already retries once with a larger budget and thinking disabled.
+
+**“The endpoint spent its whole output budget on reasoning…” (BYOK)**
+Thinking is on by default on some endpoints (DeepSeek, reasoning models served
+through OpenRouter/vLLM/llama.cpp). Standup already retried once with a larger
+budget and thinking off. If it still happens, raise
+`standup.provider.maxOutputTokens` (e.g. 4096–8192) or use a model without
+thinking mode. The error reports `finish_reason` and the reasoning-token count so
+you can tell truncation from an empty answer.
 
 **Cursor prompts never appear**
 Confirm you are running Cursor (not VS Code), `sqlite3` is on `PATH`, and
@@ -393,6 +406,9 @@ planned.
 
 - **Ollama or an API key is required.** There is no bundled model yet; hosted
   plans are planned, not available.
+- **Reasoning-by-default providers can bill one extra call.** If the first reply
+  is reasoning-only, the recovery request is a second paid call; it is skipped
+  when the first reply already contains the answer.
 - **VS Code-compatible editors only.** Supported targets include VS Code, Cursor,
   Antigravity, VSCodium and Windsurf; JetBrains, Zed, Neovim and Sublime need
   separate adapters.
@@ -424,6 +440,9 @@ planned.
 
 - Ollama, plus bring-your-own-key Anthropic / OpenAI / Google / OpenAI-compatible
   providers with keys in the OS keychain.
+- Reasoning-only replies from BYOK endpoints recover automatically (larger
+  budget, thinking off), and **Standup: Test Provider** probes with a realistic
+  budget.
 - Packaging, publisher and test-runner metadata are in place.
 - Remaining: manual QA in a real extension host (BYOK setup, health check, real
   GitHub sign-in, real Discord/Slack webhooks, multi-root and no-folder windows,

@@ -189,6 +189,36 @@ test("Test Provider reports success without printing the key", async () => {
   }
 });
 
+test("Test Provider probes with a budget a thinking model can answer within", async () => {
+  memorySecrets();
+  const server = await startServer((req) => {
+    // Mimic an endpoint whose thinking mode spends the completion budget
+    // before the answer starts: a tiny probe can never succeed.
+    if ((req.body.max_tokens ?? 0) < 512) {
+      return {
+        body: {
+          choices: [
+            { message: { content: null, reasoning_content: "thinking" }, finish_reason: "length" },
+          ],
+        },
+      };
+    }
+    return { body: { choices: [{ message: { content: "OK" }, finish_reason: "stop" }] } };
+  });
+  try {
+    stub.setConfig({
+      "standup.provider.type": "openai-compatible",
+      "standup.provider.model": "thinking-model",
+      "standup.provider.baseUrl": server.url,
+    });
+    await testProvider();
+    assert.match(stub.notifications.at(-1).message, /works/);
+    assert.ok(server.requests[0].body.max_tokens >= 512);
+  } finally {
+    await server.close();
+  }
+});
+
 test("Test Provider reports a rejected key and redacts it", async () => {
   const secrets = memorySecrets();
   await secrets.store(KEY_NAME, "sk-live-key");

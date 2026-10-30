@@ -223,25 +223,133 @@ test("OpenAI-compatible: needs a base URL and tolerates a pasted full endpoint",
   }
 });
 
-test("OpenAI-compatible: an empty content with reasoning yields an actionable error", async () => {
+test("OpenAI-compatible: a reasoning-only reply retries with a bigger budget and thinking off", async () => {
+  const server = await startServer(() => {
+    if (server.requests.length === 1) {
+      return {
+        body: {
+          choices: [
+            { message: { content: null, reasoning: "Let me think…" }, finish_reason: "length" },
+          ],
+          usage: { prompt_tokens: 900, completion_tokens: 400 },
+        },
+      };
+    }
+    return {
+      body: {
+        choices: [{ message: { content: "  draft  " }, finish_reason: "stop" }],
+        usage: { prompt_tokens: 900, completion_tokens: 120 },
+      },
+    };
+  });
+  try {
+    const res = await compatibleAdapter.generate(
+      { prompt: "x", temperature: 0.4, maxTokens: 400 },
+      config({ baseUrl: server.url }),
+    );
+    assert.equal(res.text, "draft");
+    assert.deepEqual(res.usage, { inputTokens: 900, outputTokens: 120 });
+
+    // First request is unchanged (no thinking control).
+    assert.equal(server.requests[0].body.max_tokens, 400);
+    assert.equal(server.requests[0].body.reasoning_effort, undefined);
+
+    // The retry raises the budget (4x, floored at 4096) and disables thinking.
+    assert.equal(server.requests.length, 2);
+    assert.equal(server.requests[1].body.max_tokens, 4096);
+    assert.equal(server.requests[1].body.reasoning_effort, "none");
+    assert.equal(server.requests[1].body.temperature, 0.4);
+  } finally {
+    await server.close();
+  }
+});
+
+test("OpenAI-compatible: falls back to a budget-only retry when reasoning_effort is rejected", async () => {
+  const server = await startServer(() => {
+    if (server.requests.length === 1) {
+      return {
+        body: {
+          choices: [
+            { message: { content: null, reasoning_content: "thinking" }, finish_reason: "length" },
+          ],
+        },
+      };
+    }
+    if (server.requests.length === 2) {
+      return {
+        status: 400,
+        body: { error: { message: "Unrecognized request argument supplied: reasoning_effort" } },
+      };
+    }
+    return { body: { choices: [{ message: { content: "ok" }, finish_reason: "stop" }] } };
+  });
+  try {
+    const res = await compatibleAdapter.generate(
+      { prompt: "x", temperature: 0, maxTokens: 900 },
+      config({ baseUrl: server.url }),
+    );
+    assert.equal(res.text, "ok");
+    assert.equal(server.requests.length, 3);
+    assert.equal(server.requests[1].body.reasoning_effort, "none");
+    assert.equal(server.requests[2].body.max_tokens, 4096);
+    assert.equal(server.requests[2].body.reasoning_effort, undefined);
+  } finally {
+    await server.close();
+  }
+});
+
+test("OpenAI-compatible: a still-empty reasoning retry reports budget, finish_reason and CoT tokens", async () => {
   const server = await startServer(() => ({
-    body: { choices: [{ message: { content: null, reasoning_content: "Let me think…" } }] },
+    body: {
+      choices: [
+        { message: { content: null, reasoning_content: "Let me think…" }, finish_reason: "length" },
+      ],
+      usage: { completion_tokens_details: { reasoning_tokens: 4096 } },
+    },
   }));
   try {
     await assert.rejects(
       () =>
         compatibleAdapter.generate(
-          { prompt: "x", temperature: 0, maxTokens: 10 },
+          { prompt: "x", temperature: 0, maxTokens: 400 },
           config({ baseUrl: server.url }),
         ),
       (e) => {
         assert.ok(e instanceof ProviderError);
         assert.equal(e.code, "bad_response");
-        assert.match(e.message, /reasoning but no final answer/);
+        assert.match(e.message, /spent its whole output budget on reasoning/);
+        assert.match(e.message, /finish_reason: length/);
+        assert.match(e.message, /reasoning tokens: 4096/);
         assert.ok(e.userFacing);
         return true;
       },
     );
+    // It tried twice (original + recovery) before giving up.
+    assert.equal(server.requests.length, 2);
+  } finally {
+    await server.close();
+  }
+});
+
+test("OpenAI-compatible: a plain empty response is not retried", async () => {
+  const server = await startServer(() => ({
+    body: { choices: [{ message: { content: "" }, finish_reason: "stop" }] },
+  }));
+  try {
+    await assert.rejects(
+      () =>
+        compatibleAdapter.generate(
+          { prompt: "x", temperature: 0, maxTokens: 400 },
+          config({ baseUrl: server.url }),
+        ),
+      (e) => {
+        assert.ok(e instanceof ProviderError);
+        assert.match(e.message, /returned an empty response/);
+        assert.match(e.message, /finish_reason: stop/);
+        return true;
+      },
+    );
+    assert.equal(server.requests.length, 1);
   } finally {
     await server.close();
   }
