@@ -28,7 +28,8 @@ quality feedback and editor compatibility reports.
 ## Development setup
 
 Requirements: Node 20+, npm, git. A VS Code-compatible editor for the F5 flow.
-Ollama and `sqlite3` are only needed for the corresponding features/tests.
+Ollama (or a provider API key) and `sqlite3` are only needed for the corresponding
+features/tests.
 
 ```bash
 git clone https://github.com/Phenzic/standup.git
@@ -66,6 +67,9 @@ extension/              the VS Code/Cursor extension
     state.ts            global state (detail/tone/reminder markers)
     types.ts            shared data shapes
     extension.ts        activation, commands, orchestration
+    commands/           BYOK setup / clear / test commands
+    core/providers/     pure provider adapters (no vscode imports)
+    model/              backend selection (Ollama, provider, secrets)
   test/                 Node test suite (stubbed vscode, mock servers, temp repos)
   out/                  compiled output (generated, not committed)
 ```
@@ -95,9 +99,9 @@ one Ollama instance, which causes very slow runs and fetch failures.
 - TypeScript strict mode; keep modules small and single-purpose.
 - **No runtime npm dependencies.** The extension runs with the editor's bundled
   Node runtime; dev dependencies are fine.
-- User-facing failures should produce actionable messages (`OllamaError` or
-  `panel.setError`). Background collectors must never throw — log and degrade to
-  an empty result.
+- User-facing failures should produce actionable messages (`OllamaError`,
+  `ProviderError`/`BackendError`, or `panel.setError`). Background collectors must
+  never throw — log and degrade to an empty result.
 - Keep privacy properties intact: activity stays local, Cursor's DB is opened
   read-only, and nothing is posted without an explicit user action.
 - Add a comment explaining *why* for non-obvious code, not *what*.

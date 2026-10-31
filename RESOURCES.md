@@ -46,9 +46,15 @@ Cursor / IDE prompt-history feature.
 - Apple — controlling app access to files — https://support.apple.com/guide/security/controlling-app-access-to-files-secc1a5c7c92/web
 - Apple Developer — accessing files from the macOS app sandbox — https://developer.apple.com/documentation/security/accessing-files-from-the-macos-app-sandbox
 
-## Optional cloud LLM (if we ever offer a hosted tier beyond local Ollama)
+## Cloud LLM providers (BYOK now; hosted tier planned)
 
 - Anthropic Messages API — https://docs.claude.com/en/api/messages
+- OpenAI Chat Completions — https://platform.openai.com/docs/api-reference/chat
+- Google Gemini API — https://ai.google.dev/gemini-api/docs
+- DeepSeek API (thinking mode is on by default; disable with
+  `thinking: {"type": "disabled"}` or `reasoning_effort: "none"`) —
+  https://api-docs.deepseek.com/
+- OpenRouter (one key for many OpenAI-compatible models) — https://openrouter.ai/docs
 - Prompt engineering / structured output — https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview
 
 ## Publishing (both are free)
