@@ -3,7 +3,29 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.1.1] — unreleased
+## [0.1.2] — 2026-10-31
+
+Rename to Shiplogue. No change to how drafts are produced.
+
+### Changed
+
+- **The extension is now Shiplogue.** Extension id `phenzic.shiplogue`, commands
+  and settings under `shiplogue.*`, configuration title `Shiplogue`.
+- Local activity moved to `globalStorage/phenzic.shiplogue/`.
+- Provider keys are stored under the `shiplogue.provider.*` secret names. Keys
+  saved by a 0.1.1 install are not readable by the renamed extension, so
+  **run `Shiplogue: Set API Key` again** after upgrading.
+- Repository links point at `Phenzic/shiplogue`.
+
+### Notes
+
+- 0.1.2 is a new extension id, not an update of 0.1.1. Uninstall the old build
+  first, or keep both while you compare — they use separate settings, secrets
+  and storage.
+- Nothing was published to the Marketplace under the old id, so no listing was
+  renamed.
+
+## [0.1.1] — 2026-10-29
 
 Beta packaging and BYOK.
 

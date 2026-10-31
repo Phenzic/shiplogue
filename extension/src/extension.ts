@@ -8,7 +8,7 @@ import { gatherContext, contextToText } from "./gather";
 import { generateStandup } from "./summarize";
 import { githubToken } from "./github";
 import { buildReferences } from "./format";
-import { StandupPanel } from "./standupPanel";
+import { ShiploguePanel } from "./shiploguePanel";
 import { setSecretStorage } from "./model/secrets";
 import { loadProviderConfig, providerDisplayName } from "./model/registry";
 import { BackendMeta } from "./model/types";
@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Migrate a previously saved workspace setting into globalState once.
   if (!state.hasDetail()) {
     const insp = vscode.workspace
-      .getConfiguration("standup")
+      .getConfiguration("shiplogue")
       .inspect<"concise" | "standard" | "elaborate">("detail");
     const saved = insp?.globalValue ?? insp?.workspaceValue;
     if (saved) {
@@ -68,15 +68,15 @@ export function activate(context: vscode.ExtensionContext) {
   void healthCheckDone;
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("standup.generate", () => runGenerate()),
-    vscode.commands.registerCommand("standup.showActivity", () => runShowActivity()),
-    vscode.commands.registerCommand("standup.setProviderKey", () => setProviderKey()),
-    vscode.commands.registerCommand("standup.clearProviderKey", () => clearProviderKey()),
-    vscode.commands.registerCommand("standup.testProvider", () => testProvider()),
-    vscode.commands.registerCommand("standup.setReminderTime", () =>
-      reminder?.pickTime("What time should Standup remind you daily? (24h, local)"),
+    vscode.commands.registerCommand("shiplogue.generate", () => runGenerate()),
+    vscode.commands.registerCommand("shiplogue.showActivity", () => runShowActivity()),
+    vscode.commands.registerCommand("shiplogue.setProviderKey", () => setProviderKey()),
+    vscode.commands.registerCommand("shiplogue.clearProviderKey", () => clearProviderKey()),
+    vscode.commands.registerCommand("shiplogue.testProvider", () => testProvider()),
+    vscode.commands.registerCommand("shiplogue.setReminderTime", () =>
+      reminder?.pickTime("What time should Shiplogue remind you daily? (24h, local)"),
     ),
-    vscode.commands.registerCommand("standup.connectGitHub", async () => {
+    vscode.commands.registerCommand("shiplogue.connectGitHub", async () => {
       const token = await githubToken(true);
       vscode.window.showInformationMessage(
         token ? "GitHub connected — issues & PRs will be included." : "GitHub sign-in was cancelled.",
@@ -86,7 +86,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 async function runGenerate(): Promise<void> {
-  const panel = StandupPanel.show(
+  const panel = ShiploguePanel.show(
     () => void runGenerate(),
     state,
     () => inFlight?.abort(),
@@ -128,7 +128,7 @@ async function runGenerate(): Promise<void> {
     if (!ctx.commits.length && !ctx.github.length && !ctx.touches.length && !ctx.cursorPrompts.length) {
       if (epoch === generationEpoch) {
         panel.setError(
-          `No activity found in the last ${cfg().lookbackHours}h. Commit some work, or increase standup.lookbackHours.`,
+          `No activity found in the last ${cfg().lookbackHours}h. Commit some work, or increase shiplogue.lookbackHours.`,
         );
       }
       return;
@@ -176,7 +176,7 @@ async function runGenerate(): Promise<void> {
       if (epoch === generationEpoch) {
         panel.setCancelled(
           timedOut
-            ? `Generation timed out after ${timeoutSeconds}s. Increase standup.generate.timeoutSeconds, or use a smaller/faster model.`
+            ? `Generation timed out after ${timeoutSeconds}s. Increase shiplogue.generate.timeoutSeconds, or use a smaller/faster model.`
             : "Cancelled.",
         );
       }
@@ -235,7 +235,7 @@ async function checkOllamaHealth(): Promise<void> {
       models = (data.models ?? []).map((m) => m.name);
     } catch {
       const pick = await vscode.window.showWarningMessage(
-        "Standup: Ollama isn't running — stand-ups can't be generated until it is.",
+        "Shiplogue: Ollama isn't running — stand-ups can't be generated until it is.",
         "How to install",
         "Dismiss",
       );
@@ -252,13 +252,13 @@ async function checkOllamaHealth(): Promise<void> {
       return;
     }
     const pick = await vscode.window.showWarningMessage(
-      `Standup: model '${want}' isn't pulled in Ollama yet.`,
+      `Shiplogue: model '${want}' isn't pulled in Ollama yet.`,
       "Pull now",
       "Pick another model",
       "Dismiss",
     );
     if (pick === "Pull now") {
-      const term = vscode.window.createTerminal("Standup: ollama pull");
+      const term = vscode.window.createTerminal("Shiplogue: ollama pull");
       term.show();
       term.sendText(`ollama pull ${want}`);
     } else if (pick === "Pick another model") {
@@ -267,7 +267,7 @@ async function checkOllamaHealth(): Promise<void> {
       });
       if (choice) {
         await vscode.workspace
-          .getConfiguration("standup")
+          .getConfiguration("shiplogue")
           .update("ollama.model", choice, vscode.ConfigurationTarget.Global);
       }
     }
@@ -279,7 +279,7 @@ async function checkOllamaHealth(): Promise<void> {
 async function runShowActivity(): Promise<void> {  const ctx = await gatherContext(store);
   const doc = await vscode.workspace.openTextDocument({
     content:
-      `# Standup activity (last ${cfg().lookbackHours}h)\n` +
+      `# Shiplogue activity (last ${cfg().lookbackHours}h)\n` +
       `# ${ctx.since.toISOString()} → ${ctx.until.toISOString()}\n\n` +
       contextToText(ctx),
     language: "markdown",

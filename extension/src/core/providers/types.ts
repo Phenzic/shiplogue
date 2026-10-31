@@ -95,7 +95,7 @@ export function mapHttpError(
   const hint = detail ? ` ${redactSecrets(detail).slice(0, 200)}` : "";
   if (status === 401) {
     return new ProviderError(
-      `${label} rejected the API key. Run "Standup: Set API Key" to replace it.${hint}`,
+      `${label} rejected the API key. Run "Shiplogue: Set API Key" to replace it.${hint}`,
       "auth",
       status,
     );
@@ -112,7 +112,7 @@ export function mapHttpError(
   }
   if (status === 404) {
     return new ProviderError(
-      `${label} could not find that model. Run "Standup: Set API Key" to pick another one.${hint}`,
+      `${label} could not find that model. Run "Shiplogue: Set API Key" to pick another one.${hint}`,
       "bad_response",
       status,
     );
@@ -122,7 +122,7 @@ export function mapHttpError(
   }
   if (status === 413 || /context.{0,20}(length|window|too long)/i.test(detail ?? "")) {
     return new ProviderError(
-      `The request is longer than ${label}'s context window. Lower standup.detail or standup.lookbackHours.${hint}`,
+      `The request is longer than ${label}'s context window. Lower shiplogue.detail or shiplogue.lookbackHours.${hint}`,
       "context_length",
       status,
     );

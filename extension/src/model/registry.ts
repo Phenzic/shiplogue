@@ -68,7 +68,7 @@ export async function resolveBackend(): Promise<ModelBackend> {
 
   if (setting === "local") {
     throw new BackendUnavailableError(
-      "The bundled local model isn't part of this beta. Set standup.model.backend to 'auto' or 'provider' (your own API key), or use 'ollama'.",
+      "The bundled local model isn't part of this beta. Set shiplogue.model.backend to 'auto' or 'provider' (your own API key), or use 'ollama'.",
     );
   }
 
@@ -81,7 +81,7 @@ export async function resolveBackend(): Promise<ModelBackend> {
   if (setting === "provider") {
     if (!providerConfig) {
       throw new BackendUnavailableError(
-        "No provider is configured. Run \"Standup: Set API Key\", or set standup.model.backend to 'auto' to use Ollama.",
+        "No provider is configured. Run \"Shiplogue: Set API Key\", or set shiplogue.model.backend to 'auto' to use Ollama.",
       );
     }
     return new ProviderBackend(providerConfig);

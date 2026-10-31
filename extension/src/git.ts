@@ -92,7 +92,7 @@ export async function collectCommits(since: Date, until: Date, signal?: AbortSig
         });
       }
     } catch (e) {
-      console.error(`[standup] git log failed in ${cwd}:`, e);
+      console.error(`[shiplogue] git log failed in ${cwd}:`, e);
     }
   }
   return out;

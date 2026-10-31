@@ -1,6 +1,6 @@
 "use strict";
-// Real-model checks. Skipped unless STANDUP_E2E=1 (they call a local Ollama and
-// can take minutes). Run with: STANDUP_E2E=1 npm run test:e2e
+// Real-model checks. Skipped unless SHIPLOGUE_E2E=1 (they call a local Ollama and
+// can take minutes). Run with: SHIPLOGUE_E2E=1 npm run test:e2e
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { installVscodeStub } = require("./helpers");
@@ -9,9 +9,9 @@ const { stub } = installVscodeStub();
 const { generateStandup, OllamaError } = require("../out/summarize");
 const { setDetailGetter } = require("../out/config");
 
-const E2E = process.env.STANDUP_E2E === "1";
-const OLLAMA = process.env.STANDUP_OLLAMA_URL || "http://localhost:11434";
-const FORCE_MODEL = process.env.STANDUP_OLLAMA_MODEL || "";
+const E2E = process.env.SHIPLOGUE_E2E === "1";
+const OLLAMA = process.env.SHIPLOGUE_OLLAMA_URL || "http://localhost:11434";
+const FORCE_MODEL = process.env.SHIPLOGUE_OLLAMA_MODEL || "";
 
 function ctx(overrides = {}) {
   const now = new Date();
@@ -96,7 +96,7 @@ test("out-of-the-box default model is checked with actionable guidance", { skip:
     return; // default is present; nothing to report
   }
   stub.reset();
-  stub.setConfig({ "standup.ollama.url": OLLAMA, "standup.ollama.model": "llama3.2" });
+  stub.setConfig({ "shiplogue.ollama.url": OLLAMA, "shiplogue.ollama.model": "llama3.2" });
   await assert.rejects(
     generateStandup(ctx()),
     (e) => e instanceof OllamaError && /Model "llama3.2" not found/.test(e.message) && /ollama pull llama3\.2/.test(e.message),
@@ -113,7 +113,7 @@ for (const level of ["concise", "standard", "elaborate"]) {
     }
     const model = FORCE_MODEL || (installed.some((m) => m.startsWith("llama3.2")) ? "llama3.2" : installed[0]);
     stub.reset();
-    stub.setConfig({ "standup.ollama.url": OLLAMA, "standup.ollama.model": model });
+    stub.setConfig({ "shiplogue.ollama.url": OLLAMA, "shiplogue.ollama.model": model });
     setDetailGetter(() => level);
 
     const started = Date.now();
@@ -153,9 +153,9 @@ test("yesterday/today format switches the section headings", { skip: !E2E }, asy
   const model = FORCE_MODEL || (installed.some((m) => m.startsWith("llama3.2")) ? "llama3.2" : installed[0]);
   stub.reset();
   stub.setConfig({
-    "standup.ollama.url": OLLAMA,
-    "standup.ollama.model": model,
-    "standup.format": "yesterday-today-blockers",
+    "shiplogue.ollama.url": OLLAMA,
+    "shiplogue.ollama.model": model,
+    "shiplogue.format": "yesterday-today-blockers",
   });
   setDetailGetter(() => "concise");
   const { text: out } = await generateStandup(ctx());

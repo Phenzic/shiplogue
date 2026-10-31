@@ -29,16 +29,16 @@ function memorySecrets() {
 async function useProvider(url, overrides = {}) {
   const store = memorySecrets();
   setSecretStorage(store);
-  await store.store("standup.provider.openai.apiKey", "sk-test");
+  await store.store("shiplogue.provider.openai.apiKey", "sk-test");
   stub.setConfig({
-    "standup.model.backend": "provider",
-    "standup.provider.type": "openai",
-    "standup.provider.model": "gpt-test",
-    "standup.provider.baseUrl": url,
-    "standup.detail": "concise",
+    "shiplogue.model.backend": "provider",
+    "shiplogue.provider.type": "openai",
+    "shiplogue.provider.model": "gpt-test",
+    "shiplogue.provider.baseUrl": url,
+    "shiplogue.detail": "concise",
     ...overrides,
   });
-  setDetailGetter(() => overrides["standup.detail"] || "concise");
+  setDetailGetter(() => overrides["shiplogue.detail"] || "concise");
   setToneGetter(() => "neutral");
 }
 
@@ -108,7 +108,7 @@ test("the repair pass runs through the provider backend too", async () => {
     return server.requests.length === 1 ? openAiReply(draft(1)) : openAiReply(draft(5));
   });
   try {
-    await useProvider(server.url, { "standup.detail": "standard" });
+    await useProvider(server.url, { "shiplogue.detail": "standard" });
     const ctx = baseCtx({
       commits: Array.from({ length: 6 }, (_, i) => ({
         hash: `h${i}`,
@@ -131,7 +131,7 @@ test("the repair pass runs through the provider backend too", async () => {
 
 test("a backend selection error is user-facing and does not call the network", async () => {
   setSecretStorage(memorySecrets());
-  stub.setConfig({ "standup.model.backend": "provider", "standup.provider.type": "none" });
+  stub.setConfig({ "shiplogue.model.backend": "provider", "shiplogue.provider.type": "none" });
   await assert.rejects(
     () => generateStandup(baseCtx()),
     (e) => e instanceof BackendUnavailableError && e.userFacing === true,

@@ -1,6 +1,6 @@
 "use strict";
 // End-to-end (in-process) test of the real activation path: activate() wires the
-// tracker, remeinder and commands; `standup.generate` gathers git + tracked
+// tracker, remeinder and commands; `shiplogue.generate` gathers git + tracked
 // activity + GitHub, calls Ollama, and pushes a draft to the panel.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -10,7 +10,7 @@ const { installVscodeStub, tmpDir, makeContext, startServer, interceptGithub, gh
 const { stub, commands } = installVscodeStub();
 const ext = require("../out/extension");
 const { activate, deactivate } = ext;
-const { StandupPanel } = require("../out/standupPanel");
+const { ShiploguePanel } = require("../out/shiploguePanel");
 
 const DRAFT = [
   "Hey team, here's what I worked on today:",
@@ -38,19 +38,19 @@ async function waitFor(cond, ms = 5000) {
 
 function baseConfig(overrides) {
   return {
-    "standup.lookbackHours": 24,
-    "standup.ollama.model": "test-model",
-    "standup.github.repos": ["acme/demo"],
-    "standup.github.token": "",
-    "standup.github.useBuiltInAuth": false,
-    "standup.cursor.enabled": false,
-    "standup.reminder.enabled": false,
-    "standup.reminder.time": "23:59",
-    "standup.track.enabled": true,
-    "standup.webhook.type": "none",
-    "standup.scope": "workspace",
-    "standup.format": "done-next-blockers",
-    "standup.detail": "concise",
+    "shiplogue.lookbackHours": 24,
+    "shiplogue.ollama.model": "test-model",
+    "shiplogue.github.repos": ["acme/demo"],
+    "shiplogue.github.token": "",
+    "shiplogue.github.useBuiltInAuth": false,
+    "shiplogue.cursor.enabled": false,
+    "shiplogue.reminder.enabled": false,
+    "shiplogue.reminder.time": "23:59",
+    "shiplogue.track.enabled": true,
+    "shiplogue.webhook.type": "none",
+    "shiplogue.scope": "workspace",
+    "shiplogue.format": "done-next-blockers",
+    "shiplogue.detail": "concise",
     ...overrides,
   };
 }
@@ -61,7 +61,7 @@ async function cleanup() {
   } catch {
     /* not active */
   }
-  if (StandupPanel.current) StandupPanel.current.dispose();
+  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
   for (const p of stub.panels) if (!p.disposed) p.dispose();
   // Wait out the fire-and-forget Ollama health check so a late warning can't
   // leak past the next test's stub.reset().
@@ -114,7 +114,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": ollama.url, "standup.github.token": "gh-token" }),
+    config: baseConfig({ "shiplogue.ollama.url": ollama.url, "shiplogue.github.token": "gh-token" }),
     lastReminder: ymd(),
   });
 
@@ -122,20 +122,20 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.deepEqual(
     [...stub.commandRegistry.keys()].sort(),
     [
-      "standup.clearProviderKey",
-      "standup.connectGitHub",
-      "standup.generate",
-      "standup.setProviderKey",
-      "standup.setReminderTime",
-      "standup.showActivity",
-      "standup.testProvider",
+      "shiplogue.clearProviderKey",
+      "shiplogue.connectGitHub",
+      "shiplogue.generate",
+      "shiplogue.setProviderKey",
+      "shiplogue.setReminderTime",
+      "shiplogue.showActivity",
+      "shiplogue.testProvider",
     ],
   );
   // Tracking is live: a save in this window is recorded.
   assert.equal(stub.listenerCount(), 2);
   stub.emitSave(stub.makeDoc(path.join(dir, "a.ts"), { languageId: "typescript" }));
 
-  await commands.executeCommand("standup.generate");
+  await commands.executeCommand("shiplogue.generate");
 
   const panel = stub.panels.at(-1);
   assert.ok(panel, "a webview panel was opened");
@@ -175,9 +175,9 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.ok(ghCalls.some((c) => c.includes("repo:acme/demo")));
 
   // The debug view shows the same raw activity.
-  await commands.executeCommand("standup.showActivity");
+  await commands.executeCommand("shiplogue.showActivity");
   const doc = stub.documents.at(-1).getText();
-  assert.match(doc, /# Standup activity \(last 24h\)/);
+  assert.match(doc, /# Shiplogue activity \(last 24h\)/);
   assert.match(doc, /feat\(api\): add health endpoint/);
   assert.match(doc, /## Files worked on/);
   assert.match(doc, /a\.ts/);
@@ -192,11 +192,11 @@ test("no activity: an actionable error instead of an empty stand-up", async (t) 
   await withActivation(t, {
     repoDir: empty,
     storage,
-    config: baseConfig({ "standup.ollama.url": ollama.url }),
+    config: baseConfig({ "shiplogue.ollama.url": ollama.url }),
     lastReminder: ymd(),
   });
 
-  await commands.executeCommand("standup.generate");
+  await commands.executeCommand("shiplogue.generate");
   const err = stub.panels.at(-1).messages.find((m) => m.kind === "error");
   assert.ok(err);
   assert.match(err.message, /No activity found in the last 24h/);
@@ -213,12 +213,12 @@ test("Ollama down: the panel explains how to fix it, without crashing activation
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": "http://127.0.0.1:1" }),
+    config: baseConfig({ "shiplogue.ollama.url": "http://127.0.0.1:1" }),
     lastReminder: ymd(),
   });
   stub.emitSave(stub.makeDoc(path.join(dir, "notes.ts")));
 
-  await commands.executeCommand("standup.generate");
+  await commands.executeCommand("shiplogue.generate");
   const err = stub.panels.at(-1).messages.find((m) => m.kind === "error");
   assert.ok(err);
   assert.match(err.message, /Couldn't reach Ollama at http:\/\/127\.0\.0\.1:1/);
@@ -230,7 +230,7 @@ test("first run asks for a reminder time once and stores it globally", async (t)
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.reminder.enabled": true }),
+    config: baseConfig({ "shiplogue.reminder.enabled": true }),
     setupDone: false,
     inputAnswers: ["09:30"],
   });
@@ -239,14 +239,14 @@ test("first run asks for a reminder time once and stores it globally", async (t)
 
   assert.equal(stub.inputBoxes.length, 1);
   assert.match(stub.inputBoxes[0].prompt, /nudge you to send your stand-up/);
-  assert.equal(stub.configUpdates.at(-1).key, "standup.reminder.time");
+  assert.equal(stub.configUpdates.at(-1).key, "shiplogue.reminder.time");
   assert.equal(stub.configUpdates.at(-1).value, "09:30");
 
   // Second activation must not ask again.
   cleanup();
   stub.reset();
   stub.setFolders([{ fsPath: dir, name: "demo" }]);
-  stub.setConfig(baseConfig({ "standup.reminder.enabled": true }));
+  stub.setConfig(baseConfig({ "shiplogue.reminder.enabled": true }));
   const ctx2 = makeContext(storage);
   activate(ctx2);
   await settle();
@@ -261,7 +261,7 @@ test("track.enabled=false installs no listeners and records nothing", async (t) 
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.track.enabled": false }),
+    config: baseConfig({ "shiplogue.track.enabled": false }),
     lastReminder: ymd(),
   });
   assert.equal(stub.listenerCount(), 0);
@@ -279,7 +279,7 @@ test("health check: unreachable Ollama warns, and 'How to install' opens ollama.
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": "http://127.0.0.1:1" }),
+    config: baseConfig({ "shiplogue.ollama.url": "http://127.0.0.1:1" }),
     lastReminder: ymd(),
     warningAnswers: ["How to install"],
   });
@@ -298,12 +298,12 @@ test("health check: a configured provider skips the Ollama probe entirely", asyn
     repoDir: dir,
     storage,
     config: baseConfig({
-      "standup.model.backend": "provider",
-      "standup.ollama.url": "http://127.0.0.1:1",
-      "standup.provider.type": "openai",
-      "standup.provider.model": "gpt-test",
+      "shiplogue.model.backend": "provider",
+      "shiplogue.ollama.url": "http://127.0.0.1:1",
+      "shiplogue.provider.type": "openai",
+      "shiplogue.provider.model": "gpt-test",
     }),
-    secrets: { "standup.provider.openai.apiKey": "sk-test" },
+    secrets: { "shiplogue.provider.openai.apiKey": "sk-test" },
     lastReminder: ymd(),
     warningAnswers: ["How to install"],
   });
@@ -324,7 +324,7 @@ test("health check: a missing model offers 'Pull now' in a terminal", async (t) 
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": tags.url, "standup.ollama.model": "missing-model" }),
+    config: baseConfig({ "shiplogue.ollama.url": tags.url, "shiplogue.ollama.model": "missing-model" }),
     lastReminder: ymd(),
     warningAnswers: ["Pull now"],
   });
@@ -334,7 +334,7 @@ test("health check: a missing model offers 'Pull now' in a terminal", async (t) 
   assert.equal(stub.terminals[0].shown, true);
 });
 
-test("health check: 'Pick another model' writes standup.ollama.model globally", async (t) => {
+test("health check: 'Pick another model' writes shiplogue.ollama.model globally", async (t) => {
   const dir = tmpDir("standup-plain-");
   const storage = tmpDir();
   const tags = await startServer((req) =>
@@ -346,14 +346,14 @@ test("health check: 'Pick another model' writes standup.ollama.model globally", 
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": tags.url, "standup.ollama.model": "missing-model" }),
+    config: baseConfig({ "shiplogue.ollama.url": tags.url, "shiplogue.ollama.model": "missing-model" }),
     lastReminder: ymd(),
     warningAnswers: ["Pick another model"],
     quickPickAnswers: ["other-model:latest"],
   });
   await ext.healthCheckDone;
-  const upd = stub.configUpdates.find((u) => u.key === "standup.ollama.model");
-  assert.ok(upd, "expected standup.ollama.model to be written");
+  const upd = stub.configUpdates.find((u) => u.key === "shiplogue.ollama.model");
+  assert.ok(upd, "expected shiplogue.ollama.model to be written");
   assert.equal(upd.value, "other-model:latest");
   assert.equal(upd.target, 1, "ConfigurationTarget.Global");
   assert.deepEqual(stub.quickPicks[0].items, ["other-model:latest", "llama3.2:latest"]);
@@ -371,7 +371,7 @@ test("health check: no warning when the configured model is installed (:latest t
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": tags.url, "standup.ollama.model": "test-model" }),
+    config: baseConfig({ "shiplogue.ollama.url": tags.url, "shiplogue.ollama.model": "test-model" }),
     lastReminder: ymd(),
   });
   await ext.healthCheckDone;
@@ -412,13 +412,13 @@ test("regenerating mid-flight aborts the old run; only the newer draft reaches t
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": ollama.url }),
+    config: baseConfig({ "shiplogue.ollama.url": ollama.url }),
     lastReminder: ymd(),
   });
 
-  const first = commands.executeCommand("standup.generate");
+  const first = commands.executeCommand("shiplogue.generate");
   await waitFor(() => ollama.requests.filter((r) => r.url === "/api/generate").length === 1);
-  const second = commands.executeCommand("standup.generate"); // supersedes the first
+  const second = commands.executeCommand("shiplogue.generate"); // supersedes the first
   await Promise.all([first, second]);
 
   const panel = stub.panels.at(-1);
@@ -440,12 +440,12 @@ test("cancel stops generation promptly and shows 'Cancelled.'", async (t) => {
   await withActivation(t, {
     repoDir: dir,
     storage,
-    config: baseConfig({ "standup.ollama.url": ollama.url }),
+    config: baseConfig({ "shiplogue.ollama.url": ollama.url }),
     lastReminder: ymd(),
   });
 
   const started = Date.now();
-  const run = commands.executeCommand("standup.generate");
+  const run = commands.executeCommand("shiplogue.generate");
   await waitFor(() => ollama.requests.filter((r) => r.url === "/api/generate").length === 1);
   await stub.panels.at(-1).messageHandler({ kind: "cancel" });
   await run;
@@ -459,7 +459,7 @@ test("cancel stops generation promptly and shows 'Cancelled.'", async (t) => {
   assert.equal(panel.messages.filter((m) => m.kind === "draft").length, 0, "no draft after cancel");
 });
 
-test("a generation that exceeds standup.generate.timeoutSeconds aborts with guidance", async (t) => {
+test("a generation that exceeds shiplogue.generate.timeoutSeconds aborts with guidance", async (t) => {
   const { dir } = makeGitRepo();
   const storage = tmpDir();
   const ollama = await startServer(async () => {
@@ -472,15 +472,15 @@ test("a generation that exceeds standup.generate.timeoutSeconds aborts with guid
     repoDir: dir,
     storage,
     config: baseConfig({
-      "standup.ollama.url": ollama.url,
-      "standup.generate.timeoutSeconds": 1,
+      "shiplogue.ollama.url": ollama.url,
+      "shiplogue.generate.timeoutSeconds": 1,
     }),
     lastReminder: ymd(),
   });
 
-  await commands.executeCommand("standup.generate");
+  await commands.executeCommand("shiplogue.generate");
   const cancelled = stub.panels.at(-1).messages.find((m) => m.kind === "cancelled");
   assert.ok(cancelled, "expected a timed-out cancellation");
   assert.match(cancelled.message, /timed out after 1s/);
-  assert.match(cancelled.message, /standup\.generate\.timeoutSeconds/);
+  assert.match(cancelled.message, /shiplogue\.generate\.timeoutSeconds/);
 });

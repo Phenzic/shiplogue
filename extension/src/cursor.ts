@@ -107,7 +107,7 @@ async function scanComposerIds(wsRoot: string, folders: string[], signal?: Abort
         ids.add(id);
       }
     } catch (e) {
-      console.error("[standup] cursor workspace db read failed:", e);
+      console.error("[shiplogue] cursor workspace db read failed:", e);
     }
   }
   return ids;
@@ -170,7 +170,7 @@ export async function collectCursorPrompts(
       .map((r) => ({ ts: r.ts, text: (r.text ?? "").replace(/\s+/g, " ").trim().slice(0, 280) }))
       .filter((p) => p.text.length > 0);
   } catch (e) {
-    console.error("[standup] cursor prompt read failed:", e);
+    console.error("[shiplogue] cursor prompt read failed:", e);
     return [];
   }
 }

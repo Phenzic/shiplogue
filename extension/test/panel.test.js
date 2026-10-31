@@ -5,20 +5,20 @@ const vm = require("vm");
 const { installVscodeStub, tmpDir, makeContext, startServer } = require("./helpers");
 
 const { stub } = installVscodeStub();
-const { StandupPanel } = require("../out/standupPanel");
+const { ShiploguePanel } = require("../out/shiploguePanel");
 const { State } = require("../out/state");
 const { setDetailGetter, setToneGetter } = require("../out/config");
 const { toPlainText } = require("../out/format");
 
 function freshPanel(detail = "concise") {
-  if (StandupPanel.current) StandupPanel.current.dispose();
+  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
   stub.reset();
   setDetailGetter(() => detail);
   setToneGetter(() => "neutral");
-  stub.setConfig({ "standup.webhook.type": "none", "standup.webhook.url": "" });
+  stub.setConfig({ "shiplogue.webhook.type": "none", "shiplogue.webhook.url": "" });
   const state = new State(makeContext(tmpDir()));
   let regenerated = 0;
-  const panel = StandupPanel.show(() => regenerated++, state);
+  const panel = ShiploguePanel.show(() => regenerated++, state);
   const webview = stub.panels.at(-1);
   return { panel, state, webview, regenerated: () => regenerated };
 }
@@ -207,7 +207,7 @@ test("panel messages: setDetail persists globally and regenerates", async () => 
   await webview.messageHandler({ kind: "setDetail", detail: "elaborate" });
   assert.equal(state.getDetail(), "elaborate");
   assert.deepEqual(stub.configUpdates.at(-1), {
-    key: "standup.detail",
+    key: "shiplogue.detail",
     value: "elaborate",
     target: 1,
   });
@@ -217,7 +217,7 @@ test("panel messages: setDetail persists globally and regenerates", async () => 
 test("panel messages: send posts the active text to the webhook", async () => {
   const server = await startServer(() => ({ status: 204 }));
   const { webview } = freshPanel();
-  stub.setConfig({ "standup.webhook.type": "slack", "standup.webhook.url": server.url });
+  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
   try {
     await webview.messageHandler({ kind: "send", text: "stand-up body" });
     assert.equal(server.requests.length, 1);
@@ -231,7 +231,7 @@ test("panel messages: send posts the active text to the webhook", async () => {
 test("panel messages: a failed send shows the error instead of throwing", async () => {
   const server = await startServer(() => ({ status: 500, body: "nope" }));
   const { webview } = freshPanel();
-  stub.setConfig({ "standup.webhook.type": "slack", "standup.webhook.url": server.url });
+  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
   try {
     await webview.messageHandler({ kind: "send", text: "body" });
     assert.match(stub.errors.at(-1).message, /Post failed: .*500/);
@@ -243,7 +243,7 @@ test("panel messages: a failed send shows the error instead of throwing", async 
 test("showing the panel twice reuses the same webview", () => {
   const { panel } = freshPanel();
   const state = new State(makeContext(tmpDir()));
-  const again = StandupPanel.show(() => {}, state);
+  const again = ShiploguePanel.show(() => {}, state);
   assert.equal(again, panel);
   assert.equal(stub.panels.length, 1);
   assert.equal(stub.panels[0].visible, true);
@@ -310,13 +310,13 @@ test("busy state: loading disables Regenerate/Detail and shows Cancel; draft/err
 });
 
 test("panel messages: cancel invokes the onCancel callback", async () => {
-  if (StandupPanel.current) StandupPanel.current.dispose();
+  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
   stub.reset();
   setDetailGetter(() => "concise");
-  stub.setConfig({ "standup.webhook.type": "none" });
+  stub.setConfig({ "shiplogue.webhook.type": "none" });
   const state = new State(makeContext(tmpDir()));
   let cancelled = 0;
-  StandupPanel.show(() => {}, state, () => cancelled++);
+  ShiploguePanel.show(() => {}, state, () => cancelled++);
   await stub.panels.at(-1).messageHandler({ kind: "cancel" });
   assert.equal(cancelled, 1);
 });
@@ -324,7 +324,7 @@ test("panel messages: cancel invokes the onCancel callback", async () => {
 test("slack send posts the converted Markdown tab even when plain text is active", async () => {
   const server = await startServer(() => ({ status: 200, body: "ok" }));
   const { webview } = freshPanel();
-  stub.setConfig({ "standup.webhook.type": "slack", "standup.webhook.url": server.url });
+  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
   try {
     await webview.messageHandler({
       kind: "send",
@@ -344,7 +344,7 @@ test("slack send posts the converted Markdown tab even when plain text is active
 test("discord truncation copies the full text to the clipboard and says so", async () => {
   const server = await startServer(() => ({ status: 204 }));
   const { webview } = freshPanel();
-  stub.setConfig({ "standup.webhook.type": "discord", "standup.webhook.url": server.url });
+  stub.setConfig({ "shiplogue.webhook.type": "discord", "shiplogue.webhook.url": server.url });
   try {
     const line = "word ".repeat(200).trim();
     const long = Array.from({ length: 12 }, (_, i) => `line${i} ${line}`).join("\n");
@@ -362,7 +362,7 @@ test("panel messages: setTone persists globally and regenerates", async () => {
   await webview.messageHandler({ kind: "setTone", tone: "senior" });
   assert.equal(state.getTone(), "senior");
   assert.deepEqual(stub.configUpdates.at(-1), {
-    key: "standup.tone",
+    key: "shiplogue.tone",
     value: "senior",
     target: 1,
   });

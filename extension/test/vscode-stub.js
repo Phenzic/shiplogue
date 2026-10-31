@@ -58,7 +58,7 @@ const stub = {
     this.commandRegistry.clear();
   },
 
-  // Merge settings, e.g. { "standup.ollama.model": "test" }.
+  // Merge settings, e.g. { "shiplogue.ollama.model": "test" }.
   setConfig(obj) {
     this.config = { ...this.config, ...obj };
   },

@@ -12,8 +12,8 @@ function setup(config = {}) {
   const ctx = makeContext(tmpDir());
   const state = new State(ctx);
   stub.setConfig({
-    "standup.reminder.enabled": true,
-    "standup.reminder.time": "00:00",
+    "shiplogue.reminder.enabled": true,
+    "shiplogue.reminder.time": "00:00",
     ...config,
   });
   return { ctx, state, reminder: undefined };
@@ -114,7 +114,7 @@ test("before the configured time nothing fires", async () => {
     return; // would wrap; not meaningful at 23:xx
   }
   const later = `${String(now.getHours() + 1).padStart(2, "0")}:59`;
-  const { state } = setup({ "standup.reminder.time": later });
+  const { state } = setup({ "shiplogue.reminder.time": later });
   const timer = captureTimer();
   const reminder = new Reminder(state, () => {});
   try {
@@ -129,7 +129,7 @@ test("before the configured time nothing fires", async () => {
 });
 
 test("a disabled reminder never fires", async () => {
-  const { state } = setup({ "standup.reminder.enabled": false });
+  const { state } = setup({ "shiplogue.reminder.enabled": false });
   const timer = captureTimer();
   const reminder = new Reminder(state, () => {});
   try {
@@ -172,9 +172,9 @@ test("pickTime validates 24h HH:MM and saves globally", async () => {
   stub.inputAnswers.push("18:30");
   const reminder = new Reminder(state, () => {});
   await reminder.pickTime("What time?");
-  assert.equal(stub.config["standup.reminder.time"], "18:30");
+  assert.equal(stub.config["shiplogue.reminder.time"], "18:30");
   assert.deepEqual(stub.configUpdates.at(-1), {
-    key: "standup.reminder.time",
+    key: "shiplogue.reminder.time",
     value: "18:30",
     target: 1,
   });

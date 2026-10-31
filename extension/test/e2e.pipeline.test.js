@@ -3,7 +3,7 @@
 // proxy raises Ollama's num_predict because the only installed model here is a
 // reasoning model whose "thinking" tokens otherwise consume the extension's
 // 400/900/1600-token budget before `response` starts (see the e2e.ollama tests).
-// Skipped unless STANDUP_E2E=1.
+// Skipped unless SHIPLOGUE_E2E=1.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("http");
@@ -13,10 +13,10 @@ const { stub } = installVscodeStub();
 const { generateStandup } = require("../out/summarize");
 const { setDetailGetter } = require("../out/config");
 
-const E2E = process.env.STANDUP_E2E === "1";
-const OLLAMA = process.env.STANDUP_OLLAMA_URL || "http://localhost:11434";
-const FORCE_MODEL = process.env.STANDUP_OLLAMA_MODEL || "";
-const BUDGET = Number(process.env.STANDUP_E2E_NUM_PREDICT || 4096);
+const E2E = process.env.SHIPLOGUE_E2E === "1";
+const OLLAMA = process.env.SHIPLOGUE_OLLAMA_URL || "http://localhost:11434";
+const FORCE_MODEL = process.env.SHIPLOGUE_OLLAMA_MODEL || "";
+const BUDGET = Number(process.env.SHIPLOGUE_E2E_NUM_PREDICT || 4096);
 
 function startProxy(target) {
   return new Promise((resolve) => {
@@ -143,7 +143,7 @@ for (const level of ["concise", "standard", "elaborate"]) {
     const proxy = await startProxy(OLLAMA);
     t.after(() => proxy.close());
     stub.reset();
-    stub.setConfig({ "standup.ollama.url": proxy.url, "standup.ollama.model": model });
+    stub.setConfig({ "shiplogue.ollama.url": proxy.url, "shiplogue.ollama.model": model });
     setDetailGetter(() => level);
 
     const started = Date.now();

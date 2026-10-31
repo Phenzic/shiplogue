@@ -16,7 +16,7 @@ function base(cfg: ProviderConfig): string {
   const raw = (cfg.baseUrl || "").trim().replace(/\/+$/, "");
   if (!raw) {
     throw new ProviderError(
-      "No base URL is configured. Set standup.provider.baseUrl (for example http://localhost:1234/v1).",
+      "No base URL is configured. Set shiplogue.provider.baseUrl (for example http://localhost:1234/v1).",
       "bad_response",
     );
   }
@@ -71,7 +71,7 @@ function emptyResponseError(data: any): ProviderError {
   const suffix = detail ? ` (${detail})` : "";
   return new ProviderError(
     reasoningOnly(data)
-      ? `The endpoint spent its whole output budget on reasoning and returned no answer${suffix}. Raise standup.provider.maxOutputTokens, or use a model without thinking mode.`
+      ? `The endpoint spent its whole output budget on reasoning and returned no answer${suffix}. Raise shiplogue.provider.maxOutputTokens, or use a model without thinking mode.`
       : `The endpoint returned an empty response${suffix}.`,
     "bad_response",
   );

@@ -52,7 +52,7 @@ export function splitForDiscord(text: string, limit = DISCORD_LIMIT): string[] {
 export async function postToWebhook(text: string): Promise<PostResult> {
   const c = cfg();
   if (c.webhookType === "none" || !c.webhookUrl) {
-    throw new Error("No webhook configured. Set standup.webhook.type and standup.webhook.url in settings.");
+    throw new Error("No webhook configured. Set shiplogue.webhook.type and shiplogue.webhook.url in settings.");
   }
 
   const post = async (payload: unknown) => {

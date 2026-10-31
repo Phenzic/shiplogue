@@ -67,7 +67,7 @@ export class Store {
         fs.writeFileSync(tmp, JSON.stringify(existing), "utf8");
         fs.renameSync(tmp, file);
       } catch (e) {
-        console.error("[standup] failed to write activity — events kept for the next flush:", e);
+        console.error("[shiplogue] failed to write activity — events kept for the next flush:", e);
         failed.push(...evs);
         try {
           fs.rmSync(tmp, { force: true });
@@ -83,7 +83,7 @@ export class Store {
       // Bound memory if the disk keeps failing.
       const MAX_REQUEUE = 500;
       if (failed.length > MAX_REQUEUE) {
-        console.error(`[standup] dropping ${failed.length - MAX_REQUEUE} activity events — storage keeps failing`);
+        console.error(`[shiplogue] dropping ${failed.length - MAX_REQUEUE} activity events — storage keeps failing`);
       }
       this.buffer = failed.slice(0, MAX_REQUEUE);
     }
@@ -117,7 +117,7 @@ export class Store {
       }
     }
     if (removed > 0) {
-      console.log(`[standup] pruned ${removed} activity file(s) older than ${retentionDays} days`);
+      console.log(`[shiplogue] pruned ${removed} activity file(s) older than ${retentionDays} days`);
     }
     return removed;
   }

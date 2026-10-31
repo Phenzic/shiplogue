@@ -14,7 +14,7 @@ const {
 } = require("../../out/commands/providerKeys");
 const { setSecretStorage } = require("../../out/model/secrets");
 
-const KEY_NAME = "standup.provider.openai.apiKey";
+const KEY_NAME = "shiplogue.provider.openai.apiKey";
 
 beforeEach(() => {
   stub.reset();
@@ -48,16 +48,16 @@ test("Set API Key stores the key, discovers models and switches the backend", as
     body: { data: [{ id: "gpt-b" }, { id: "gpt-a" }, { id: "text-embedding-3-small" }] },
   }));
   try {
-    stub.setConfig({ "standup.provider.baseUrl": server.url });
+    stub.setConfig({ "shiplogue.provider.baseUrl": server.url });
     stub.quickPickAnswers.push(providerItem("openai", "OpenAI"), "gpt-a");
     stub.inputAnswers.push("sk-live-key");
 
     await setProviderKey();
 
     assert.equal(secrets.values.get(KEY_NAME), "sk-live-key");
-    assert.equal(stub.config["standup.provider.type"], "openai");
-    assert.equal(stub.config["standup.provider.model"], "gpt-a");
-    assert.equal(stub.config["standup.model.backend"], "provider");
+    assert.equal(stub.config["shiplogue.provider.type"], "openai");
+    assert.equal(stub.config["shiplogue.provider.model"], "gpt-a");
+    assert.equal(stub.config["shiplogue.model.backend"], "provider");
 
     // The key is never mirrored into settings (which sync to other machines).
     assert.ok(!Object.values(stub.config).includes("sk-live-key"));
@@ -79,14 +79,14 @@ test("a blank key keeps an existing one so only the model can change", async () 
   await secrets.store(KEY_NAME, "sk-old");
   const server = await startServer(() => ({ body: { data: [{ id: "gpt-new" }] } }));
   try {
-    stub.setConfig({ "standup.provider.baseUrl": server.url });
+    stub.setConfig({ "shiplogue.provider.baseUrl": server.url });
     stub.quickPickAnswers.push(providerItem("openai", "OpenAI"), "gpt-new");
     stub.inputAnswers.push("");
 
     await setProviderKey();
 
     assert.equal(secrets.values.get(KEY_NAME), "sk-old");
-    assert.equal(stub.config["standup.provider.model"], "gpt-new");
+    assert.equal(stub.config["shiplogue.provider.model"], "gpt-new");
     assert.equal(server.requests[0].headers.authorization, "Bearer sk-old");
   } finally {
     await server.close();
@@ -98,7 +98,7 @@ test("Set API Key stops when no provider is chosen", async () => {
   stub.quickPickAnswers.push(undefined);
   await setProviderKey();
   assert.equal(secrets.values.size, 0);
-  assert.equal(stub.config["standup.model.backend"], undefined);
+  assert.equal(stub.config["shiplogue.model.backend"], undefined);
 });
 
 test("Set API Key refuses an empty key for a hosted provider", async () => {
@@ -113,14 +113,14 @@ test("when model discovery fails the user can type a model id", async () => {
   const secrets = memorySecrets();
   const server = await startServer(() => ({ status: 401, body: { error: { message: "bad" } } }));
   try {
-    stub.setConfig({ "standup.provider.baseUrl": server.url });
+    stub.setConfig({ "shiplogue.provider.baseUrl": server.url });
     stub.quickPickAnswers.push(providerItem("openai", "OpenAI"));
     stub.inputAnswers.push("sk-key", "gpt-manual");
 
     await setProviderKey();
 
     assert.equal(secrets.values.get(KEY_NAME), "sk-key");
-    assert.equal(stub.config["standup.provider.model"], "gpt-manual");
+    assert.equal(stub.config["shiplogue.provider.model"], "gpt-manual");
     assert.ok(stub.notifications.some((n) => n.warning && /Could not list models|rejected/.test(n.message)));
   } finally {
     await server.close();
@@ -139,11 +139,11 @@ test("an OpenAI-compatible endpoint asks for a URL and allows an empty key", asy
 
     await setProviderKey();
 
-    assert.equal(stub.config["standup.provider.type"], "openai-compatible");
-    assert.equal(stub.config["standup.provider.baseUrl"], server.url);
-    assert.equal(stub.config["standup.provider.model"], "local-model");
-    assert.equal(stub.config["standup.model.backend"], "provider");
-    assert.equal(secrets.values.has("standup.provider.openai-compatible.apiKey"), false);
+    assert.equal(stub.config["shiplogue.provider.type"], "openai-compatible");
+    assert.equal(stub.config["shiplogue.provider.baseUrl"], server.url);
+    assert.equal(stub.config["shiplogue.provider.model"], "local-model");
+    assert.equal(stub.config["shiplogue.model.backend"], "provider");
+    assert.equal(secrets.values.has("shiplogue.provider.openai-compatible.apiKey"), false);
     assert.equal(server.requests[0].url, "/models");
   } finally {
     await server.close();
@@ -154,17 +154,17 @@ test("Clear API Key deletes the secret and resets the backend", async () => {
   const secrets = memorySecrets();
   await secrets.store(KEY_NAME, "sk-old");
   stub.setConfig({
-    "standup.provider.type": "openai",
-    "standup.provider.model": "gpt-a",
-    "standup.model.backend": "provider",
+    "shiplogue.provider.type": "openai",
+    "shiplogue.provider.model": "gpt-a",
+    "shiplogue.model.backend": "provider",
   });
   stub.quickPickAnswers.push(providerItem("openai", "OpenAI"));
 
   await clearProviderKey();
 
   assert.equal(secrets.values.has(KEY_NAME), false);
-  assert.equal(stub.config["standup.provider.type"], "none");
-  assert.equal(stub.config["standup.model.backend"], "auto");
+  assert.equal(stub.config["shiplogue.provider.type"], "none");
+  assert.equal(stub.config["shiplogue.model.backend"], "auto");
 });
 
 test("Test Provider reports success without printing the key", async () => {
@@ -175,9 +175,9 @@ test("Test Provider reports success without printing the key", async () => {
   }));
   try {
     stub.setConfig({
-      "standup.provider.type": "openai",
-      "standup.provider.model": "gpt-a",
-      "standup.provider.baseUrl": server.url,
+      "shiplogue.provider.type": "openai",
+      "shiplogue.provider.model": "gpt-a",
+      "shiplogue.provider.baseUrl": server.url,
     });
     await testProvider();
     const message = stub.notifications.at(-1).message;
@@ -207,9 +207,9 @@ test("Test Provider probes with a budget a thinking model can answer within", as
   });
   try {
     stub.setConfig({
-      "standup.provider.type": "openai-compatible",
-      "standup.provider.model": "thinking-model",
-      "standup.provider.baseUrl": server.url,
+      "shiplogue.provider.type": "openai-compatible",
+      "shiplogue.provider.model": "thinking-model",
+      "shiplogue.provider.baseUrl": server.url,
     });
     await testProvider();
     assert.match(stub.notifications.at(-1).message, /works/);
@@ -228,9 +228,9 @@ test("Test Provider reports a rejected key and redacts it", async () => {
   }));
   try {
     stub.setConfig({
-      "standup.provider.type": "openai",
-      "standup.provider.model": "gpt-a",
-      "standup.provider.baseUrl": server.url,
+      "shiplogue.provider.type": "openai",
+      "shiplogue.provider.model": "gpt-a",
+      "shiplogue.provider.baseUrl": server.url,
     });
     await testProvider();
     const message = stub.errors.at(-1).message;
@@ -243,7 +243,7 @@ test("Test Provider reports a rejected key and redacts it", async () => {
 
 test("Test Provider explains when nothing is configured", async () => {
   memorySecrets();
-  stub.setConfig({ "standup.provider.type": "none" });
+  stub.setConfig({ "shiplogue.provider.type": "none" });
   await testProvider();
   assert.match(stub.errors.at(-1).message, /No provider is configured/);
   assert.match(stub.errors.at(-1).message, /Set API Key/);

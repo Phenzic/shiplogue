@@ -11,13 +11,13 @@ const { execFileSync } = require("child_process");
 function installVscodeStub() {
   const Module = require("module");
   const stubPath = require.resolve("./vscode-stub.js");
-  if (!Module.__standupPatched) {
+  if (!Module.__shiploguePatched) {
     const orig = Module._resolveFilename;
     Module._resolveFilename = function (request, ...rest) {
       if (request === "vscode") return stubPath;
       return orig.call(this, request, ...rest);
     };
-    Module.__standupPatched = true;
+    Module.__shiploguePatched = true;
   }
   const mod = require(stubPath);
   mod.stub.reset();

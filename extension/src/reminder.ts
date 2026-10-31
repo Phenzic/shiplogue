@@ -19,7 +19,7 @@ export class Reminder {
     if (this.state.isSetupDone()) {
       return;
     }
-    await this.pickTime("Standup will nudge you to send your stand-up daily. What time? (24h, local)");
+    await this.pickTime("Shiplogue will nudge you to send your stand-up daily. What time? (24h, local)");
     await this.state.setSetupDone();
   }
 
@@ -34,7 +34,7 @@ export class Reminder {
     });
     if (picked) {
       await vscode.workspace
-        .getConfiguration("standup")
+        .getConfiguration("shiplogue")
         .update("reminder.time", picked.trim(), vscode.ConfigurationTarget.Global);
       vscode.window.showInformationMessage(`Stand-up reminder set for ${picked.trim()} daily.`);
     }

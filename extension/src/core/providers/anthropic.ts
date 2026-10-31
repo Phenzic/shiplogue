@@ -20,7 +20,7 @@ function base(cfg: ProviderConfig): string {
 function headers(cfg: ProviderConfig): Record<string, string> {
   if (!cfg.apiKey) {
     throw new ProviderError(
-      "No Anthropic API key is configured. Run \"Standup: Set API Key\".",
+      "No Anthropic API key is configured. Run \"Shiplogue: Set API Key\".",
       "auth",
     );
   }

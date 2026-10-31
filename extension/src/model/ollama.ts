@@ -78,7 +78,7 @@ export class OllamaBackend implements ModelBackend {
 
       if (res.status === 404) {
         throw new OllamaError(
-          `Model "${c.ollamaModel}" not found in Ollama. Run \`ollama pull ${c.ollamaModel}\`, or change "standup.ollama.model" in settings.`,
+          `Model "${c.ollamaModel}" not found in Ollama. Run \`ollama pull ${c.ollamaModel}\`, or change "shiplogue.ollama.model" in settings.`,
         );
       }
       if (!res.ok) {
@@ -114,7 +114,7 @@ export class OllamaBackend implements ModelBackend {
         return this.result(retryText.length > text.length ? retryText : text, c.ollamaModel, started);
       }
       throw new OllamaError(
-        "Model spent its whole output budget on reasoning and returned nothing. Increase standup.ollama.numPredict or pick a non-reasoning model (e.g. llama3.2).",
+        "Model spent its whole output budget on reasoning and returned nothing. Increase shiplogue.ollama.numPredict or pick a non-reasoning model (e.g. llama3.2).",
       );
     }
     throw new OllamaError("Ollama returned an empty response.");

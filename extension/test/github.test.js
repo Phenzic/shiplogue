@@ -28,7 +28,7 @@ function issueItem(number, title) {
 
 test("collectGitHub builds merged-PR and closed-issue searches and maps results", async () => {
   stub.reset();
-  stub.setConfig({ "standup.github.repos": ["acme/demo"], "standup.github.token": "" });
+  stub.setConfig({ "shiplogue.github.repos": ["acme/demo"], "shiplogue.github.token": "" });
   stub.setFolders([]);
 
   const calls = [];
@@ -60,7 +60,7 @@ test("collectGitHub builds merged-PR and closed-issue searches and maps results"
 test("empty configured repos auto-detects owner/name from the workspace origin", async () => {
   const { dir } = makeGitRepo();
   stub.reset();
-  stub.setConfig({ "standup.github.repos": [], "standup.github.token": "" });
+  stub.setConfig({ "shiplogue.github.repos": [], "shiplogue.github.token": "" });
   stub.setFolders([{ fsPath: dir, name: "demo" }]);
 
   const calls = [];
@@ -95,7 +95,7 @@ test("no token means no network calls and no items", async () => {
 
 test("GitHub failures degrade to an empty list instead of breaking the stand-up", async () => {
   stub.reset();
-  stub.setConfig({ "standup.github.repos": ["acme/demo"] });
+  stub.setConfig({ "shiplogue.github.repos": ["acme/demo"] });
   stub.setFolders([]);
   const restore = interceptGithub(() => ghResponse({ message: "boom" }, 500));
   const origError = console.error;
@@ -111,7 +111,7 @@ test("GitHub failures degrade to an empty list instead of breaking the stand-up"
 
 test("githubToken prefers an explicit PAT", async () => {
   stub.reset();
-  stub.setConfig({ "standup.github.token": "pat-123", "standup.github.useBuiltInAuth": true });
+  stub.setConfig({ "shiplogue.github.token": "pat-123", "shiplogue.github.useBuiltInAuth": true });
   stub.sessions.github = "editor-token";
   assert.equal(await githubToken(false), "pat-123");
   assert.equal(stub.authCalls.length, 0, "built-in auth not consulted when a PAT is set");
@@ -119,7 +119,7 @@ test("githubToken prefers an explicit PAT", async () => {
 
 test("githubToken uses the editor's built-in session silently", async () => {
   stub.reset();
-  stub.setConfig({ "standup.github.token": "", "standup.github.useBuiltInAuth": true });
+  stub.setConfig({ "shiplogue.github.token": "", "shiplogue.github.useBuiltInAuth": true });
   stub.sessions.github = "editor-token";
   assert.equal(await githubToken(false), "editor-token");
   assert.equal(stub.authCalls[0].options.silent, true);
@@ -128,12 +128,12 @@ test("githubToken uses the editor's built-in session silently", async () => {
 
 test("githubToken returns empty when sign-in is cancelled or disabled", async () => {
   stub.reset();
-  stub.setConfig({ "standup.github.token": "", "standup.github.useBuiltInAuth": true });
+  stub.setConfig({ "shiplogue.github.token": "", "shiplogue.github.useBuiltInAuth": true });
   assert.equal(await githubToken(true), "");
   assert.equal(stub.authCalls[0].options.createIfNone, true);
 
   stub.reset();
-  stub.setConfig({ "standup.github.token": "", "standup.github.useBuiltInAuth": false });
+  stub.setConfig({ "shiplogue.github.token": "", "shiplogue.github.useBuiltInAuth": false });
   assert.equal(await githubToken(false), "");
   assert.equal(stub.authCalls.length, 0);
 });

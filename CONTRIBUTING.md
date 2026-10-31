@@ -1,6 +1,6 @@
-# Contributing to Standup
+# Contributing to Shiplogue
 
-Thanks for taking a look. Standup is an early-stage, local-first VS Code-compatible
+Thanks for taking a look. Shiplogue is an early-stage, local-first VS Code-compatible
 extension, and the most useful contributions right now are bug reports, model
 quality feedback and editor compatibility reports.
 
@@ -10,7 +10,7 @@ quality feedback and editor compatibility reports.
   VSCodium, Windsurf, …), OS, model backend, and the smallest steps to reproduce.
 - **Report model quality** — especially invented specifics, missed commits, or
   drafts that needed heavy editing. Include the debug context from
-  *Standup: Show Tracked Activity (debug)* with anything sensitive removed.
+  *Shiplogue: Show Tracked Activity (debug)* with anything sensitive removed.
 - **Test another editor** — VS Code-compatible forks are a target, but only some
   have been exercised in a real host.
 - **Improve docs, tests or the extension** — see the checklist below.
@@ -32,8 +32,8 @@ Ollama (or a provider API key) and `sqlite3` are only needed for the correspondi
 features/tests.
 
 ```bash
-git clone https://github.com/Phenzic/standup.git
-cd standup/extension
+git clone https://github.com/Phenzic/shiplogue.git
+cd shiplogue/extension
 npm install
 npm run compile
 npm test
@@ -61,7 +61,7 @@ extension/              the VS Code/Cursor extension
     cursor.ts           Cursor chat DB reader + workspace scoping
     summarize.ts        prompts, model call, retry/repair/grounding
     format.ts           sublists, references, grounding, Slack mrkdwn
-    standupPanel.ts     webview panel and message handling
+    shiploguePanel.ts   webview panel and message handling
     post.ts             Discord/Slack webhooks
     reminder.ts         daily reminder
     state.ts            global state (detail/tone/reminder markers)

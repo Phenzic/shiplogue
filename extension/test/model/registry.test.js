@@ -34,7 +34,7 @@ function memorySecrets() {
 async function withSecret(type, key) {
   const store = memorySecrets();
   setSecretStorage(store);
-  await store.store(`standup.provider.${type}.apiKey`, key);
+  await store.store(`shiplogue.provider.${type}.apiKey`, key);
   return store;
 }
 
@@ -43,10 +43,10 @@ test("auto prefers a fully configured provider over Ollama", async () => {
   try {
     await withSecret("openai", "sk-test");
     stub.setConfig({
-      "standup.model.backend": "auto",
-      "standup.provider.type": "openai",
-      "standup.provider.model": "gpt-test",
-      "standup.provider.baseUrl": server.url,
+      "shiplogue.model.backend": "auto",
+      "shiplogue.provider.type": "openai",
+      "shiplogue.provider.model": "gpt-test",
+      "shiplogue.provider.baseUrl": server.url,
     });
 
     const backend = await resolveBackend();
@@ -64,7 +64,7 @@ test("auto prefers a fully configured provider over Ollama", async () => {
 
 test("auto without a provider uses Ollama", async () => {
   setSecretStorage(memorySecrets());
-  stub.setConfig({ "standup.model.backend": "auto", "standup.provider.type": "none" });
+  stub.setConfig({ "shiplogue.model.backend": "auto", "shiplogue.provider.type": "none" });
   const backend = await resolveBackend();
   assert.ok(backend instanceof OllamaBackend);
 });
@@ -72,9 +72,9 @@ test("auto without a provider uses Ollama", async () => {
 test("auto ignores a provider whose key is missing", async () => {
   setSecretStorage(memorySecrets());
   stub.setConfig({
-    "standup.model.backend": "auto",
-    "standup.provider.type": "anthropic",
-    "standup.provider.model": "claude-test",
+    "shiplogue.model.backend": "auto",
+    "shiplogue.provider.type": "anthropic",
+    "shiplogue.provider.model": "claude-test",
   });
   assert.equal(await loadProviderConfig(), undefined);
   assert.ok((await resolveBackend()) instanceof OllamaBackend);
@@ -82,7 +82,7 @@ test("auto ignores a provider whose key is missing", async () => {
 
 test("provider mode without configuration fails with an actionable error", async () => {
   setSecretStorage(memorySecrets());
-  stub.setConfig({ "standup.model.backend": "provider", "standup.provider.type": "none" });
+  stub.setConfig({ "shiplogue.model.backend": "provider", "shiplogue.provider.type": "none" });
   await assert.rejects(
     () => resolveBackend(),
     (e) => e instanceof BackendUnavailableError && /Set API Key/.test(e.message) && e.userFacing,
@@ -92,16 +92,16 @@ test("provider mode without configuration fails with an actionable error", async
 test("provider mode without a stored key fails instead of falling back", async () => {
   setSecretStorage(memorySecrets());
   stub.setConfig({
-    "standup.model.backend": "provider",
-    "standup.provider.type": "openai",
-    "standup.provider.model": "gpt-test",
+    "shiplogue.model.backend": "provider",
+    "shiplogue.provider.type": "openai",
+    "shiplogue.provider.model": "gpt-test",
   });
   await assert.rejects(() => resolveBackend(), BackendUnavailableError);
 });
 
 test("local mode explains that the bundled model is not in this beta", async () => {
   setSecretStorage(memorySecrets());
-  stub.setConfig({ "standup.model.backend": "local" });
+  stub.setConfig({ "shiplogue.model.backend": "local" });
   await assert.rejects(
     () => resolveBackend(),
     (e) => e instanceof BackendUnavailableError && /isn't part of this beta/.test(e.message),
@@ -113,10 +113,10 @@ test("an OpenAI-compatible endpoint works without a key when a URL is set", asyn
   try {
     setSecretStorage(memorySecrets());
     stub.setConfig({
-      "standup.model.backend": "provider",
-      "standup.provider.type": "openai-compatible",
-      "standup.provider.model": "local-model",
-      "standup.provider.baseUrl": server.url,
+      "shiplogue.model.backend": "provider",
+      "shiplogue.provider.type": "openai-compatible",
+      "shiplogue.provider.model": "local-model",
+      "shiplogue.provider.baseUrl": server.url,
     });
     const backend = await resolveBackend();
     assert.ok(backend instanceof ProviderBackend);
@@ -131,23 +131,23 @@ test("an OpenAI-compatible endpoint works without a key when a URL is set", asyn
 test("a compatible endpoint without a base URL is treated as unconfigured", async () => {
   setSecretStorage(memorySecrets());
   stub.setConfig({
-    "standup.model.backend": "provider",
-    "standup.provider.type": "openai-compatible",
-    "standup.provider.model": "local-model",
-    "standup.provider.baseUrl": "",
+    "shiplogue.model.backend": "provider",
+    "shiplogue.provider.type": "openai-compatible",
+    "shiplogue.provider.model": "local-model",
+    "shiplogue.provider.baseUrl": "",
   });
   await assert.rejects(() => resolveBackend(), BackendUnavailableError);
 });
 
-test("standup.provider.maxOutputTokens caps the detail budget with Math.min", async () => {
+test("shiplogue.provider.maxOutputTokens caps the detail budget with Math.min", async () => {
   const server = await startServer(() => ({ body: { choices: [{ message: { content: "ok" } }] } }));
   try {
     await withSecret("openai", "sk-test");
     stub.setConfig({
-      "standup.provider.type": "openai",
-      "standup.provider.model": "gpt-test",
-      "standup.provider.baseUrl": server.url,
-      "standup.provider.maxOutputTokens": 500,
+      "shiplogue.provider.type": "openai",
+      "shiplogue.provider.model": "gpt-test",
+      "shiplogue.provider.baseUrl": server.url,
+      "shiplogue.provider.maxOutputTokens": 500,
     });
     const backend = await resolveBackend();
     await backend.generate({ prompt: "x", temperature: 0, maxTokens: 1600 });
@@ -166,10 +166,10 @@ test("0 disables the cap and uses the detail budget", async () => {
   try {
     await withSecret("openai", "sk-test");
     stub.setConfig({
-      "standup.provider.type": "openai",
-      "standup.provider.model": "gpt-test",
-      "standup.provider.baseUrl": server.url,
-      "standup.provider.maxOutputTokens": 0,
+      "shiplogue.provider.type": "openai",
+      "shiplogue.provider.model": "gpt-test",
+      "shiplogue.provider.baseUrl": server.url,
+      "shiplogue.provider.maxOutputTokens": 0,
     });
     const backend = await resolveBackend();
     await backend.generate({ prompt: "x", temperature: 0, maxTokens: 1600 });

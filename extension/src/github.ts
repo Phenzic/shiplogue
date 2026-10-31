@@ -41,7 +41,7 @@ async function gh(path: string, token: string, signal?: AbortSignal): Promise<an
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
-      "User-Agent": "standup-extension",
+      "User-Agent": "shiplogue-extension",
       "X-GitHub-Api-Version": "2022-11-28",
     },
   });
@@ -106,13 +106,13 @@ export async function collectGitHub(
             });
           }
         } catch (e) {
-          console.error(`[standup] GitHub search failed (${q}):`, e);
+          console.error(`[shiplogue] GitHub search failed (${q}):`, e);
         }
       }
     }
     return out;
   } catch (e) {
-    console.error("[standup] GitHub collection failed:", e);
+    console.error("[shiplogue] GitHub collection failed:", e);
     return [];
   }
 }

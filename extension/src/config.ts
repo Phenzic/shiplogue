@@ -16,7 +16,7 @@ export function setToneGetter(fn: () => Tone): void {
 
 // Thin typed wrapper over the extension's settings.
 export function cfg() {
-  const c = vscode.workspace.getConfiguration("standup");
+  const c = vscode.workspace.getConfiguration("shiplogue");
   return {
     lookbackHours: c.get<number>("lookbackHours", 24),
     ollamaUrl: c.get<string>("ollama.url", "http://localhost:11434").replace(/\/+$/, ""),
