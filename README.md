@@ -17,9 +17,10 @@ small bundled quantized model so you won't need either. An optional
 higher-capacity hosted model is planned for users who want it. Local use needs no
 Standup account and no telemetry.
 
-<!-- Replace this block with docs/screenshot.png or a short GIF once captured. -->
+<!-- Replace this block with docs/screenshot.png or a short GIF once captured. 
 > **Screenshot/GIF placeholder** — open the Stand-up panel, generate a draft, and
 > replace this block with the capture.
+-->
 
 > **Current build vs planned.** This README describes the current development
 > tree. Today (0.1.1 beta): local Ollama or your own API key, manual review and
@@ -30,7 +31,7 @@ Standup account and no telemetry.
 ## Why
 
 Stand-up tools still ask you to type the update yourself. But the evidence of
-your day already exists: commits, saved files, merged PRs, closed issues and the
+your day already exists: commits, saved files, merged PRs, closed issues, and the
 prompts you gave your AI assistant. Standup reads that evidence, groups it into
 themes, and writes a draft — so you start from something real instead of a blank
 box.
