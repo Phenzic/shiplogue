@@ -5,11 +5,14 @@ All notable changes to this project will be documented here. Format follows
 
 ## [0.1.3] — 2026-11-01
 
-Packaging cleanup for the first Marketplace publish. No change to how drafts are
-produced.
+Packaging cleanup for the first Marketplace publish, plus a Windows path-scoping
+fix.
 
 ### Fixed
 
+- Workspace scope now normalizes an event's stored `projectPath` before matching,
+  so activity logs written with Windows backslashes still belong to the open
+  folder.
 - Removed a stray runtime dependency (`package`) from the manifest.
 - Trimmed `keywords` to the documented 10-tag limit.
 - Stopped shipping the internal `MANUAL_QA.md` in the VSIX.
@@ -17,6 +20,8 @@ produced.
   at absolute GitHub URLs, so the Marketplace listing no longer renders broken
   redirect/404 links.
 - The publish workflow uses Node 22, which `vsce` 4.x requires.
+- CI: the Windows runner installs `sqlite3` (the Cursor tests build synthetic
+  databases), and the Cursor tests set `USERPROFILE` as well as `HOME`.
 
 ## [0.1.2] — 2026-10-31
 
