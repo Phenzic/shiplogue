@@ -2,7 +2,7 @@
 
 **Local-first daily stand-ups, drafted from your actual IDE activity.**
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Phenzic/shiplogue/blob/main/LICENSE)
 
 Shiplogue watches the work you already did — git commits, saved files, GitHub PRs
 and issues, and (in Cursor) the prompts you gave your AI assistant — then asks a
@@ -14,7 +14,7 @@ in a later build. Bring-your-own-key providers (Anthropic, OpenAI, Google, or an
 OpenAI-compatible endpoint) are available now if you would rather not run a local
 model. A higher-capacity hosted model is planned as an opt-in paid option.
 
-> **Status:** **0.1.2** beta. No Marketplace/Open VSX listing yet — install from the
+> **Status:** **0.1.3** beta. No Marketplace/Open VSX listing yet — install from the
 > release VSIX (or run from source). This build uses Ollama or your own API key.
 >
 > **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
@@ -84,7 +84,7 @@ Other commands:
 - **Shiplogue: Clear API Key** — deletes the stored key for a provider.
 
 Keys are never written to `settings.json`, logs, or error messages. See
-[`PRIVACY.md`](PRIVACY.md) for what a cloud provider receives.
+[`PRIVACY.md`](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md) for what a cloud provider receives.
 
 ## Install and run (development)
 
@@ -261,7 +261,7 @@ input-cap notes.
 The intended model is freemium: **Free** local summaries (bundled model or your
 own Ollama), **Pro** with a hosted model and scheduled auto-posting, and
 **Enterprise** with on-prem/dedicated deployment. Prices are indicative and no
-billing exists yet. See the [project README](../README.md#plans-and-pricing-planned--not-live)
+billing exists yet. See the [project README](https://github.com/Phenzic/shiplogue/blob/main/README.md#plans-and-pricing-planned--not-live)
 for the proposed tiers.
 
 ## Posting
@@ -286,7 +286,7 @@ Slack webhook, with an option to review before posting.
 
 ## Privacy and local data
 
-The full current policy is in [`PRIVACY.md`](PRIVACY.md).
+The full current policy is in [`PRIVACY.md`](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md).
 
 Today:
 
@@ -437,7 +437,13 @@ planned.
 
 ## Roadmap
 
-**0.1.2 — beta (current)**
+**0.1.3 — beta (current)**
+
+- Packaging cleanup for the Marketplace listing: removed a stray runtime
+  dependency, trimmed tags to the documented limit, stopped shipping internal QA
+  notes in the VSIX, and pointed README links at absolute GitHub URLs.
+
+**0.1.2 — beta (2026-10-31)**
 
 - Renamed from Standup to **Shiplogue**: extension id `phenzic.shiplogue`,
   commands and settings under `shiplogue.*`, and a new local storage path.
@@ -494,13 +500,13 @@ repos and synthetic SQLite databases. Real-model and real-Cursor-DB tests skip
 without their environment variables.
 
 For repository layout, coding conventions and the pull-request checklist, see
-[`CONTRIBUTING.md`](../CONTRIBUTING.md).
+[`CONTRIBUTING.md`](https://github.com/Phenzic/shiplogue/blob/main/CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](../LICENSE). The extension is free and open source; planned
+MIT — see [LICENSE](https://github.com/Phenzic/shiplogue/blob/main/LICENSE). The extension is free and open source; planned
 paid plans cover hosted inference, scheduled automation and enterprise
 deployment, not the local core.
 
-The project overview is in [`../README.md`](../README.md); the repository is
+The project overview is in [`README.md`](https://github.com/Phenzic/shiplogue/blob/main/README.md); the repository is
 [Phenzic/shiplogue](https://github.com/Phenzic/shiplogue).

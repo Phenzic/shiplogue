@@ -2,7 +2,7 @@
   "name": "shiplogue",
   "displayName": "Shiplogue",
   "description": "Drafts your daily stand-up from the work you already did. Local-first for VS Code, Cursor and Antigravity: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), then copied or posted to Discord/Slack.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -12,7 +12,6 @@
   "bugs": "https://github.com/Phenzic/shiplogue/issues",
   "homepage": "https://github.com/Phenzic/shiplogue#readme",
   "keywords": [
-    "shiplogue",
     "standup",
     "stand-up",
     "daily",
@@ -22,7 +21,6 @@
     "github",
     "cursor",
     "llm",
-    "local",
     "privacy"
   ],
   "icon": "images/icon.png",
@@ -315,8 +313,5 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.0"
-  },
-  "dependencies": {
-    "package": "^1.0.1"
   }
 }

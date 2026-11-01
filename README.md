@@ -23,7 +23,7 @@ Shiplogue account and no telemetry.
 -->
 
 > **Current build vs planned.** This README describes the current development
-> tree. Today (0.1.2 beta): local Ollama or your own API key, manual review and
+> tree. Today (0.1.3 beta): local Ollama or your own API key, manual review and
 > manual posting. Planned for the next build: bundled local model (no model setup),
 > optional hosted model, paid plans and automatic posting. Pricing and plans below
 > are proposals — no paid tier or hosted service exists yet.
@@ -193,9 +193,9 @@ Requirements for the **current build**:
 - Optional: `sqlite3` on `PATH` for Cursor prompt context.
 - Optional: GitHub sign-in or a personal access token for PR/issue context.
 
-**Install the VSIX:** download `shiplogue-0.1.2.vsix` from the GitHub release, then
-Extensions view → `…` → **Install from VSIX** (or
-`code --install-extension shiplogue-0.1.2.vsix`).
+**Install the VSIX:** download the latest `shiplogue-*.vsix` from the GitHub
+release, then Extensions view → `…` → **Install from VSIX** (or
+`code --install-extension shiplogue-<version>.vsix`).
 
 **Run from source:**
 
@@ -278,10 +278,10 @@ Planned hosted model (opt-in, paid):
 ## Status and limitations
 
 I believe an honest list matters more than a polished one. This README describes
-the current development tree. The package version is `0.1.2`; there is no
+the current development tree. The package version is `0.1.3`; there is no
 Marketplace/Open VSX listing yet, and the manual launch QA/publishing step is
 still outstanding. See [`extension/CHANGELOG.md`](extension/CHANGELOG.md) for
-what changed in 0.1.2 and [`extension/PRIVACY.md`](extension/PRIVACY.md) for the
+what changed in 0.1.3 and [`extension/PRIVACY.md`](extension/PRIVACY.md) for the
 current local-data policy.
 
 - **A model backend is required: Ollama or your own API key.** The bundled local
@@ -317,7 +317,13 @@ current local-data policy.
 
 ## Roadmap
 
-**0.1.2 — beta (current)**
+**0.1.3 — beta (current)**
+
+- Packaging cleanup for the first Marketplace publish: removed a stray runtime
+  dependency, trimmed tags, stopped shipping internal QA notes, and fixed
+  README links for the listing.
+
+**0.1.2 — beta (2026-10-31)**
 
 - Renamed from Standup to **Shiplogue**: extension id `phenzic.shiplogue`,
   commands and settings under `shiplogue.*`, and a new local storage path.

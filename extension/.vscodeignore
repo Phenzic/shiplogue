@@ -6,6 +6,7 @@ scripts/**
 coverage/**
 **/*.vsix
 DEBUG_*.md
+MANUAL_QA.md
 TEST_REPORT.md
 IMPLEMENTATION_*.md
 **/*.ts
