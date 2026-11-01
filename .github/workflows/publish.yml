@@ -39,3 +39,4 @@ jobs:
 
       - name: Publish extension
         run: npx --yes @vscode/vsce@4.1.0 publish --oidc
+        
