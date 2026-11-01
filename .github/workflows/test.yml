@@ -20,7 +20,16 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: extension/package-lock.json
+      # The Cursor tests build synthetic state.vscdb files with the sqlite3
+      # CLI. macOS/Ubuntu runners ship it; the Windows image does not, and the
+      # 10 cursor tests fail with `spawnSync sqlite3 ENOENT` without it.
+      - name: Install sqlite3 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install sqlite --no-progress -y
+          sqlite3 --version
       - run: npm ci
       - run: npm test
-        # Gated suites (STANDUP_E2E, CURSOR_REAL_DB) skip automatically without
+        # Gated suites (SHIPLOGUE_E2E, CURSOR_REAL_DB) skip automatically without
         # a local Ollama / Cursor install.
