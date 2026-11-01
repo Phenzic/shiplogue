@@ -104,11 +104,11 @@ test("a document outside every workspace folder falls back to its absolute path"
 
 test("Windows-style backslash paths are normalized and noise-filtered", () => {
   const { tracker, flush, read } = setup();
-  // On Windows asRelativePath yields backslashes; simulate by giving the doc a
-  // path whose relative form contains literal backslashes (posix path.relative
-  // treats them as ordinary characters).
-  stub.emitSave(stub.makeDoc(`${ROOT}/node_modules\\x\\y.js`));
-  stub.emitSave(stub.makeDoc(`${ROOT}/src\\win\\style.ts`, { languageId: "typescript" }));
+  // The folder boundary uses path.sep so the stub's getWorkspaceFolder finds
+  // the folder on Windows too; the inner backslashes simulate asRelativePath's
+  // Windows output (on POSIX they are ordinary characters).
+  stub.emitSave(stub.makeDoc(`${ROOT}${path.sep}node_modules\\x\\y.js`));
+  stub.emitSave(stub.makeDoc(`${ROOT}${path.sep}src\\win\\style.ts`, { languageId: "typescript" }));
   flush();
   const events = read();
   assert.deepEqual(events.map((e) => e.file), ["src/win/style.ts"]);

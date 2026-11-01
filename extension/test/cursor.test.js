@@ -12,6 +12,21 @@ installVscodeStub();
 const { collectCursorPrompts } = require("../out/cursor");
 
 const ORIGINAL_HOME = process.env.HOME;
+const ORIGINAL_USERPROFILE = process.env.USERPROFILE;
+
+// The extension resolves Cursor's DB via os.homedir(): HOME on POSIX,
+// USERPROFILE on Windows. Point both at the fixture so the tests behave the
+// same on every runner.
+function useHome(home) {
+  process.env.HOME = home;
+  process.env.USERPROFILE = home;
+}
+function restoreHome() {
+  if (ORIGINAL_HOME === undefined) delete process.env.HOME;
+  else process.env.HOME = ORIGINAL_HOME;
+  if (ORIGINAL_USERPROFILE === undefined) delete process.env.USERPROFILE;
+  else process.env.USERPROFILE = ORIGINAL_USERPROFILE;
+}
 
 function sqlite(db, sql) {
   execFileSync("sqlite3", [db, sql], { encoding: "utf8" });
@@ -60,7 +75,7 @@ function makeCursorHome({ workspaces = [], bubbles = [] } = {}) {
         )}');`,
     );
   }
-  process.env.HOME = home;
+  useHome(home);
   return { home, globalDb };
 }
 
@@ -69,10 +84,10 @@ const inWindow = new Date(now - 3600e3).toISOString();
 const outOfWindow = new Date(now - 48 * 3600e3).toISOString();
 
 test.beforeEach(() => {
-  process.env.HOME = ORIGINAL_HOME;
+  restoreHome();
 });
 test.after(() => {
-  process.env.HOME = ORIGINAL_HOME;
+  restoreHome();
 });
 
 test("extracts only in-window user prompts, read-only", async () => {
@@ -133,7 +148,7 @@ test("a scope with no attributable chats returns nothing (never leaks)", async (
 });
 
 test("no Cursor database means no prompts and no error", async () => {
-  process.env.HOME = tmpDir("standup-nohome-");
+  useHome(tmpDir("standup-nohome-"));
   assert.deepEqual(await collectCursorPrompts(new Date(now - 24 * 3600e3), new Date(now + 60e3), null), []);
 });
 

@@ -142,8 +142,12 @@ export async function gatherContext(store: Store, opts: GatherOptions = {}): Pro
     const pathSet = new Set(folders.map((f) => normalizeFolderPath(f.uri.fsPath)));
     // New events carry the folder path so two same-named folders in different
     // windows stay separate; pre-0.1.0 events fall back to the folder name.
+    // Normalize the event path too: logs written on Windows (or before the
+    // tracker normalized paths) carry backslashes.
     events = events.filter((ev) =>
-      ev.projectPath ? pathSet.has(ev.projectPath) : folderNames.has(ev.project),
+      ev.projectPath
+        ? pathSet.has(normalizeFolderPath(ev.projectPath))
+        : folderNames.has(ev.project),
     );
   }
   const touches = aggregateTouches(events);
