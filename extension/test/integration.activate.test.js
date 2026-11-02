@@ -123,11 +123,15 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
     [...stub.commandRegistry.keys()].sort(),
     [
       "shiplogue.clearProviderKey",
+      "shiplogue.configureShortcut",
       "shiplogue.connectGitHub",
+      "shiplogue.feedback",
       "shiplogue.generate",
+      "shiplogue.rate",
       "shiplogue.setProviderKey",
       "shiplogue.setReminderTime",
       "shiplogue.showActivity",
+      "shiplogue.star",
       "shiplogue.testProvider",
     ],
   );
@@ -483,4 +487,48 @@ test("a generation that exceeds shiplogue.generate.timeoutSeconds aborts with gu
   assert.ok(cancelled, "expected a timed-out cancellation");
   assert.match(cancelled.message, /timed out after 1s/);
   assert.match(cancelled.message, /shiplogue\.generate\.timeoutSeconds/);
+});
+
+test("legacy webhook settings migrate to posting.targets once", async (t) => {
+  const dir = tmpDir("standup-plain-");
+  const storage = tmpDir();
+  await withActivation(t, {
+    repoDir: dir,
+    storage,
+    config: baseConfig({
+      "shiplogue.webhook.type": "discord",
+      "shiplogue.webhook.url": "https://discord.com/api/webhooks/123/abc",
+    }),
+    lastReminder: ymd(),
+  });
+  await settle();
+  const upd = stub.configUpdates.find((u) => u.key === "shiplogue.posting.targets");
+  assert.ok(upd, "expected the migration write");
+  assert.deepEqual(upd.value, [
+    { type: "discord", url: "https://discord.com/api/webhooks/123/abc", enabled: true },
+  ]);
+  assert.equal(upd.target, 1, "ConfigurationTarget.Global");
+
+  // Second activation must not write again.
+  cleanup();
+  stub.reset();
+  stub.setFolders([{ fsPath: dir, name: "demo" }]);
+  stub.setConfig(baseConfig({ "shiplogue.webhook.type": "discord", "shiplogue.webhook.url": "https://x" }));
+  activate(makeContext(storage));
+  await settle();
+  assert.equal(stub.configUpdates.filter((u) => u.key === "shiplogue.posting.targets").length, 0);
+  cleanup();
+});
+
+test("no migration write when nothing legacy is configured", async (t) => {
+  const dir = tmpDir("standup-plain-");
+  const storage = tmpDir();
+  await withActivation(t, {
+    repoDir: dir,
+    storage,
+    config: baseConfig(),
+    lastReminder: ymd(),
+  });
+  await settle();
+  assert.equal(stub.configUpdates.filter((u) => u.key === "shiplogue.posting.targets").length, 0);
 });

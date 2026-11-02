@@ -34,6 +34,8 @@ export function cfg() {
     format: c.get<"done-next-blockers" | "yesterday-today-blockers">("format", "done-next-blockers"),
     webhookType: c.get<"none" | "discord" | "slack">("webhook.type", "none"),
     webhookUrl: c.get<string>("webhook.url", "").trim(),
+    // Multi-target posting (T1). Validated/filtered in post.ts effectiveTargets.
+    postingTargets: c.get<Array<{ type: string; url: string; enabled: boolean }>>("posting.targets", []),
     trackEnabled: c.get<boolean>("track.enabled", true),
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),
@@ -49,6 +51,9 @@ export function cfg() {
     providerBaseUrl: c.get<string>("provider.baseUrl", "").trim().replace(/\/+$/, ""),
     // Hard cap for BYOK output; 0 = use the detail level's budget.
     providerMaxOutputTokens: c.get<number>("provider.maxOutputTokens", 1200),
+    // Context window for the bundled local model (0.2.0) — also the budget
+    // estimate for BYOK providers. Ollama uses ollama.numCtx instead.
+    modelContextTokens: c.get<number>("model.contextTokens", 16384),
     detail: detailGetter(),
     tone: toneGetter(),
     scope: c.get<"workspace" | "all">("scope", "workspace"),
@@ -56,5 +61,14 @@ export function cfg() {
     generateTimeoutSeconds: c.get<number>("generate.timeoutSeconds", 180),
     // 0 keeps activity logs forever.
     storeRetentionDays: c.get<number>("store.retentionDays", 14),
+    // Auto-post (P1; Pro feature — entitlement is a local mock for now).
+    autoPostEnabled: c.get<boolean>("autoPost.enabled", false),
+    // "" = use the reminder time.
+    autoPostTime: c.get<string>("autoPost.time", ""),
+    autoPostDays: c.get<number[]>("autoPost.days", [1, 2, 3, 4, 5]),
+    autoPostMode: c.get<"review" | "auto">("autoPost.mode", "review"),
+    // Feedback loop: local counters only; the prompt opens a form in the browser.
+    feedbackEnabled: c.get<boolean>("feedback.enabled", true),
+    feedbackPromptAfter: c.get<number>("feedback.promptAfter", 3),
   };
 }

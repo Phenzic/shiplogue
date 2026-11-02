@@ -146,9 +146,12 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
 - **Automatic repair pass** if the model under-splits and the activity supports
   the requested minimum. It splits real work; it does not pad with invented
   items.
-- **Grounding check:** file paths and `#issue`/`#PR` numbers that do not appear
-  in the activity are removed, and the panel reports what was removed. The next
-  build makes every specific claim a hard, verifiable rule.
+- **Grounding v2 (hard gate):** every specific claim in the draft — file paths,
+  `#issue`/`#PR` numbers, URLs, dates, versions, people and completion claims
+  ("shipped/merged/deployed…") — must be backed by the gathered activity.
+  Unsupported mentions are stripped; if a repair pass still leaves unverifiable
+  claims, the panel flags the draft as **Needs review** instead of presenting it
+  as clean. The status line reports "Verified N claims · M removed · K inferred".
 - **Deterministic formatting:** 3+ files become indented sub-bullets; references
   are built from fetched GitHub data, so links cannot be hallucinated.
 - **Prompt-injection hygiene:** activity is wrapped as untrusted data, and
@@ -166,13 +169,26 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
 - **Copy**, **Regenerate**, **Cancel**, and Detail/Tone controls.
 - Live progress with phase and elapsed seconds; a new run supersedes and cancels
   the previous one; a configurable timeout prevents a stuck request.
-- **Manual posting** to one Discord or Slack incoming webhook. Discord drafts are
-  split into up to three messages; Slack gets Markdown converted to mrkdwn.
+- **Posting** to any number of Discord, Slack and Teams incoming webhooks at once
+  (`shiplogue.posting.targets`). Discord drafts are split into up to three
+  messages; Slack gets Markdown converted to mrkdwn; Teams gets an Adaptive Card.
   Beyond three Discord messages, the full text is copied to the clipboard.
-  Optional scheduled auto-posting is planned for paid plans.
+- **Scheduled auto-posting** (Pro preview): generate and post on a schedule while
+  the editor is running — review-first or fully automatic with a 60-second undo
+  window.
 - **Daily reminder** at your local time, with *Generate now* and *Snooze 1h*.
 - **Local retention:** activity logs older than 14 days are pruned on startup
   (configurable; `0` keeps them forever).
+
+### Keyboard shortcut
+
+- **`Cmd+Shift+J`** on macOS, **`Ctrl+Shift+J`** on Windows/Linux:
+  generate today's update without opening the command palette.
+- The binding is inactive while the terminal has focus, so it doesn't steal
+  terminal shortcuts.
+- Run **Shiplogue: Configure Keyboard Shortcut** to open the Keyboard Shortcuts
+  editor filtered to the command if another extension or a keymap already uses
+  the chord.
 
 ## Settings
 
@@ -186,6 +202,7 @@ backends ship.
 | `shiplogue.ollama.model` | `llama3.2` | Model used to summarize |
 | `shiplogue.ollama.numPredict` | `0` | Output token budget; `0` uses the per-detail default (400/900/1600) |
 | `shiplogue.ollama.numCtx` | `8192` | Context window passed to Ollama; raise for very busy days |
+| `shiplogue.model.contextTokens` | `16384` | Context budget for the local model / BYOK estimate; Ollama uses `shiplogue.ollama.numCtx` |
 | `shiplogue.ollama.think` | `auto` | Reasoning control: `auto` (retry with thinking off if empty), `on`, `off` |
 | `shiplogue.model.backend` | `auto` | `auto` / `local` / `provider` / `ollama` |
 | `shiplogue.provider.type` | `none` | `anthropic` / `openai` / `google` / `openai-compatible` |
@@ -199,11 +216,16 @@ backends ship.
 | `shiplogue.scope` | `workspace` | `workspace` = folders open in this window; `all` = every project that day |
 | `shiplogue.detail` | `concise` | `concise` / `standard` / `elaborate` |
 | `shiplogue.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
-| `shiplogue.webhook.type` | `none` | `discord` / `slack` / `none` |
-| `shiplogue.webhook.url` | `""` | Incoming webhook URL (no bot/OAuth needed) |
+| `shiplogue.posting.targets` | `[]` | List of `{ type: discord \| slack \| teams, url, enabled }` — Send posts to all enabled targets |
+| `shiplogue.webhook.type` | `none` | Legacy single target (`discord` / `slack` / `none`); migrated into `posting.targets` |
+| `shiplogue.webhook.url` | `""` | Legacy incoming webhook URL (no bot/OAuth needed) |
 | `shiplogue.track.enabled` | `true` | Track file saves/edits locally |
 | `shiplogue.generate.timeoutSeconds` | `180` | Abort generation after N seconds; `0` disables |
 | `shiplogue.store.retentionDays` | `14` | Delete activity logs older than N days; `0` = keep forever |
+| `shiplogue.autoPost.enabled` | `false` | Pro preview: generate + post on a schedule (editor must be running) |
+| `shiplogue.autoPost.time` | `""` | Local `HH:MM`; empty = same as `shiplogue.reminder.time` |
+| `shiplogue.autoPost.days` | `[1,2,3,4,5]` | Weekdays to auto-post (0 = Sunday) |
+| `shiplogue.autoPost.mode` | `review` | `review` asks first; `auto` posts after a 60 s undo window |
 | `shiplogue.reminder.enabled` | `true` | Daily local-time nudge |
 | `shiplogue.reminder.time` | `16:00` | Reminder time in 24h `HH:MM`, local time |
 | `shiplogue.cursor.enabled` | `true` | Include Cursor AI prompts as context (Cursor only) |
@@ -267,8 +289,22 @@ for the proposed tiers.
 ## Posting
 
 Posting is **manual** in the current build: review the draft, then press **Send**.
-Set `shiplogue.webhook.type` to `discord` or `slack` and paste an incoming webhook
-URL into `shiplogue.webhook.url`. No bot or OAuth app is required.
+Configure one or more targets in `shiplogue.posting.targets`:
+
+```jsonc
+"shiplogue.posting.targets": [
+  { "type": "discord", "url": "https://discord.com/api/webhooks/…", "enabled": true },
+  { "type": "slack",   "url": "https://hooks.slack.com/…",        "enabled": true },
+  { "type": "teams",   "url": "https://….powerplatform.com/…",    "enabled": true }
+]
+```
+
+Every enabled target gets the draft; a failure in one never blocks the others, and
+the result notification lists per-target successes/failures. No bot or OAuth app is
+required — incoming webhooks only (for Teams, a **Workflows** webhook; the retired
+Office 365 connector format is not supported). The legacy `shiplogue.webhook.type` /
+`shiplogue.webhook.url` pair still works and is migrated into `posting.targets` once
+on first run.
 
 - **Discord:** content is split at line/word boundaries into up to three messages
   of ≤1,990 characters. If more would be needed, the first three are posted, the
@@ -277,12 +313,37 @@ URL into `shiplogue.webhook.url`. No bot or OAuth app is required.
   `*bold*`, links → `<url|text>`), regardless of which tab is active. Because
   Slack needs Markdown, edits made only in the Plain text tab are not sent to
   Slack.
-- Only one webhook target is configured at a time.
+- **Teams:** the draft is sent as an Adaptive Card (v1.4) in a Workflows message.
 
-**Automatic daily posting is planned for paid plans, not implemented.** It is not
-available in this build; today every post is a reviewed manual action. When it
-lands, it will be an optional scheduled post to the configured Discord and/or
-Slack webhook, with an option to review before posting.
+### Auto-post (Pro preview)
+
+`shiplogue.autoPost.enabled` turns on scheduled posting while the editor is
+running. At `shiplogue.autoPost.time` (defaults to your reminder time) on
+`shiplogue.autoPost.days` (default Mon–Fri), Shiplogue generates your draft and:
+
+- **`review` mode (default):** asks first — *Post now*, *Open panel*, or *Skip today*.
+- **`auto` mode:** posts after a 60-second undo window.
+
+Posts go to every enabled `shiplogue.posting.targets` entry. Each day posts at
+most once per target (dedupe), failures retry three times with backoff, and a
+failed post keeps the draft for manual recovery. The editor must be running at
+the scheduled time; a cloud scheduler that works with the editor closed is a
+later phase. Auto-post is a Pro feature — the entitlement check is a local
+preview stub until accounts/billing ship.
+
+## Feedback & rating
+
+Shiplogue is built in the open and feedback shapes it. Ways to reach us:
+
+- **In the panel:** after a draft, click 👍 or 👎 (next to Copy/Send). 👎 opens a
+  short feedback form; the link carries only your extension version, OS and
+  model backend — never your draft or activity.
+- **Command palette:** **Shiplogue: Share Feedback** opens the same form any time.
+- **Like it?** Run **Shiplogue: Star on GitHub** or **Shiplogue: Rate on the
+  Marketplace** — ratings are how others find the extension.
+- After a few successful drafts you'll get one polite prompt per version asking
+  how it's going; "Not now" snoozes it for 30 days, "Don't ask again" opts out
+  forever (`shiplogue.feedback.enabled` turns the prompt off entirely).
 
 ## Privacy and local data
 
@@ -382,10 +443,10 @@ Increase `shiplogue.generate.timeoutSeconds`, reduce `shiplogue.lookbackHours`, 
 smaller model, or check the Cursor database size. The Cancel button aborts
 immediately.
 
-**“Removed N unverifiable mention(s)”**
-The grounding check removed a file path or `#number` that was not in the activity.
-This is intentional; review the draft. The next build extends grounding to every
-specific claim and makes it a release gate.
+**“Removed N unverifiable mention(s)” / “Needs review”**
+The grounding check removed claims (file paths, `#numbers`, URLs, dates, people,
+completions) that were not in the activity. “Needs review” means a repair pass
+still left unverified claims — read the draft carefully before sending.
 
 **Posting failed**
 Check `shiplogue.webhook.type`/`url` and that the webhook still exists. Webhooks
@@ -413,13 +474,10 @@ planned.
   Antigravity, VSCodium and Windsurf; JetBrains, Zed, Neovim and Sublime need
   separate adapters.
 - **AI prompt capture is Cursor-only.** VS Code/Copilot chat history is not read.
-- **Manual posting only.** Automatic daily posting is planned for paid plans.
-- **One webhook target.** Discord or Slack, not both simultaneously.
-- **Grounding covers file/#number references today.** The next build makes every
-  specific claim a hard, verifiable rule and warns rather than silently accepting
-  an unverified detail.
-- **Context caps are in place, but the preflight budget check is planned.** The
-  panel reports “showing N of M”, and `numCtx` is configurable.
+- **Auto-post needs a running editor.** The scheduled poster (Pro preview) only
+  fires while VS Code/Cursor is open; a cloud scheduler is a later phase.
+- **Grounding is deterministic, not perfect.** It verifies specific claims
+  against the gathered activity; it cannot judge whether a true claim matters.
 - **Reminder timing requires the editor to be open.** There is no OS scheduler.
 - **Real-host QA is pending.** Automated tests cover the core; a manual F5 pass
   on macOS (and Windows where available) is still part of the launch checklist.

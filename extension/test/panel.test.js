@@ -56,6 +56,8 @@ function bootWebview(html) {
     send: makeEl("send"),
     regen: makeEl("regen"),
     cancel: makeEl("cancel"),
+    thumbUp: makeEl("thumbUp"),
+    thumbDown: makeEl("thumbDown"),
     copy: makeEl("copy"),
     detail: makeEl("detail"),
     tone: makeEl("tone"),
@@ -383,4 +385,127 @@ test("the tone select renders, syncs from init/draft and posts setTone", () => {
   ui.els.tone.value = "junior";
   ui.els.tone.onchange({ target: { value: "junior" } });
   assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "setTone", tone: "junior" });
+});
+
+test("thumbs are hidden while loading, shown per draft, and post feedback with the backend", () => {
+  const { webview } = freshPanel();
+  const ui = bootWebview(webview.webview.html);
+
+  ui.sendMessage({ kind: "loading", label: "Writing…" });
+  assert.equal(ui.els.thumbUp.style.display, "none");
+  assert.equal(ui.els.thumbDown.style.display, "none");
+
+  ui.sendMessage({
+    kind: "draft",
+    markdown: "**Done**\n- x",
+    summary: {},
+    detail: "concise",
+    target: "",
+    modelLabel: "Ollama · llama3.2",
+  });
+  assert.equal(ui.els.thumbUp.style.display, "inline-block");
+  assert.equal(ui.els.thumbDown.style.display, "inline-block");
+
+  ui.els.thumbUp.onclick();
+  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), {
+    kind: "feedback",
+    value: "up",
+    backend: "Ollama · llama3.2",
+  });
+  assert.equal(ui.els.status.textContent, "Thanks for the feedback!");
+
+  ui.els.thumbDown.onclick();
+  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), {
+    kind: "feedback",
+    value: "down",
+    backend: "Ollama · llama3.2",
+  });
+
+  // A new generation hides them again (reset per draft).
+  ui.sendMessage({ kind: "loading", label: "Writing…" });
+  assert.equal(ui.els.thumbUp.style.display, "none");
+});
+
+test("panel messages: feedback routes to the onFeedback callback", async () => {
+  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
+  stub.reset();
+  setDetailGetter(() => "concise");
+  stub.setConfig({ "shiplogue.webhook.type": "none" });
+  const state = new State(makeContext(tmpDir()));
+  const got = [];
+  ShiploguePanel.show(() => {}, state, undefined, (value, backend) => got.push([value, backend]));
+  await stub.panels.at(-1).messageHandler({ kind: "feedback", value: "up", backend: "Ollama · llama3.2" });
+  await stub.panels.at(-1).messageHandler({ kind: "feedback", value: "bogus" });
+  assert.deepEqual(got, [["up", "Ollama · llama3.2"]]);
+});
+
+test("the Send button label reflects the number of enabled targets", () => {
+  const { webview } = freshPanel();
+  stub.setConfig({
+    "shiplogue.posting.targets": [
+      { type: "slack", url: "http://a", enabled: true },
+      { type: "teams", url: "http://b", enabled: true },
+      { type: "discord", url: "http://c", enabled: false },
+    ],
+  });
+  const ui = bootWebview(webview.webview.html);
+  ui.sendMessage({ kind: "draft", markdown: "**Done**\n- x", summary: {}, detail: "concise", target: "2 targets" });
+  assert.equal(ui.els.send.textContent, "Send to 2 targets");
+});
+
+test("setDraft computes the target label from enabled posting targets", () => {
+  const { panel, webview } = freshPanel();
+  stub.setConfig({
+    "shiplogue.posting.targets": [
+      { type: "slack", url: "http://a", enabled: true },
+      { type: "discord", url: "http://b", enabled: true },
+    ],
+  });
+  panel.setDraft({ markdown: "**Done**\n- x", summary: { commits: 1, files: 0, github: 0 } });
+  assert.equal(webview.messages.at(-1).target, "2 targets");
+
+  stub.setConfig({ "shiplogue.posting.targets": [{ type: "teams", url: "http://t", enabled: true }] });
+  panel.setDraft({ markdown: "**Done**\n- x", summary: { commits: 1, files: 0, github: 0 } });
+  assert.equal(webview.messages.at(-1).target, "teams");
+
+  stub.setConfig({ "shiplogue.posting.targets": [] });
+  panel.setDraft({ markdown: "**Done**\n- x", summary: { commits: 1, files: 0, github: 0 } });
+  assert.equal(webview.messages.at(-1).target, "");
+});
+
+test("verification summary renders in the status line; needsReview flags the draft", () => {
+  const { webview } = freshPanel();
+  const ui = bootWebview(webview.webview.html);
+
+  ui.sendMessage({
+    kind: "draft",
+    markdown: "**Done**\n- x",
+    summary: {},
+    detail: "concise",
+    target: "",
+    verification: { checkedClaims: 24, removed: 1, inferred: 2, violations: [], needsReview: false },
+  });
+  assert.match(ui.els.status.textContent, /Verified 24 claims · 1 removed · 2 inferred/);
+  assert.notEqual(ui.els.status.className, "err");
+
+  ui.sendMessage({
+    kind: "draft",
+    markdown: "**Done**\n- x",
+    summary: {},
+    detail: "concise",
+    target: "",
+    verification: {
+      checkedClaims: 5,
+      removed: 1,
+      inferred: 0,
+      violations: ["path: src/nope.ts"],
+      needsReview: true,
+    },
+  });
+  assert.match(ui.els.status.textContent, /Needs review: 1 unverified claim/);
+  assert.equal(ui.els.status.className, "err");
+
+  // No verification payload → legacy default text.
+  ui.sendMessage({ kind: "draft", markdown: "**Done**\n- x", summary: {}, detail: "concise", target: "" });
+  assert.equal(ui.els.status.textContent, "Review and edit, then copy or send.");
 });

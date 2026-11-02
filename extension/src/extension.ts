@@ -13,12 +13,17 @@ import { setSecretStorage } from "./model/secrets";
 import { loadProviderConfig, providerDisplayName } from "./model/registry";
 import { BackendMeta } from "./model/types";
 import { clearProviderKey, setProviderKey, testProvider } from "./commands/providerKeys";
+import { configureShortcut } from "./commands/shortcuts";
+import { Feedback, openFeedback, openRate, openStar } from "./feedback";
+import { AutoPost } from "./autoPost";
 import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
 let state: State;
 let tracker: Tracker | undefined;
 let reminder: Reminder | undefined;
+let feedback: Feedback;
+let autoPost: AutoPost | undefined;
 
 // Generation runs are serialized by a monotonic epoch: a new run (Regenerate,
 // Detail change) aborts and supersedes the previous one, whose late results
@@ -39,6 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
     setSecretStorage(context.secrets);
   }
   store.pruneOld(cfg().storeRetentionDays);
+  void migratePostingTargets();
 
   // Migrate a previously saved workspace setting into globalState once.
   if (!state.hasDetail()) {
@@ -52,6 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
   }
   setDetailGetter(() => state.getDetail());
   setToneGetter(() => state.getTone());
+  feedback = new Feedback(state, extensionVersion(context));
 
   if (cfg().trackEnabled) {
     tracker = new Tracker(store);
@@ -60,6 +67,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   reminder = new Reminder(state, () => void runGenerate());
   void reminder.ensureSetup().then(() => reminder?.start());
+
+  // Scheduled auto-posting (Pro; entitlement mocked until billing exists).
+  // Works only while the editor runs — the cloud scheduler is a later phase.
+  autoPost = new AutoPost(state, { generateDraft: produceDraft });
+  if (cfg().autoPostEnabled) {
+    autoPost.start();
+  }
 
   // Fire-and-forget first-run check: surface Ollama problems at startup with a
   // fix path, instead of letting the first Generate fail. Never blocks
@@ -82,6 +96,10 @@ export function activate(context: vscode.ExtensionContext) {
         token ? "GitHub connected — issues & PRs will be included." : "GitHub sign-in was cancelled.",
       );
     }),
+    vscode.commands.registerCommand("shiplogue.configureShortcut", () => configureShortcut()),
+    vscode.commands.registerCommand("shiplogue.feedback", () => openFeedback(extensionVersion(context))),
+    vscode.commands.registerCommand("shiplogue.star", () => openStar()),
+    vscode.commands.registerCommand("shiplogue.rate", () => openRate()),
   );
 }
 
@@ -90,6 +108,7 @@ async function runGenerate(): Promise<void> {
     () => void runGenerate(),
     state,
     () => inFlight?.abort(),
+    (value, backend) => void feedback.recordThumbs(value, backend),
   );
   // A new run supersedes and aborts any in-flight run.
   inFlight?.abort();
@@ -134,7 +153,17 @@ async function runGenerate(): Promise<void> {
       return;
     }
     setPhase("Writing your stand-up…");
-    const { text: draft, warnings, backend } = await generateStandup(ctx, controller.signal);
+    const { text: draft, warnings, verification, budget, backend } = await generateStandup(
+      ctx,
+      controller.signal,
+      (report) => {
+        if (report.steps.length && epoch === generationEpoch) {
+          panel.setLoading(
+            `Fitting activity to ${Math.round(report.budget / 1000)}K context (${report.steps.join(", ")}) — writing…`,
+          );
+        }
+      },
+    );
     if (controller.signal.aborted) {
       throw new DOMException("Generation aborted", "AbortError");
     }
@@ -156,6 +185,11 @@ async function runGenerate(): Promise<void> {
     if (ctx.truncated?.github) {
       notes.push(`showing ${ctx.github.length} of ${ctx.truncated.github} GitHub items (most recent)`);
     }
+    if (budget) {
+      notes.push(
+        `context ~${(budget.estimated / 1000).toFixed(1)}K/${Math.round(budget.budget / 1000)}K — ${budget.steps.join("; ")}`,
+      );
+    }
     if (epoch === generationEpoch) {
       panel.setDraft({
         markdown,
@@ -166,8 +200,12 @@ async function runGenerate(): Promise<void> {
           ...(notes.length ? { notes } : {}),
         },
         ...(warnings.length ? { warnings } : {}),
+        verification,
         ...(backend ? { modelLabel: backendLabel(backend) } : {}),
       });
+      // Successful draft delivered — count it and maybe ask for feedback.
+      // Fire-and-forget: never blocks the panel or the cleanup below.
+      void feedback.recordSuccess(backend ? backendLabel(backend) : "unknown");
     }
   } catch (e: any) {
     if (controller.signal.aborted) {
@@ -195,6 +233,37 @@ async function runGenerate(): Promise<void> {
       inFlight = undefined;
     }
   }
+}
+
+// One-time migration: a configured legacy webhook pair becomes the first
+// posting target, so existing users keep posting after upgrading (T1).
+async function migratePostingTargets(): Promise<void> {
+  try {
+    if (state.getPostingMigrated()) {
+      return;
+    }
+    await state.setPostingMigrated();
+    const c = cfg();
+    if (c.postingTargets.length === 0 && c.webhookType !== "none" && c.webhookUrl) {
+      await vscode.workspace
+        .getConfiguration("shiplogue")
+        .update(
+          "posting.targets",
+          [{ type: c.webhookType, url: c.webhookUrl, enabled: true }],
+          vscode.ConfigurationTarget.Global,
+        );
+    }
+  } catch {
+    /* migration is best-effort; the legacy fallback keeps working */
+  }
+}
+
+// The running extension version (for once-per-version prompts).
+function extensionVersion(context: vscode.ExtensionContext): string {
+  return (
+    (context as { extension?: { packageJSON?: { version?: string } } }).extension?.packageJSON
+      ?.version ?? "0.0.0"
+  );
 }
 
 // Human label for the panel's "via …" badge.
@@ -290,5 +359,22 @@ async function runShowActivity(): Promise<void> {  const ctx = await gatherConte
 export function deactivate() {
   tracker?.dispose();
   reminder?.dispose();
+  autoPost?.dispose();
   store?.flush();
+}
+
+// Panel-less draft production for the auto-post scheduler. Returns undefined
+// when there's nothing to say or generation fails (logged, never thrown).
+async function produceDraft(): Promise<string | undefined> {
+  try {
+    const ctx = await gatherContext(store);
+    if (!ctx.commits.length && !ctx.github.length && !ctx.touches.length && !ctx.cursorPrompts.length) {
+      return undefined;
+    }
+    const { text } = await generateStandup(ctx);
+    return text + buildReferences(ctx);
+  } catch (e) {
+    console.error("[shiplogue] auto-post generation failed:", e);
+    return undefined;
+  }
 }

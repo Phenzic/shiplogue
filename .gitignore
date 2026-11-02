@@ -14,3 +14,18 @@ marketing/
 /extension/IMPLEMENTATION_PLAN_2.md
 /extension/TEST_REPORT.md
 /extension/MANUAL_QA.md
+/ARCHITECTURE.md
+/IMPLEMENTATION_PLAN_3.md
+# Local model weights and engine artifacts (R2+)
+*.gguf
+.standup/
+
+# Agent build artifacts
+agent/dist/
+
+.env
+.env.*
+!.env.example
+**/*.log
+.DS_Store
+.github/**

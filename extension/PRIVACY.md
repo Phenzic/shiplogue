@@ -45,6 +45,13 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 - GitHub API calls go only to `api.github.com`, only when GitHub collection is
   possible (token present).
 
+## Feedback
+
+Thumbs and feedback prompts are local counters only. Nothing is sent anywhere
+until you choose to open the feedback form or the star/rate pages, and those
+URLs carry only your extension version, OS and model backend — never your draft
+or activity. Disable the occasional prompt with `shiplogue.feedback.enabled`.
+
 ## Telemetry
 
 None. No analytics, no crash reporting, no third-party calls beyond the above.

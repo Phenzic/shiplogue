@@ -34,13 +34,14 @@ const stateStores = new Map();
 // SecretStorage is separate from globalState and also persists per storage dir,
 // mirroring the OS keychain surviving a reload.
 const secretStores = new Map();
-function makeContext(storageDir) {
+function makeContext(storageDir, version = "0.1.3-test") {
   if (!stateStores.has(storageDir)) stateStores.set(storageDir, new Map());
   const state = stateStores.get(storageDir);
   if (!secretStores.has(storageDir)) secretStores.set(storageDir, new Map());
   const secretValues = secretStores.get(storageDir);
   return {
     globalStorageUri: { fsPath: storageDir },
+    extension: { id: "phenzic.shiplogue", packageJSON: { version } },
     globalState: {
       get(key, def) {
         return state.has(key) ? state.get(key) : def;

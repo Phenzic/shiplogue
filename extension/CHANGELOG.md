@@ -3,10 +3,64 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **Feedback loop:** 👍/👎 buttons in the panel (per draft, hidden while
+  generating); 👎 opens a feedback form carrying only version/OS/backend — never
+  draft content. One feedback prompt after a few successful drafts, once per
+  version, with 30-day snooze and permanent opt-out; a 👍 can trigger one
+  star/rate prompt per version. New commands: **Shiplogue: Share Feedback**,
+  **Star on GitHub**, **Rate on the Marketplace**. New settings
+  `shiplogue.feedback.enabled` / `shiplogue.feedback.promptAfter`.
+
+### Added
+
+- **Shared pure core** (`src/core/`): prompt builder, grounding, budget,
+  formatting and git/GitHub/Cursor gatherers no longer import `vscode` — the
+  extension passes settings in explicitly. Behavior is unchanged (full suite
+  green); this is the foundation for the Shiplogue agent (`agent/`, preview:
+  local event store with redaction/dedupe/retention + `shiplogue status`).
+- **Grounding v2 (hard gate):** every specific claim — file paths, `#numbers`,
+  URLs, dates, versions, people, completion claims — must be backed by the
+  activity. A repair pass rewrites violating drafts; still-dirty drafts are
+  flagged "Needs review" in the panel instead of being presented as clean, and
+  the status line shows the verification summary.
+- **Context preflight:** prompts are estimated and trimmed to the backend's
+  context window before any tokens are spent (compact AI prompts → drop oldest
+  commits → shrink bodies/file lists → cap touches/GitHub), with the trim steps
+  surfaced while loading and in the panel summary. Over-budget-beyond-minimum
+  refuses with an actionable error. New setting `shiplogue.model.contextTokens`.
+- **Scheduled auto-posting (Pro preview):** `shiplogue.autoPost.*` generates and
+  posts your stand-up on a schedule while the editor is running — review-first
+  or automatic with a 60-second undo window, once per day per target, with
+  retry + draft recovery on failure. The Pro entitlement check is a local stub
+  until accounts/billing ship.
+- **Multi-target posting:** `shiplogue.posting.targets` posts the draft to every
+  enabled Slack, Discord and Teams incoming webhook at once, with per-target
+  failure isolation and reporting. Teams uses a Workflows Adaptive Card (v1.4).
+  The legacy `shiplogue.webhook.type`/`url` pair keeps working and migrates into
+  the new list on first run. The Send button shows the target count.
+
+### Changed
+
+- **Generate shortcut** is now `Cmd+Shift+J` on macOS and `Ctrl+Shift+J` on
+  Windows/Linux (was `Cmd/Ctrl+Alt+Shift+G`). Use **Shiplogue: Configure
+  Keyboard Shortcut** to rebind it.
+
 ## [0.1.3] — 2026-11-01
 
-Packaging cleanup for the first Marketplace publish, plus a Windows path-scoping
-fix.
+Packaging cleanup for the first Marketplace publish, a Windows path-scoping fix,
+and a keyboard shortcut.
+
+### Added
+
+- **Generate shortcut:** `Cmd+Alt+Shift+G` on macOS and `Ctrl+Alt+Shift+G` on
+  Windows/Linux opens today's update without the command palette. The binding is
+  inactive while the terminal has focus.
+- **Shiplogue: Configure Keyboard Shortcut** opens the Keyboard Shortcuts editor
+  filtered to the generate command, for users whose keymap already uses the chord.
 
 ### Fixed
 

@@ -68,7 +68,7 @@ function draft(doneCount) {
     "Hey team, here's what I worked on today:",
     "",
     "**Done**",
-    ...Array.from({ length: doneCount }, (_, i) => `- Shipped change ${i + 1}.`),
+    ...Array.from({ length: doneCount }, (_, i) => `- Updated the health endpoint (part ${i + 1}).`),
     "",
     "**Next**",
     "- Continue.",

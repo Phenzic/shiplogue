@@ -33,7 +33,7 @@ function validDraft(doneCount = 1) {
     "Hey team, here's what I worked on today:",
     "",
     "**Done**",
-    ...Array.from({ length: doneCount }, (_, i) => `- Shipped change ${i + 1}.`),
+    ...Array.from({ length: doneCount }, (_, i) => `- Updated the health endpoint (part ${i + 1}).`),
     "",
     "**Next**",
     "- Keep going.",
@@ -140,7 +140,7 @@ test("under-splitting triggers exactly one repair pass when the work can support
       assert.equal(server.requests.length, 2, "one repair call expected");
       assert.match(server.requests[1].body.prompt, /Your previous draft/);
       assert.match(server.requests[1].body.prompt, /at least 5/);
-      assert.equal(out.split("\n").filter((l) => l.startsWith("- Shipped")).length, 6);
+      assert.equal(out.split("\n").filter((l) => l.startsWith("- Updated")).length, 6);
     },
   );
 });
@@ -506,6 +506,75 @@ test("each tone injects its voice rule; neutral adds no tone block", async () =>
     async (server) => {
       await generateStandup(baseCtx());
       assert.doesNotMatch(server.requests[0].body.prompt, /Voice:/, "neutral keeps the prompt unchanged");
+    },
+  );
+});
+
+test("grounding violations trigger one repair pass; a clean repair wins", async () => {
+  let call = 0;
+  const dirty = [
+    "Hey team, here's what I worked on today:",
+    "",
+    "**Done**",
+    "- Updated the health endpoint.",
+    "- Fixed the portal crash in src/invented.ts",
+    "",
+    "**Next**",
+    "- Keep going.",
+    "",
+    "**Blockers**",
+    "- None",
+  ].join("\n");
+  const clean = [
+    "Hey team, here's what I worked on today:",
+    "",
+    "**Done**",
+    "- Updated the health endpoint in src/health.ts.",
+    "",
+    "**Next**",
+    "- Keep going.",
+    "",
+    "**Blockers**",
+    "- None",
+  ].join("\n");
+  const server = await startServer(() => {
+    call++;
+    return { body: { response: call === 1 ? dirty : clean } };
+  });
+  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "m" });
+  try {
+    const { text, verification } = await generateStandup(baseCtx());
+    assert.equal(server.requests.length, 2, "one grounding repair call");
+    assert.match(server.requests[1].body.prompt, /not supported by the ACTIVITY/);
+    assert.match(server.requests[1].body.prompt, /src\/invented\.ts/);
+    assert.doesNotMatch(text, /invented/);
+    assert.equal(verification.needsReview, false);
+    assert.ok(verification.checkedClaims > 0);
+  } finally {
+    await server.close();
+  }
+});
+
+test("a still-dirty repair is flagged needsReview, never presented as clean", async () => {
+  const dirty = [
+    "**Done**",
+    "- Updated the health endpoint.",
+    "- Fixed the portal crash in src/invented.ts",
+    "",
+    "**Next**",
+    "- Keep going.",
+    "",
+    "**Blockers**",
+    "- None",
+  ].join("\n");
+  await withOllama(
+    () => dirty,
+    async (server) => {
+      const { text, verification } = await generateStandup(baseCtx());
+      assert.equal(server.requests.length, 2);
+      assert.equal(verification.needsReview, true);
+      assert.ok(verification.violations.some((v) => v.includes("src/invented.ts")));
+      assert.doesNotMatch(text, /invented/, "the draft is still deterministically cleaned");
     },
   );
 });

@@ -30,6 +30,7 @@ const stub = {
   disposeCount: 0,
   secrets: {},
   commandRegistry: new Map(),
+  executedCommands: [],
 
   reset() {
     this.config = {};
@@ -56,6 +57,7 @@ const stub = {
     this.disposeCount = 0;
     this.secrets = {};
     this.commandRegistry.clear();
+    this.executedCommands = [];
   },
 
   // Merge settings, e.g. { "shiplogue.ollama.model": "test" }.
@@ -267,8 +269,14 @@ const commands = {
     return disposable(() => stub.commandRegistry.delete(id));
   },
   executeCommand(id, ...args) {
+    stub.executedCommands.push({ id, args });
     const fn = stub.commandRegistry.get(id);
-    if (!fn) return Promise.reject(new Error(`command not found: ${id}`));
+    if (!fn) {
+      // Built-in workbench commands (e.g. openGlobalKeybindings) are not
+      // implemented here; resolving keeps command handlers testable.
+      if (id.startsWith("workbench.")) return Promise.resolve(undefined);
+      return Promise.reject(new Error(`command not found: ${id}`));
+    }
     return Promise.resolve(fn(...args));
   },
 };

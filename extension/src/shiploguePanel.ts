@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
-import { postToWebhook } from "./post";
-import { toSlackMrkdwn } from "./format";
+import { effectiveTargets, postToWebhook } from "./post";
 import { DetailLevel, State, Tone } from "./state";
 
 export interface DraftPayload {
@@ -9,8 +8,25 @@ export interface DraftPayload {
   summary: { commits: number; files: number; github: number; notes?: string[] };
   // Non-modal caveats shown in the status line (e.g. grounding removals).
   warnings?: string[];
+  // Grounding v2 outcome: claim counts and the needs-review flag.
+  verification?: {
+    checkedClaims: number;
+    removed: number;
+    inferred: number;
+    violations: string[];
+    needsReview: boolean;
+  };
   // Which engine wrote the draft, e.g. "Ollama · llama3.2".
   modelLabel?: string;
+}
+
+// Send-button label: the single target type, "N targets", or "" when none.
+function targetLabel(): string {
+  const targets = effectiveTargets();
+  if (targets.length === 0) {
+    return "";
+  }
+  return targets.length === 1 ? targets[0].type : `${targets.length} targets`;
 }
 
 // Singleton webview: shows the draft in Markdown + Plain-text tabs, an activity
@@ -20,10 +36,16 @@ export class ShiploguePanel {
   private panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
 
-  static show(onRegenerate: () => void, state: State, onCancel?: () => void): ShiploguePanel {
+  static show(
+    onRegenerate: () => void,
+    state: State,
+    onCancel?: () => void,
+    onFeedback?: (value: "up" | "down", backend: string) => void,
+  ): ShiploguePanel {
     if (ShiploguePanel.current) {
       ShiploguePanel.current.onRegenerate = onRegenerate;
       ShiploguePanel.current.onCancel = onCancel;
+      ShiploguePanel.current.onFeedback = onFeedback;
       ShiploguePanel.current.state = state;
       ShiploguePanel.current.syncDetail();
       ShiploguePanel.current.panel.reveal();
@@ -35,7 +57,7 @@ export class ShiploguePanel {
       vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: true },
     );
-    ShiploguePanel.current = new ShiploguePanel(panel, onRegenerate, state, onCancel);
+    ShiploguePanel.current = new ShiploguePanel(panel, onRegenerate, state, onCancel, onFeedback);
     return ShiploguePanel.current;
   }
 
@@ -44,6 +66,7 @@ export class ShiploguePanel {
     private onRegenerate: () => void,
     private state: State,
     private onCancel?: () => void,
+    private onFeedback?: (value: "up" | "down", backend: string) => void,
   ) {
     this.panel = panel;
     this.panel.webview.html = this.html();
@@ -63,10 +86,11 @@ export class ShiploguePanel {
       markdown: p.markdown,
       summary: p.summary,
       warnings: p.warnings,
+      verification: p.verification,
       modelLabel: p.modelLabel,
       detail: c.detail,
       tone: c.tone,
-      target: c.webhookType === "none" ? "" : c.webhookType,
+      target: targetLabel(),
     });
   }
 
@@ -94,6 +118,11 @@ export class ShiploguePanel {
       case "cancel":
         this.onCancel?.();
         break;
+      case "feedback":
+        if (msg.value === "up" || msg.value === "down") {
+          this.onFeedback?.(msg.value, typeof msg.backend === "string" ? msg.backend : "");
+        }
+        break;
       case "setDetail": {
         const detail = msg.detail as DetailLevel;
         await this.state.setDetail(detail);
@@ -114,18 +143,26 @@ export class ShiploguePanel {
       }
       case "send":
         try {
-          // Slack gets the Markdown tab converted to mrkdwn regardless of which
-          // tab is active; Discord/plain posts the tab the user is looking at.
-          const text =
-            cfg().webhookType === "slack" ? toSlackMrkdwn(msg.markdown ?? msg.text ?? "") : (msg.text ?? "");
-          const result = await postToWebhook(text);
+          const result = await postToWebhook(msg.text ?? "", msg.markdown);
+          const ok = result.results.filter((r) => r.ok).map((r) => r.type);
+          const bad = result.results.filter((r) => !r.ok);
           if (result.truncated) {
-            await vscode.env.clipboard.writeText(text);
+            await vscode.env.clipboard.writeText(msg.text ?? "");
+          }
+          if (bad.length === 0) {
             vscode.window.showInformationMessage(
-              `Stand-up posted (${result.posted} messages) — truncated; full text copied to clipboard.`,
+              result.truncated
+                ? `Stand-up posted to ${ok.join(", ")} — truncated; full text copied to clipboard.`
+                : `Stand-up posted to ${ok.join(", ")}.`,
+            );
+          } else if (ok.length === 0) {
+            vscode.window.showErrorMessage(
+              `Post failed: ${bad.map((b) => `${b.type} (${b.error})`).join(", ")}`,
             );
           } else {
-            vscode.window.showInformationMessage("Stand-up posted.");
+            vscode.window.showWarningMessage(
+              `Posted to ${ok.join(", ")}; failed: ${bad.map((b) => `${b.type} (${b.error})`).join(", ")}`,
+            );
           }
         } catch (e: any) {
           vscode.window.showErrorMessage(`Post failed: ${e.message ?? e}`);
@@ -206,6 +243,8 @@ export class ShiploguePanel {
     <button class="action secondary" id="send" style="display:none">Send</button>
     <button class="action secondary" id="regen">Regenerate</button>
     <button class="action secondary" id="cancel" style="display:none">Cancel</button>
+    <button class="action secondary" id="thumbUp" style="display:none" title="This draft was good — tell us (opens nothing, one click)">👍</button>
+    <button class="action secondary" id="thumbDown" style="display:none" title="This draft missed the mark — opens a short feedback form">👎</button>
     <label style="font-size:12px;opacity:.8;margin-left:auto">Detail
       <select id="detail" style="margin-left:4px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,transparent);border-radius:4px;padding:4px 6px">
         <option value="concise"${sel("concise")}>Concise · 3–4 points</option>
@@ -235,8 +274,18 @@ export class ShiploguePanel {
   const regenBtn = document.getElementById('regen');
   const detailSel = document.getElementById('detail');
   const toneSel = document.getElementById('tone');
+  const thumbUp = document.getElementById('thumbUp');
+  const thumbDown = document.getElementById('thumbDown');
   let activePane = 'md';
   let txtEdited = false;
+  let lastBackend = '';
+
+  // Thumbs are only meaningful for a finished draft: hidden while loading,
+  // reshown (reset) on every new draft.
+  function setThumbsVisible(v) {
+    thumbUp.style.display = v ? 'inline-block' : 'none';
+    thumbDown.style.display = v ? 'inline-block' : 'none';
+  }
 
   // While a generation runs, Regenerate/Detail are disabled and Cancel shows.
   function setBusy(b) {
@@ -280,16 +329,27 @@ export class ShiploguePanel {
   toneSel.onchange = (e) =>
     vscode.postMessage({ kind: 'setTone', tone: e.target.value });
   sendBtn.onclick = () => vscode.postMessage({ kind: 'send', text: activeText(), markdown: md.value });
+  thumbUp.onclick = () => {
+    vscode.postMessage({ kind: 'feedback', value: 'up', backend: lastBackend });
+    status.textContent = 'Thanks for the feedback!'; status.className = '';
+  };
+  thumbDown.onclick = () => {
+    vscode.postMessage({ kind: 'feedback', value: 'down', backend: lastBackend });
+    status.textContent = 'Thanks — the feedback form opens in your browser (no draft content is sent).'; status.className = '';
+  };
 
   window.addEventListener('message', (e) => {
     const m = e.data;
     if (m.kind === 'loading') {
       setBusy(true);
+      setThumbsVisible(false);
       md.value = ''; txt.value = ''; txtEdited = false;
       md.placeholder = m.label; status.textContent = m.label; status.className = '';
     } else if (m.kind === 'init' || m.kind === 'draft') {
       if (m.kind === 'draft') {
         setBusy(false);
+        lastBackend = m.modelLabel || '';
+        setThumbsVisible(true);
         txtEdited = false;
         md.value = m.markdown; syncPlain();
         const s = m.summary || {};
@@ -302,10 +362,27 @@ export class ShiploguePanel {
         if (s.notes && s.notes.length) {
           meta.textContent += (meta.textContent ? ' — ' : '') + s.notes.join('; ');
         }
-        status.textContent = (m.warnings && m.warnings.length)
-          ? m.warnings.join(' ')
-          : 'Review and edit, then copy or send.';
-        status.className = '';
+        const v = m.verification;
+        const vSummary = v
+          ? 'Verified ' + v.checkedClaims + ' claims' +
+            (v.removed ? ' · ' + v.removed + ' removed' : '') +
+            (v.inferred ? ' · ' + v.inferred + ' inferred' : '')
+          : '';
+        if (v && v.needsReview) {
+          status.textContent = '⚠ Needs review: ' + v.violations.length +
+            ' unverified claim(s) — check before sending. ' +
+            ((m.warnings && m.warnings.length) ? m.warnings.join(' ') : '');
+          status.className = 'err';
+        } else if (m.warnings && m.warnings.length) {
+          status.textContent = m.warnings.join(' ') + (vSummary ? '  ' + vSummary : '');
+          status.className = '';
+        } else if (vSummary) {
+          status.textContent = vSummary + ' — review and edit, then copy or send.';
+          status.className = '';
+        } else {
+          status.textContent = 'Review and edit, then copy or send.';
+          status.className = '';
+        }
         if (m.target) { sendBtn.style.display = 'inline-block'; sendBtn.textContent = 'Send to ' + m.target; }
         else { sendBtn.style.display = 'none'; }
       }

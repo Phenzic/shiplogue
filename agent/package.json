@@ -1,0 +1,24 @@
+{
+  "name": "@phenzic/shiplogue-agent",
+  "version": "0.1.0",
+  "description": "Shiplogue agent hub — captures coding-agent activity locally and drafts your stand-up. CLI, hooks and MCP interface for Claude Code, Cursor, Copilot, Codex and Gemini CLI.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "shiplogue": "dist/agent/src/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p ./",
+    "test": "npm run build && node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

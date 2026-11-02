@@ -28,6 +28,21 @@ Shiplogue account and no telemetry.
 > optional hosted model, paid plans and automatic posting. Pricing and plans below
 > are proposals — no paid tier or hosted service exists yet.
 
+## Shiplogue Agent (early preview)
+
+`agent/` is the agent-native sibling of the extension: it captures coding-agent
+activity (Claude Code, Cursor, …) into a private local event store and shares the
+extension's prompt/grounding core. Today it ships the event store + redaction +
+a `status` command:
+
+```bash
+cd agent && npm install && npm run build
+node dist/agent/src/cli.js status
+```
+
+Hooks, the watcher daemon, MCP tools and `standup`/`render`/`post` CLI commands
+are being built next (see `IMPLEMENTATION_PLAN_4.md`).
+
 ## Why
 
 Stand-up tools still ask you to type the update yourself. But the evidence of
