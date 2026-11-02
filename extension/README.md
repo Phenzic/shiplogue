@@ -6,20 +6,19 @@
 
 Shiplogue watches the work you already did — git commits, saved files, GitHub PRs
 and issues, and (in Cursor) the prompts you gave your AI assistant — then asks a
-model to write your stand-up. You review and edit the draft, then copy it or send
-it to Slack/Discord.
+model to write your stand-up. You review and edit the draft, then copy it.
 
 It is local-first by default: a local Ollama server, or a bundled quantized model
 in a later build. Bring-your-own-key providers (Anthropic, OpenAI, Google, or an
 OpenAI-compatible endpoint) are available now if you would rather not run a local
 model. A higher-capacity hosted model is planned as an opt-in paid option.
 
-> **Status:** **0.1.3** beta. No Marketplace/Open VSX listing yet — install from the
+> **Status:** **0.1.4** beta. Marketplace submission pending — install from the
 > release VSIX (or run from source). This build uses Ollama or your own API key.
 >
 > **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
-> OpenAI / Google / OpenAI-compatible), manual review, manual posting. Later:
-> bundled local model, hosted model, paid plans, automatic posting. Nothing paid
+> OpenAI / Google / OpenAI-compatible), manual review. Later:
+> bundled local model, hosted model, paid plans. Nothing paid
 > or hosted by us exists yet.
 >
 > **Screenshot/GIF placeholder** — capture the Stand-up panel with a generated
@@ -160,16 +159,12 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
   “showing N of M” notes so omitted activity stays visible. A preflight
   token-budget check and priority trimming are planned.
 
-### Review and posting
+### Review
 
 - Markdown and Plain text tabs; both editable and independently copyable.
 - **Copy**, **Regenerate**, **Cancel**, and Detail/Tone controls.
 - Live progress with phase and elapsed seconds; a new run supersedes and cancels
   the previous one; a configurable timeout prevents a stuck request.
-- **Manual posting** to one Discord or Slack incoming webhook. Discord drafts are
-  split into up to three messages; Slack gets Markdown converted to mrkdwn.
-  Beyond three Discord messages, the full text is copied to the clipboard.
-  Optional scheduled auto-posting is planned for paid plans.
 - **Daily reminder** at your local time, with *Generate now* and *Snooze 1h*.
 - **Local retention:** activity logs older than 14 days are pruned on startup
   (configurable; `0` keeps them forever).
@@ -199,8 +194,6 @@ backends ship.
 | `shiplogue.scope` | `workspace` | `workspace` = folders open in this window; `all` = every project that day |
 | `shiplogue.detail` | `concise` | `concise` / `standard` / `elaborate` |
 | `shiplogue.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
-| `shiplogue.webhook.type` | `none` | `discord` / `slack` / `none` |
-| `shiplogue.webhook.url` | `""` | Incoming webhook URL (no bot/OAuth needed) |
 | `shiplogue.track.enabled` | `true` | Track file saves/edits locally |
 | `shiplogue.generate.timeoutSeconds` | `180` | Abort generation after N seconds; `0` disables |
 | `shiplogue.store.retentionDays` | `14` | Delete activity logs older than N days; `0` = keep forever |
@@ -251,7 +244,6 @@ original pitch.
 | Cancel | Aborts the current generation (child processes and fetch included) |
 | Detail | Concise / Standard / Elaborate; changing it regenerates |
 | Tone | Neutral / Junior / Mid / Senior; changing it regenerates |
-| Send | Posts to the configured Discord/Slack webhook (hidden when none) |
 
 The status line shows progress, cancellation, timeout, grounding removals and
 input-cap notes.
@@ -259,30 +251,10 @@ input-cap notes.
 ## Plans (planned — not live)
 
 The intended model is freemium: **Free** local summaries (bundled model or your
-own Ollama), **Pro** with a hosted model and scheduled auto-posting, and
+own Ollama), **Pro** with a hosted model, and
 **Enterprise** with on-prem/dedicated deployment. Prices are indicative and no
 billing exists yet. See the [project README](https://github.com/Phenzic/shiplogue/blob/main/README.md#plans-and-pricing-planned--not-live)
 for the proposed tiers.
-
-## Posting
-
-Posting is **manual** in the current build: review the draft, then press **Send**.
-Set `shiplogue.webhook.type` to `discord` or `slack` and paste an incoming webhook
-URL into `shiplogue.webhook.url`. No bot or OAuth app is required.
-
-- **Discord:** content is split at line/word boundaries into up to three messages
-  of ≤1,990 characters. If more would be needed, the first three are posted, the
-  remainder is skipped, and the full text is copied to the clipboard.
-- **Slack:** the Markdown draft is converted to Slack mrkdwn (`**bold**` →
-  `*bold*`, links → `<url|text>`), regardless of which tab is active. Because
-  Slack needs Markdown, edits made only in the Plain text tab are not sent to
-  Slack.
-- Only one webhook target is configured at a time.
-
-**Automatic daily posting is planned for paid plans, not implemented.** It is not
-available in this build; today every post is a reviewed manual action. When it
-lands, it will be an optional scheduled post to the configured Discord and/or
-Slack webhook, with an option to review before posting.
 
 ## Privacy and local data
 
@@ -309,8 +281,8 @@ Today:
   your OS keychain.
 - GitHub API calls happen only when GitHub context is enabled and credentials
   exist.
-- Only the draft you explicitly post is sent to your webhook. There is no
-  telemetry and no Shiplogue account.
+- This build never posts anywhere. There is no telemetry and no Shiplogue
+  account.
 
 Planned hosted model (opt-in, paid):
 
@@ -387,10 +359,6 @@ The grounding check removed a file path or `#number` that was not in the activit
 This is intentional; review the draft. The next build extends grounding to every
 specific claim and makes it a release gate.
 
-**Posting failed**
-Check `shiplogue.webhook.type`/`url` and that the webhook still exists. Webhooks
-must return 2xx.
-
 **No activity found**
 Commit or save some work, or increase `shiplogue.lookbackHours`. In a window with
 no folder open, Shiplogue falls back to all projects.
@@ -413,8 +381,7 @@ planned.
   Antigravity, VSCodium and Windsurf; JetBrains, Zed, Neovim and Sublime need
   separate adapters.
 - **AI prompt capture is Cursor-only.** VS Code/Copilot chat history is not read.
-- **Manual posting only.** Automatic daily posting is planned for paid plans.
-- **One webhook target.** Discord or Slack, not both simultaneously.
+- **Copy-only.** No webhooks or scheduled posting in this build.
 - **Grounding covers file/#number references today.** The next build makes every
   specific claim a hard, verifiable rule and warns rather than silently accepting
   an unverified detail.
@@ -437,7 +404,13 @@ planned.
 
 ## Roadmap
 
-**0.1.3 — beta (current)**
+**0.1.4 — beta (current)**
+
+- Marketplace-safe build: copy-only. Webhook posting is removed; drafts are copied.
+- Cursor chat-DB capture remains enabled by default.
+- Everything from 0.1.3.
+
+**0.1.3 — beta (2026-11-01)**
 
 - Packaging cleanup for the Marketplace listing: removed a stray runtime
   dependency, trimmed tags to the documented limit, stopped shipping internal QA
@@ -460,7 +433,7 @@ planned.
   budget.
 - Packaging, publisher and test-runner metadata are in place.
 - Remaining: manual QA in a real extension host (BYOK setup, health check, real
-  GitHub sign-in, real Discord/Slack webhooks, multi-root and no-folder windows,
+  GitHub sign-in, multi-root and no-folder windows,
   cancel and soak tests), then a GitHub Release VSIX.
 
 **Next build — hardening and productization (working title 0.2.0)**
@@ -472,7 +445,6 @@ planned.
 - **Bundled quantized local model:** no Ollama setup for a useful free draft.
 - **Optional hosted model and plans:** Free local; Pro hosted/automation;
   Enterprise on-prem/SLA.
-- **Automatic posting:** optional scheduled Discord/Slack posts on paid plans.
 - **Editor support:** Antigravity and other VS Code-compatible forks in the test
   matrix.
 - **Self-hosted backend (Docker) evaluation** for Enterprise/on-prem — the
@@ -495,7 +467,7 @@ npm run test:cursor  # gated read-only Cursor DB suite
 ```
 
 The test suite uses Node's built-in runner (no extra dependencies). It stubs the
-`vscode` API, starts local mock Ollama/webhook servers, creates temporary git
+`vscode` API, starts local mock Ollama servers, creates temporary git
 repos and synthetic SQLite databases. Real-model and real-Cursor-DB tests skip
 without their environment variables.
 

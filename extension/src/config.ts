@@ -32,8 +32,6 @@ export function cfg() {
     githubUseBuiltInAuth: c.get<boolean>("github.useBuiltInAuth", true),
     githubRepos: c.get<string[]>("github.repos", []),
     format: c.get<"done-next-blockers" | "yesterday-today-blockers">("format", "done-next-blockers"),
-    webhookType: c.get<"none" | "discord" | "slack">("webhook.type", "none"),
-    webhookUrl: c.get<string>("webhook.url", "").trim(),
     trackEnabled: c.get<boolean>("track.enabled", true),
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),

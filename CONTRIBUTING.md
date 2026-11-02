@@ -60,9 +60,8 @@ extension/              the VS Code/Cursor extension
     github.ts           PR/issue collection
     cursor.ts           Cursor chat DB reader + workspace scoping
     summarize.ts        prompts, model call, retry/repair/grounding
-    format.ts           sublists, references, grounding, Slack mrkdwn
+    format.ts           sublists, references, grounding
     shiploguePanel.ts   webview panel and message handling
-    post.ts             Discord/Slack webhooks
     reminder.ts         daily reminder
     state.ts            global state (detail/tone/reminder markers)
     types.ts            shared data shapes
@@ -83,7 +82,7 @@ npm run test:cursor  # gated read-only Cursor DB suite
 ```
 
 The default suite uses Node's built-in test runner. It stubs the `vscode` API,
-starts local mock Ollama/webhook servers, creates temporary git repos and
+starts local mock Ollama servers, creates temporary git repos and
 synthetic SQLite databases. Real-model and real-Cursor-DB suites skip unless
 their environment variables are set:
 
@@ -132,7 +131,7 @@ prompt, update the prompt tests and any grounding/context tests.
 ## Licensing and commercial plans
 
 The extension is MIT-licensed. Planned paid plans cover hosted inference,
-scheduled posting and enterprise deployment; the hosted service is a separate
+enterprise deployment; the hosted service is a separate
 component and its code may remain private. Do not add paid-service credentials,
 billing logic or private API secrets to this repository.
 

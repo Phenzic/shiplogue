@@ -1,7 +1,5 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
-import { postToWebhook } from "./post";
-import { toSlackMrkdwn } from "./format";
 import { DetailLevel, State, Tone } from "./state";
 
 export interface DraftPayload {
@@ -66,7 +64,6 @@ export class ShiploguePanel {
       modelLabel: p.modelLabel,
       detail: c.detail,
       tone: c.tone,
-      target: c.webhookType === "none" ? "" : c.webhookType,
     });
   }
 
@@ -112,25 +109,6 @@ export class ShiploguePanel {
         this.onRegenerate();
         break;
       }
-      case "send":
-        try {
-          // Slack gets the Markdown tab converted to mrkdwn regardless of which
-          // tab is active; Discord/plain posts the tab the user is looking at.
-          const text =
-            cfg().webhookType === "slack" ? toSlackMrkdwn(msg.markdown ?? msg.text ?? "") : (msg.text ?? "");
-          const result = await postToWebhook(text);
-          if (result.truncated) {
-            await vscode.env.clipboard.writeText(text);
-            vscode.window.showInformationMessage(
-              `Stand-up posted (${result.posted} messages) — truncated; full text copied to clipboard.`,
-            );
-          } else {
-            vscode.window.showInformationMessage("Stand-up posted.");
-          }
-        } catch (e: any) {
-          vscode.window.showErrorMessage(`Post failed: ${e.message ?? e}`);
-        }
-        break;
     }
   }
 
@@ -203,7 +181,6 @@ export class ShiploguePanel {
 
   <div class="row">
     <button class="action" id="copy">Copy</button>
-    <button class="action secondary" id="send" style="display:none">Send</button>
     <button class="action secondary" id="regen">Regenerate</button>
     <button class="action secondary" id="cancel" style="display:none">Cancel</button>
     <label style="font-size:12px;opacity:.8;margin-left:auto">Detail
@@ -230,7 +207,6 @@ export class ShiploguePanel {
   const txt = document.getElementById('txt');
   const status = document.getElementById('status');
   const meta = document.getElementById('meta');
-  const sendBtn = document.getElementById('send');
   const cancelBtn = document.getElementById('cancel');
   const regenBtn = document.getElementById('regen');
   const detailSel = document.getElementById('detail');
@@ -279,7 +255,6 @@ export class ShiploguePanel {
     vscode.postMessage({ kind: 'setDetail', detail: e.target.value });
   toneSel.onchange = (e) =>
     vscode.postMessage({ kind: 'setTone', tone: e.target.value });
-  sendBtn.onclick = () => vscode.postMessage({ kind: 'send', text: activeText(), markdown: md.value });
 
   window.addEventListener('message', (e) => {
     const m = e.data;
@@ -304,10 +279,8 @@ export class ShiploguePanel {
         }
         status.textContent = (m.warnings && m.warnings.length)
           ? m.warnings.join(' ')
-          : 'Review and edit, then copy or send.';
+          : 'Review and edit, then copy.';
         status.className = '';
-        if (m.target) { sendBtn.style.display = 'inline-block'; sendBtn.textContent = 'Send to ' + m.target; }
-        else { sendBtn.style.display = 'none'; }
       }
       if (m.detail) detailSel.value = m.detail;
       if (m.tone) toneSel.value = m.tone;

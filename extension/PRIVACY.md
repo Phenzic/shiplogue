@@ -40,8 +40,8 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 - Model listing and **Shiplogue: Test Provider** also contact the configured
   provider; they send no activity, only the request needed to list models or ask
   for a one-word reply.
-- The **final draft** leaves your machine only when you press **Send**, and only
-  to the webhook URL you configured (`shiplogue.webhook.url`) — Discord or Slack.
+- This build does **not** post anywhere. The final draft leaves your machine only
+  when you copy it yourself.
 - GitHub API calls go only to `api.github.com`, only when GitHub collection is
   possible (token present).
 

@@ -53,8 +53,7 @@ function bootWebview(html) {
     txt: makeEl("txt"),
     status: makeEl("status"),
     meta: makeEl("meta"),
-    send: makeEl("send"),
-    regen: makeEl("regen"),
+      regen: makeEl("regen"),
     cancel: makeEl("cancel"),
     copy: makeEl("copy"),
     detail: makeEl("detail"),
@@ -140,18 +139,14 @@ test("loading, draft and error messages drive the UI", () => {
     markdown,
     summary: { commits: 2, files: 3, github: 1 },
     detail: "standard",
-    target: "discord",
   });
   assert.equal(ui.els.md.value, markdown);
   assert.equal(ui.els.txt.value, toPlainText(markdown));
   assert.equal(ui.els.meta.textContent, "2 commits · 3 files · 1 GitHub items");
-  assert.equal(ui.els.status.textContent, "Review and edit, then copy or send.");
-  assert.equal(ui.els.send.style.display, "inline-block");
-  assert.equal(ui.els.send.textContent, "Send to discord");
+  assert.equal(ui.els.status.textContent, "Review and edit, then copy.");
   assert.equal(ui.els.detail.value, "standard");
 
-  ui.sendMessage({ kind: "draft", markdown, summary: {}, detail: "concise", target: "" });
-  assert.equal(ui.els.send.style.display, "none");
+  ui.sendMessage({ kind: "draft", markdown, summary: {}, detail: "concise" });
 
   ui.sendMessage({ kind: "error", message: "Couldn't reach Ollama" });
   assert.equal(ui.els.status.textContent, "Couldn't reach Ollama");
@@ -180,13 +175,6 @@ test("copying respects the active tab; editing plain text survives markdown sync
   ui.els.copy.onclick();
   assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "copy", text: "my hand-edited update", label: "plain text" });
 
-  ui.els.send.onclick();
-  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), {
-    kind: "send",
-    text: "my hand-edited update",
-    markdown: "**Done**\n- changed later",
-  });
-
   ui.els.regen.onclick();
   assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "regenerate" });
 
@@ -212,32 +200,6 @@ test("panel messages: setDetail persists globally and regenerates", async () => 
     target: 1,
   });
   assert.equal(regenerated(), 1);
-});
-
-test("panel messages: send posts the active text to the webhook", async () => {
-  const server = await startServer(() => ({ status: 204 }));
-  const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
-  try {
-    await webview.messageHandler({ kind: "send", text: "stand-up body" });
-    assert.equal(server.requests.length, 1);
-    assert.equal(server.requests[0].body.text, "stand-up body");
-    assert.match(stub.notifications.at(-1).message, /Stand-up posted/);
-  } finally {
-    await server.close();
-  }
-});
-
-test("panel messages: a failed send shows the error instead of throwing", async () => {
-  const server = await startServer(() => ({ status: 500, body: "nope" }));
-  const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
-  try {
-    await webview.messageHandler({ kind: "send", text: "body" });
-    assert.match(stub.errors.at(-1).message, /Post failed: .*500/);
-  } finally {
-    await server.close();
-  }
 });
 
 test("showing the panel twice reuses the same webview", () => {
@@ -319,42 +281,6 @@ test("panel messages: cancel invokes the onCancel callback", async () => {
   ShiploguePanel.show(() => {}, state, () => cancelled++);
   await stub.panels.at(-1).messageHandler({ kind: "cancel" });
   assert.equal(cancelled, 1);
-});
-
-test("slack send posts the converted Markdown tab even when plain text is active", async () => {
-  const server = await startServer(() => ({ status: 200, body: "ok" }));
-  const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
-  try {
-    await webview.messageHandler({
-      kind: "send",
-      text: "plain tab text (active)",
-      markdown: "**Done**\n- Shipped the [login flow](https://github.com/a/b/pull/1)",
-    });
-    const sent = server.requests[0].body.text;
-    assert.match(sent, /\*Done\*/);
-    assert.ok(!sent.includes("**"), "no Markdown double-stars sent to Slack");
-    assert.match(sent, /<https:\/\/github\.com\/a\/b\/pull\/1\|login flow>/);
-    assert.ok(!sent.includes("plain tab text"), "the active plain-text tab is ignored for Slack");
-  } finally {
-    await server.close();
-  }
-});
-
-test("discord truncation copies the full text to the clipboard and says so", async () => {
-  const server = await startServer(() => ({ status: 204 }));
-  const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "discord", "shiplogue.webhook.url": server.url });
-  try {
-    const line = "word ".repeat(200).trim();
-    const long = Array.from({ length: 12 }, (_, i) => `line${i} ${line}`).join("\n");
-    await webview.messageHandler({ kind: "send", text: long });
-    assert.equal(server.requests.length, 3);
-    assert.equal(stub.clipboard, long, "full text copied");
-    assert.match(stub.notifications.at(-1).message, /truncated; full text copied to clipboard/);
-  } finally {
-    await server.close();
-  }
 });
 
 test("panel messages: setTone persists globally and regenerates", async () => {

@@ -3,6 +3,18 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.4] — 2026-11-02
+
+Marketplace-safe build: copy-only, with Cursor capture.
+
+### Changed
+
+- Removed Discord/Slack webhook posting: the `shiplogue.webhook.type/url` settings,
+  the panel Send button and `post.ts` are gone. Drafts are copied, not sent.
+- Cursor chat-DB capture remains enabled by default; turning it off still works via
+  `shiplogue.cursor.enabled`.
+- Everything from 0.1.3.
+
 ## [0.1.3] — 2026-11-01
 
 Packaging cleanup for the first Marketplace publish, plus a Windows path-scoping
