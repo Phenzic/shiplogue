@@ -26,7 +26,16 @@ test("the form URL carries version/os/backend only — never activity content", 
   assert.match(url, /version=0\.1\.3/);
   assert.match(url, new RegExp(`os=${process.platform}`));
   assert.match(url, /backend=/);
-  assert.doesNotMatch(url, /commit|draft|stand-up|file/);
+  // The product name contains "Draft", so check query keys rather than the
+  // whole URL: only version/os/backend/title may be present.
+  assert.doesNotMatch(url, /[?&](commit|draft|stand-up|file|activity)=/);
+  assert.deepEqual([...new URL(url).searchParams.keys()].sort(), [
+    "backend",
+    "labels",
+    "os",
+    "title",
+    "version",
+  ]);
 });
 
 test("recordSuccess increments the counter and prompts once after the threshold", async () => {
