@@ -73,35 +73,6 @@ export class State {
   setLastRating(n: number): Thenable<void> {
     return this.ctx.globalState.update("lastRating", n);
   }
-  // One-time migration flag: legacy webhook.type/url → posting.targets.
-  getPostingMigrated(): boolean {
-    return this.ctx.globalState.get<boolean>("postingMigrated", false);
-  }
-  setPostingMigrated(): Thenable<void> {
-    return this.ctx.globalState.update("postingMigrated", true);
-  }
-
-  // Auto-post (P1): once-per-day marker, per-target dedupe log, and the last
-  // failed draft kept for manual recovery.
-  getLastAutoPostYmd(): string {
-    return this.ctx.globalState.get<string>("lastAutoPostYmd", "");
-  }
-  setLastAutoPostYmd(v: string): Thenable<void> {
-    return this.ctx.globalState.update("lastAutoPostYmd", v);
-  }
-  getAutoPostPostedTargets(): Record<string, string[]> {
-    return this.ctx.globalState.get<Record<string, string[]>>("autoPostPostedTargets", {});
-  }
-  setAutoPostPostedTargets(v: Record<string, string[]>): Thenable<void> {
-    return this.ctx.globalState.update("autoPostPostedTargets", v);
-  }
-  getAutoPostPendingDraft(): string {
-    return this.ctx.globalState.get<string>("autoPostPendingDraft", "");
-  }
-  setAutoPostPendingDraft(md: string): Thenable<void> {
-    return this.ctx.globalState.update("autoPostPendingDraft", md);
-  }
-
   getStarPromptedVersion(): string {
     return this.ctx.globalState.get<string>("starPromptedVersion", "");
   }

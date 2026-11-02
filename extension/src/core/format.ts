@@ -61,12 +61,6 @@ export function toPlainText(md: string): string {
 
 // Convert Markdown to Slack mrkdwn: bold keeps single stars, links become
 // <url|text>, bullets stay as-is.
-export function toSlackMrkdwn(md: string): string {
-  return md
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "<$2|$1>")
-    .replace(/\*\*([^*]+)\*\*/g, "*$1*");
-}
-
 // Untrusted-activity hygiene: commit messages, issue titles and AI prompts are
 // user/tool-controlled text that ends up inside an LLM prompt. Strip control
 // chars, cap runaway lines, and neutralize lines that look like prompt

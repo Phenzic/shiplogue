@@ -32,10 +32,6 @@ export function cfg() {
     githubUseBuiltInAuth: c.get<boolean>("github.useBuiltInAuth", true),
     githubRepos: c.get<string[]>("github.repos", []),
     format: c.get<"done-next-blockers" | "yesterday-today-blockers">("format", "done-next-blockers"),
-    webhookType: c.get<"none" | "discord" | "slack">("webhook.type", "none"),
-    webhookUrl: c.get<string>("webhook.url", "").trim(),
-    // Multi-target posting (T1). Validated/filtered in post.ts effectiveTargets.
-    postingTargets: c.get<Array<{ type: string; url: string; enabled: boolean }>>("posting.targets", []),
     trackEnabled: c.get<boolean>("track.enabled", true),
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),
@@ -60,12 +56,6 @@ export function cfg() {
     generateTimeoutSeconds: c.get<number>("generate.timeoutSeconds", 180),
     // 0 keeps activity logs forever.
     storeRetentionDays: c.get<number>("store.retentionDays", 14),
-    // Auto-post (P1; Pro feature — entitlement is a local mock for now).
-    autoPostEnabled: c.get<boolean>("autoPost.enabled", false),
-    // "" = use the reminder time.
-    autoPostTime: c.get<string>("autoPost.time", ""),
-    autoPostDays: c.get<number[]>("autoPost.days", [1, 2, 3, 4, 5]),
-    autoPostMode: c.get<"review" | "auto">("autoPost.mode", "review"),
     // Feedback loop: local counters only; the prompt opens a form in the browser.
     feedbackEnabled: c.get<boolean>("feedback.enabled", true),
     feedbackPromptAfter: c.get<number>("feedback.promptAfter", 3),

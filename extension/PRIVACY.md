@@ -38,9 +38,8 @@ Standup Draft is **local-first**. Here is exactly what happens to your data.
 - Model listing and **Standup Draft: Test Provider** also contact the configured
   provider; they send no activity, only the request needed to list models or ask
   for a one-word reply.
-- The **final draft** leaves your machine only when you press **Send**, and only
-  to the webhook URLs you configured (`standupDraft.posting.targets`, or the legacy
-  `standupDraft.webhook.type` / `.url`) — Slack, Discord or Teams.
+- This build does **not** post anywhere. The final draft leaves your machine only
+  when you copy it yourself.
 - GitHub API calls go only to `api.github.com`, only when GitHub collection is
   possible (token present).
 

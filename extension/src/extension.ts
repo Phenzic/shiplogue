@@ -15,7 +15,6 @@ import { BackendMeta } from "./model/types";
 import { clearProviderKey, setProviderKey, testProvider } from "./commands/providerKeys";
 import { configureShortcut } from "./commands/shortcuts";
 import { Feedback, openFeedback, openRate, openStar } from "./feedback";
-import { AutoPost } from "./autoPost";
 import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
@@ -23,7 +22,6 @@ let state: State;
 let tracker: Tracker | undefined;
 let reminder: Reminder | undefined;
 let feedback: Feedback;
-let autoPost: AutoPost | undefined;
 
 // Generation runs are serialized by a monotonic epoch: a new run (Regenerate,
 // Detail change) aborts and supersedes the previous one, whose late results
@@ -44,7 +42,6 @@ export function activate(context: vscode.ExtensionContext) {
     setSecretStorage(context.secrets);
   }
   store.pruneOld(cfg().storeRetentionDays);
-  void migratePostingTargets();
 
   // Migrate a previously saved workspace setting into globalState once.
   if (!state.hasDetail()) {
@@ -67,13 +64,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   reminder = new Reminder(state, () => void runGenerate());
   void reminder.ensureSetup().then(() => reminder?.start());
-
-  // Scheduled auto-posting (Pro; entitlement mocked until billing exists).
-  // Works only while the editor runs — the cloud scheduler is a later phase.
-  autoPost = new AutoPost(state, { generateDraft: produceDraft });
-  if (cfg().autoPostEnabled) {
-    autoPost.start();
-  }
 
   // Fire-and-forget first-run check: surface Ollama problems at startup with a
   // fix path, instead of letting the first Generate fail. Never blocks
@@ -235,29 +225,6 @@ async function runGenerate(): Promise<void> {
   }
 }
 
-// One-time migration: a configured legacy webhook pair becomes the first
-// posting target, so existing users keep posting after upgrading (T1).
-async function migratePostingTargets(): Promise<void> {
-  try {
-    if (state.getPostingMigrated()) {
-      return;
-    }
-    await state.setPostingMigrated();
-    const c = cfg();
-    if (c.postingTargets.length === 0 && c.webhookType !== "none" && c.webhookUrl) {
-      await vscode.workspace
-        .getConfiguration("standupDraft")
-        .update(
-          "posting.targets",
-          [{ type: c.webhookType, url: c.webhookUrl, enabled: true }],
-          vscode.ConfigurationTarget.Global,
-        );
-    }
-  } catch {
-    /* migration is best-effort; the legacy fallback keeps working */
-  }
-}
-
 // The running extension version (for once-per-version prompts).
 function extensionVersion(context: vscode.ExtensionContext): string {
   return (
@@ -359,22 +326,5 @@ async function runShowActivity(): Promise<void> {  const ctx = await gatherConte
 export function deactivate() {
   tracker?.dispose();
   reminder?.dispose();
-  autoPost?.dispose();
   store?.flush();
-}
-
-// Panel-less draft production for the auto-post scheduler. Returns undefined
-// when there's nothing to say or generation fails (logged, never thrown).
-async function produceDraft(): Promise<string | undefined> {
-  try {
-    const ctx = await gatherContext(store);
-    if (!ctx.commits.length && !ctx.github.length && !ctx.touches.length && !ctx.cursorPrompts.length) {
-      return undefined;
-    }
-    const { text } = await generateStandup(ctx);
-    return text + buildReferences(ctx);
-  } catch (e) {
-    console.error("[standup-draft] auto-post generation failed:", e);
-    return undefined;
-  }
 }

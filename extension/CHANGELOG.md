@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] — 2026-11-02
+
+Marketplace-safe build: copy-only.
+
+### Changed
+
+- Removed Discord/Slack/Teams webhook posting and scheduled auto-posting from this
+  build. Drafts are copied, not sent. The `posting.targets`, `webhook.type/url`
+  and `autoPost.*` settings and the panel's Send button are gone.
+- Everything from 0.2.0.
+
 ## [0.2.0] — 2026-11-02
 
 Marketplace resubmission release. New extension identity and a smaller data-access

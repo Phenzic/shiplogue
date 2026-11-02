@@ -1,8 +1,8 @@
 {
   "name": "standup-draft",
   "displayName": "Standup Draft",
-  "description": "Drafts your daily stand-up from the work you already did. Local-first: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key, then copied or posted to Discord/Slack.",
-  "version": "0.2.0",
+  "description": "Drafts your daily stand-up from the work you already did. Local-first: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key.",
+  "version": "0.2.1",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -181,7 +181,7 @@
             "Anthropic (Claude)",
             "OpenAI",
             "Google Gemini",
-            "Any endpoint that speaks the OpenAI Chat Completions API — OpenRouter, Groq, Together, LM Studio, llama.cpp"
+            "Any endpoint that speaks the OpenAI Chat Completions API \u2014 OpenRouter, Groq, Together, LM Studio, llama.cpp"
           ],
           "default": "none",
           "description": "API provider used when standupDraft.model.backend is 'provider' or 'auto'."
@@ -205,7 +205,7 @@
         "standupDraft.github.useBuiltInAuth": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Use the editor's built-in GitHub sign-in instead of a manual token. No PAT needed — run 'Standup Draft: Connect GitHub' once. Ignored if `standupDraft.github.token` is set."
+          "markdownDescription": "Use the editor's built-in GitHub sign-in instead of a manual token. No PAT needed \u2014 run 'Standup Draft: Connect GitHub' once. Ignored if `standupDraft.github.token` is set."
         },
         "standupDraft.github.token": {
           "type": "string",
@@ -253,7 +253,7 @@
           "enumDescriptions": [
             "3-4 short points, outcomes only",
             "5-7 points with the key specifics (files, endpoints, issue numbers)",
-            "6-9 thorough points enumerating files, assets, fields and URLs — a full work log"
+            "6-9 thorough points enumerating files, assets, fields and URLs \u2014 a full work log"
           ],
           "default": "concise",
           "description": "How detailed the generated stand-up should be. Also switchable from the stand-up panel."
@@ -267,44 +267,13 @@
             "senior"
           ],
           "enumDescriptions": [
-            "Default voice — no styling added",
+            "Default voice \u2014 no styling added",
             "Mentions what you learned and where you asked for help",
             "Plain and factual, with brief reasoning",
             "Leads with impact and decisions; terse"
           ],
           "default": "neutral",
           "description": "Voice of the generated stand-up. Also switchable from the stand-up panel."
-        },
-        "standupDraft.posting.targets": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "type": { "type": "string", "enum": ["slack", "discord", "teams"] },
-              "url": { "type": "string" },
-              "enabled": { "type": "boolean", "default": true }
-            },
-            "required": ["type", "url"]
-          },
-          "default": [],
-          "markdownDescription": "Post targets for the Send button — your stand-up goes to every enabled target (incoming webhook URLs). When empty, the legacy `standupDraft.webhook.type`/`url` pair is used.",
-          "scope": "machine"
-        },
-        "standupDraft.webhook.type": {
-          "type": "string",
-          "enum": [
-            "none",
-            "discord",
-            "slack"
-          ],
-          "default": "none",
-          "description": "Where the Send button posts your stand-up."
-        },
-        "standupDraft.webhook.url": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Incoming webhook URL for Discord or Slack. No bot or OAuth needed — create an incoming webhook in your channel settings.",
-          "scope": "machine"
         },
         "standupDraft.track.enabled": {
           "type": "boolean",
@@ -315,32 +284,6 @@
           "type": "number",
           "default": 180,
           "markdownDescription": "Abort stand-up generation after this many seconds (a Cancel button is always available too). `0` disables the timeout."
-        },
-        "standupDraft.autoPost.enabled": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Automatically generate and post your stand-up every scheduled day. A Pro feature (currently in preview). Works only while the editor is running."
-        },
-        "standupDraft.autoPost.time": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "Local `HH:MM` to auto-post. Empty = same as `standupDraft.reminder.time`."
-        },
-        "standupDraft.autoPost.days": {
-          "type": "array",
-          "items": { "type": "number", "minimum": 0, "maximum": 6 },
-          "default": [1, 2, 3, 4, 5],
-          "markdownDescription": "Days of the week to auto-post (0 = Sunday … 6 = Saturday)."
-        },
-        "standupDraft.autoPost.mode": {
-          "type": "string",
-          "enum": ["review", "auto"],
-          "enumDescriptions": [
-            "Ask first: a notification offers Post now / Open panel / Skip",
-            "Post automatically after a 60-second undo window"
-          ],
-          "default": "review",
-          "description": "Whether auto-post asks for confirmation first or posts automatically."
         },
         "standupDraft.model.contextTokens": {
           "type": "number",

@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
-import { effectiveTargets, postToWebhook } from "./post";
 import { DetailLevel, State, Tone } from "./state";
 
 export interface DraftPayload {
@@ -18,15 +17,6 @@ export interface DraftPayload {
   };
   // Which engine wrote the draft, e.g. "Ollama · llama3.2".
   modelLabel?: string;
-}
-
-// Send-button label: the single target type, "N targets", or "" when none.
-function targetLabel(): string {
-  const targets = effectiveTargets();
-  if (targets.length === 0) {
-    return "";
-  }
-  return targets.length === 1 ? targets[0].type : `${targets.length} targets`;
 }
 
 // Singleton webview: shows the draft in Markdown + Plain-text tabs, an activity
@@ -90,7 +80,6 @@ export class StandupDraftPanel {
       modelLabel: p.modelLabel,
       detail: c.detail,
       tone: c.tone,
-      target: targetLabel(),
     });
   }
 
@@ -141,33 +130,6 @@ export class StandupDraftPanel {
         this.onRegenerate();
         break;
       }
-      case "send":
-        try {
-          const result = await postToWebhook(msg.text ?? "", msg.markdown);
-          const ok = result.results.filter((r) => r.ok).map((r) => r.type);
-          const bad = result.results.filter((r) => !r.ok);
-          if (result.truncated) {
-            await vscode.env.clipboard.writeText(msg.text ?? "");
-          }
-          if (bad.length === 0) {
-            vscode.window.showInformationMessage(
-              result.truncated
-                ? `Stand-up posted to ${ok.join(", ")} — truncated; full text copied to clipboard.`
-                : `Stand-up posted to ${ok.join(", ")}.`,
-            );
-          } else if (ok.length === 0) {
-            vscode.window.showErrorMessage(
-              `Post failed: ${bad.map((b) => `${b.type} (${b.error})`).join(", ")}`,
-            );
-          } else {
-            vscode.window.showWarningMessage(
-              `Posted to ${ok.join(", ")}; failed: ${bad.map((b) => `${b.type} (${b.error})`).join(", ")}`,
-            );
-          }
-        } catch (e: any) {
-          vscode.window.showErrorMessage(`Post failed: ${e.message ?? e}`);
-        }
-        break;
     }
   }
 
@@ -240,7 +202,6 @@ export class StandupDraftPanel {
 
   <div class="row">
     <button class="action" id="copy">Copy</button>
-    <button class="action secondary" id="send" style="display:none">Send</button>
     <button class="action secondary" id="regen">Regenerate</button>
     <button class="action secondary" id="cancel" style="display:none">Cancel</button>
     <button class="action secondary" id="thumbUp" style="display:none" title="This draft was good — tell us (opens nothing, one click)">👍</button>
@@ -269,7 +230,6 @@ export class StandupDraftPanel {
   const txt = document.getElementById('txt');
   const status = document.getElementById('status');
   const meta = document.getElementById('meta');
-  const sendBtn = document.getElementById('send');
   const cancelBtn = document.getElementById('cancel');
   const regenBtn = document.getElementById('regen');
   const detailSel = document.getElementById('detail');
@@ -328,7 +288,6 @@ export class StandupDraftPanel {
     vscode.postMessage({ kind: 'setDetail', detail: e.target.value });
   toneSel.onchange = (e) =>
     vscode.postMessage({ kind: 'setTone', tone: e.target.value });
-  sendBtn.onclick = () => vscode.postMessage({ kind: 'send', text: activeText(), markdown: md.value });
   thumbUp.onclick = () => {
     vscode.postMessage({ kind: 'feedback', value: 'up', backend: lastBackend });
     status.textContent = 'Thanks for the feedback!'; status.className = '';
@@ -377,14 +336,12 @@ export class StandupDraftPanel {
           status.textContent = m.warnings.join(' ') + (vSummary ? '  ' + vSummary : '');
           status.className = '';
         } else if (vSummary) {
-          status.textContent = vSummary + ' — review and edit, then copy or send.';
+          status.textContent = vSummary + ' — review and edit, then copy.';
           status.className = '';
         } else {
-          status.textContent = 'Review and edit, then copy or send.';
+          status.textContent = 'Review and edit, then copy.';
           status.className = '';
         }
-        if (m.target) { sendBtn.style.display = 'inline-block'; sendBtn.textContent = 'Send to ' + m.target; }
-        else { sendBtn.style.display = 'none'; }
       }
       if (m.detail) detailSel.value = m.detail;
       if (m.tone) toneSel.value = m.tone;

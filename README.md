@@ -7,7 +7,7 @@
 Standup Draft is a local-first extension for VS Code-compatible editors. It watches the
 commits, saved files, GitHub activity and (in Cursor) AI prompts that make up your
 day, then asks a model to write the first draft of your stand-up. You review and
-edit it, copy it, or send it to Slack/Discord.
+edit it and copy it.
 
 It runs on-device by default. Today that means bring-your-own
 [Ollama](https://ollama.com), or — if you would rather not run a model locally —
@@ -24,8 +24,8 @@ Standup Draft account and no telemetry.
 
 > **Current build vs planned.** This README describes the current development
 > tree. Today (0.2.0 beta): local Ollama or your own API key, manual review and
-> manual posting. Planned for the next build: bundled local model (no model setup),
-> optional hosted model, paid plans and automatic posting. Pricing and plans below
+> manual review. Planned for the next build: bundled local model (no model setup),
+> optional hosted model and paid plans. Pricing and plans below
 > are proposals — no paid tier or hosted service exists yet.
 
 ## Standup Draft Agent (early preview)
@@ -61,14 +61,11 @@ who want a stronger summary, not a requirement.
 - VS Code, Cursor, Antigravity or another VS Code-compatible editor user who
   wants the draft to reflect real IDE activity.
 - Privacy-conscious individuals and teams who want local inference by default.
-- Teams that already use a Slack/Discord webhook but don't want another bot with
-  repository access.
-- People who want to review before posting — and, on planned paid plans, people
-  who want an optional scheduled post.
+- Teams that already post a stand-up and want the draft written for them.
+- People who want to review and copy the draft themselves.
 
 **Not yet for:** JetBrains, Zed, Neovim or Sublime users (separate adapters would
-be needed); teams that want a hosted multi-person dashboard; anyone who wants
-fully automatic posting today (it is planned for paid plans).
+be needed); teams that want a hosted multi-person dashboard.
 
 ## Model options
 
@@ -130,17 +127,13 @@ local draft.
 - **Prompt-injection hygiene** — activity is delimited as untrusted data and
   instruction-like lines are neutralised before they reach the model.
 
-### Review and send
+### Review and copy
 
 - A panel with **Markdown** and **Plain text** tabs; both are editable, and the
   plain-text view follows the Markdown until you edit it yourself.
 - **Copy**, **Regenerate**, **Cancel**, and **Detail/Tone** controls. Generation
   shows live phase and elapsed time, has a configurable timeout (180s default),
   and a new run cancels the previous one.
-- **Manual posting** to one configured Discord or Slack webhook. Discord posts
-  are split into up to three messages; Slack receives converted mrkdwn. If a
-  Discord draft needs more than three messages, the full text is copied to the
-  clipboard. Automatic posting is planned for paid plans.
 - A **daily reminder** at your local time, with *Generate now* and *Snooze 1h*.
 - **Local retention** — activity logs older than 14 days are pruned at startup
   (configurable, `0` keeps them forever). Writes use a temp file + rename so a
@@ -155,7 +148,7 @@ git log (your commits, window) ─────────────┤
 GitHub search (merged PRs, closed issues) ──┼──▶ gatherContext ──▶ prompt ──▶ model backend ──▶ draft
 Cursor chat DB (read-only, Cursor only) ────┘                                      │
                                                      grounding + formatting        │
-                                                          panel: edit/copy/send ◀──┘
+                                                          panel: edit/copy ◀──┘
 
 Model backend today: Ollama or your own API key. Planned: bundled on-device model, optional hosted API.
 ```
@@ -170,7 +163,7 @@ Model backend today: Ollama or your own API key. Planned: bundled on-device mode
 4. **Verify** — unverifiable file/issue mentions are removed, sub-bullets and
    references are formatted deterministically, and warnings are shown in the
    panel.
-5. **Review** — you edit, copy or send. Nothing is posted automatically today.
+5. **Review** — you edit and copy. Nothing is posted anywhere.
 
 ## Plans and pricing (planned — not live)
 
@@ -180,13 +173,11 @@ current features are free and MIT-licensed.**
 
 | Tier | Planned features | Planned price |
 | --- | --- | --- |
-| **Free** | Bundled local model (or your own Ollama), review/copy, manual webhook, custom prompt templates | $0 |
-| **Pro** | Hosted higher-capacity model, scheduled automatic posting, advanced analytics, API access | $5–$10/month (indicative) |
+| **Free** | Bundled local model (or your own Ollama), review/copy, custom prompt templates | $0 |
+| **Pro** | Hosted higher-capacity model, advanced analytics, API access | $5–$10/month (indicative) |
 | **Enterprise** | Unlimited users, dedicated instance, SLA, on-prem/Docker option | Custom quote |
 
 - Prices and packaging are **proposals** and may change before launch.
-- Automatic posting is a paid-plan feature in this plan; manual posting stays
-  available on the free tier.
 - Any Pro analytics will be opt-in, aggregate and free of repository contents or
   PII; the local build has no analytics.
 - The extension is open source; the hosted service is a separate product. A
@@ -229,7 +220,7 @@ Extension Development Host. In that window:
    provider → paste the key (stored in the OS keychain) → pick a model. For
    `openai-compatible`, enter the base URL too, e.g. `https://api.deepseek.com`.
 3. Run **Standup Draft: Test Provider** to prove key, endpoint and model.
-4. Review the draft, then **Copy** or **Send**.
+4. Review the draft, then **Copy**.
 
 Standup Draft is not published on a marketplace yet. Full settings, troubleshooting
 and development notes live in [`extension/README.md`](extension/README.md). For
@@ -250,7 +241,6 @@ project layout and contribution guidance, see [`CONTRIBUTING.md`](CONTRIBUTING.m
 | `standupDraft.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
 | `standupDraft.scope` | `workspace` | Current window's folders, or all projects that day |
 | `standupDraft.format` | `done-next-blockers` | Or `yesterday-today-blockers` |
-| `standupDraft.webhook.type` / `standupDraft.webhook.url` | `none` / `""` | Discord or Slack incoming webhook |
 | `standupDraft.reminder.time` | `16:00` | Local daily reminder time |
 | `standupDraft.store.retentionDays` | `14` | Local activity retention; `0` = forever |
 
@@ -273,7 +263,7 @@ Today:
 - GitHub API calls happen only when GitHub context is enabled and credentials
   exist. They include the repo names and your token, like any GitHub client.
 - No telemetry, analytics or Standup Draft account for the local build.
-- Only the draft you explicitly copy or send is posted to your webhook.
+- Only the draft you explicitly copy leaves the extension.
 
 See [`extension/PRIVACY.md`](extension/PRIVACY.md) for the full current policy.
 
@@ -300,15 +290,13 @@ what changed in 0.2.0 and [`extension/PRIVACY.md`](extension/PRIVACY.md) for the
 current local-data policy.
 
 - **A model backend is required: Ollama or your own API key.** The bundled local
-  model, hosted model, paid plans and automatic posting are planned, not
+  model, hosted model and paid plans are planned, not
   available.
 - **VS Code-compatible editors only.** Built for VS Code, Cursor, Antigravity,
   VSCodium, Windsurf and similar forks. JetBrains, Zed, Neovim and Sublime need
   separate adapters.
 - **AI prompt capture is Cursor-only.** VS Code/Copilot chat history is not read.
   Everything else works without it.
-- **Posting is manual today.** Optional scheduled auto-posting is planned for paid
-  plans. The current build supports one webhook target (Discord or Slack).
 - **Grounding covers file and issue/PR references today.** The next build makes
   every specific claim a hard, verifiable rule and warns instead of silently
   accepting an unverified detail. Until then, the panel reports removed
@@ -357,7 +345,7 @@ current local-data policy.
 - CI, Marketplace metadata, changelog, privacy statement, icon and version bump
   are in place.
 - Remaining: manual QA on macOS (and Windows where available) across the real
-  extension host, real GitHub sign-in, real webhooks and a thinking-by-default
+  extension host, real GitHub sign-in and a thinking-by-default
   provider, then publish.
 
 **Next build — hardening and productization (working title 0.3.0)**
@@ -369,7 +357,6 @@ current local-data policy.
 - **Bundled quantized local model:** no Ollama setup for a useful free draft.
 - **Optional hosted model and plans:** Free local; Pro hosted/automation; Enterprise
   on-prem/SLA.
-- **Automatic posting:** optional scheduled Discord/Slack posts on paid plans.
 - **Editor support:** Antigravity and VS Code-compatible forks in the test matrix.
 - **Self-hosted backend (Docker) evaluation** for Enterprise/on-prem — the
   extension still runs inside the editor; Docker is not a replacement UI.

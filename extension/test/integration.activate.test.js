@@ -158,7 +158,6 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.match(draft.markdown, /Closed issue \[#7\]\(https:\/\/github\.com\/acme\/demo\/issues\/7\)/);
   assert.deepEqual(draft.summary, { commits: 2, files: 1, github: 2 });
   assert.equal(draft.detail, "concise");
-  assert.equal(draft.target, "");
   assert.equal(draft.modelLabel, "Ollama · test-model");
 
   // What the model actually received. (The activation-time health check also
@@ -489,46 +488,3 @@ test("a generation that exceeds standupDraft.generate.timeoutSeconds aborts with
   assert.match(cancelled.message, /standupDraft\.generate\.timeoutSeconds/);
 });
 
-test("legacy webhook settings migrate to posting.targets once", async (t) => {
-  const dir = tmpDir("standup-plain-");
-  const storage = tmpDir();
-  await withActivation(t, {
-    repoDir: dir,
-    storage,
-    config: baseConfig({
-      "standupDraft.webhook.type": "discord",
-      "standupDraft.webhook.url": "https://discord.com/api/webhooks/123/abc",
-    }),
-    lastReminder: ymd(),
-  });
-  await settle();
-  const upd = stub.configUpdates.find((u) => u.key === "standupDraft.posting.targets");
-  assert.ok(upd, "expected the migration write");
-  assert.deepEqual(upd.value, [
-    { type: "discord", url: "https://discord.com/api/webhooks/123/abc", enabled: true },
-  ]);
-  assert.equal(upd.target, 1, "ConfigurationTarget.Global");
-
-  // Second activation must not write again.
-  cleanup();
-  stub.reset();
-  stub.setFolders([{ fsPath: dir, name: "demo" }]);
-  stub.setConfig(baseConfig({ "standupDraft.webhook.type": "discord", "standupDraft.webhook.url": "https://x" }));
-  activate(makeContext(storage));
-  await settle();
-  assert.equal(stub.configUpdates.filter((u) => u.key === "standupDraft.posting.targets").length, 0);
-  cleanup();
-});
-
-test("no migration write when nothing legacy is configured", async (t) => {
-  const dir = tmpDir("standup-plain-");
-  const storage = tmpDir();
-  await withActivation(t, {
-    repoDir: dir,
-    storage,
-    config: baseConfig(),
-    lastReminder: ymd(),
-  });
-  await settle();
-  assert.equal(stub.configUpdates.filter((u) => u.key === "standupDraft.posting.targets").length, 0);
-});

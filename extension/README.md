@@ -5,8 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Phenzic/standup-draft/blob/main/LICENSE)
 
 Standup Draft watches the work you already did — git commits, saved files and
-GitHub PRs/issues — then asks a model to write your stand-up. You review and edit the draft, then copy it or send
-it to Slack/Discord.
+GitHub PRs/issues — then asks a model to write your stand-up. You review and
+edit the draft, then copy it.
 
 It is local-first by default: a local Ollama server, or a bundled quantized model
 in a later build. Bring-your-own-key providers (Anthropic, OpenAI, Google, or an
@@ -18,29 +18,29 @@ model. A higher-capacity hosted model is planned as an opt-in paid option.
 > your own API key.
 >
 > **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
-> OpenAI / Google / OpenAI-compatible), manual review, manual posting. Later:
-> bundled local model, hosted model, paid plans, automatic posting. Nothing paid
+> OpenAI / Google / OpenAI-compatible), manual review. Later:
+> bundled local model, hosted model, paid plans. Nothing paid
 > or hosted by us exists yet.
 
 ## Data & privacy
 
 No account, no telemetry. Local activity is read only to draft a stand-up, and
-text leaves your machine only through the backend or webhook you configure.
+text leaves your machine only through the backend you configure.
 
 | Source | Default | What happens |
 | --- | --- | --- |
 | Git commits and changed files (current workspace) | On | Becomes prompt text for your model backend |
 | Saved/edited files (local activity log) | On | Becomes prompt text for your model backend |
 | GitHub PRs and issues | Only if you connect GitHub | Fetched from `api.github.com`; included in the prompt when drafting |
-| The draft | — | Sent to the model backend; posted only when you press **Send** (or enable auto-post) |
+| The draft | — | Sent to the model backend when you generate |
 
 - **This Marketplace build does not read Cursor's chat database.** It uses git,
   saved files and GitHub only; no prompt history is opened or uploaded.
 - **Ollama on localhost stays local.** A BYOK provider or a remote
   `standupDraft.ollama.url` receives the prompt (activity included).
 - Turn tracking off entirely with `standupDraft.track.enabled: false`; disconnect
-  GitHub to stop those calls; leave every posting target empty to keep drafts on
-  your machine.
+  GitHub to stop those calls. This build never posts anywhere; you copy drafts
+  yourself.
 
 ## Requirements
 
@@ -177,19 +177,12 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
   “showing N of M” notes so omitted activity stays visible. A preflight
   token-budget check and priority trimming are planned.
 
-### Review and posting
+### Review
 
 - Markdown and Plain text tabs; both editable and independently copyable.
 - **Copy**, **Regenerate**, **Cancel**, and Detail/Tone controls.
 - Live progress with phase and elapsed seconds; a new run supersedes and cancels
   the previous one; a configurable timeout prevents a stuck request.
-- **Posting** to any number of Discord, Slack and Teams incoming webhooks at once
-  (`standupDraft.posting.targets`). Discord drafts are split into up to three
-  messages; Slack gets Markdown converted to mrkdwn; Teams gets an Adaptive Card.
-  Beyond three Discord messages, the full text is copied to the clipboard.
-- **Scheduled auto-posting** (Pro preview): generate and post on a schedule while
-  the editor is running — review-first or fully automatic with a 60-second undo
-  window.
 - **Daily reminder** at your local time, with *Generate now* and *Snooze 1h*.
 - **Local retention:** activity logs older than 14 days are pruned on startup
   (configurable; `0` keeps them forever).
@@ -230,16 +223,9 @@ backends ship.
 | `standupDraft.scope` | `workspace` | `workspace` = folders open in this window; `all` = every project that day |
 | `standupDraft.detail` | `concise` | `concise` / `standard` / `elaborate` |
 | `standupDraft.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
-| `standupDraft.posting.targets` | `[]` | List of `{ type: discord \| slack \| teams, url, enabled }` — Send posts to all enabled targets |
-| `standupDraft.webhook.type` | `none` | Legacy single target (`discord` / `slack` / `none`); migrated into `posting.targets` |
-| `standupDraft.webhook.url` | `""` | Legacy incoming webhook URL (no bot/OAuth needed) |
 | `standupDraft.track.enabled` | `true` | Track file saves/edits locally |
 | `standupDraft.generate.timeoutSeconds` | `180` | Abort generation after N seconds; `0` disables |
 | `standupDraft.store.retentionDays` | `14` | Delete activity logs older than N days; `0` = keep forever |
-| `standupDraft.autoPost.enabled` | `false` | Pro preview: generate + post on a schedule (editor must be running) |
-| `standupDraft.autoPost.time` | `""` | Local `HH:MM`; empty = same as `standupDraft.reminder.time` |
-| `standupDraft.autoPost.days` | `[1,2,3,4,5]` | Weekdays to auto-post (0 = Sunday) |
-| `standupDraft.autoPost.mode` | `review` | `review` asks first; `auto` posts after a 60 s undo window |
 | `standupDraft.reminder.enabled` | `true` | Daily local-time nudge |
 | `standupDraft.reminder.time` | `16:00` | Reminder time in 24h `HH:MM`, local time |
 
@@ -286,61 +272,15 @@ original pitch.
 | Cancel | Aborts the current generation (child processes and fetch included) |
 | Detail | Concise / Standard / Elaborate; changing it regenerates |
 | Tone | Neutral / Junior / Mid / Senior; changing it regenerates |
-| Send | Posts to the configured Discord/Slack webhook (hidden when none) |
 
 The status line shows progress, cancellation, timeout, grounding removals and
 input-cap notes.
-
-## Posting
-
-Posting is **manual** in the current build: review the draft, then press **Send**.
-Configure one or more targets in `standupDraft.posting.targets`:
-
-```jsonc
-"standupDraft.posting.targets": [
-  { "type": "discord", "url": "https://discord.com/api/webhooks/…", "enabled": true },
-  { "type": "slack",   "url": "https://hooks.slack.com/…",        "enabled": true },
-  { "type": "teams",   "url": "https://….powerplatform.com/…",    "enabled": true }
-]
-```
-
-Every enabled target gets the draft; a failure in one never blocks the others, and
-the result notification lists per-target successes/failures. No bot or OAuth app is
-required — incoming webhooks only (for Teams, a **Workflows** webhook; the retired
-Office 365 connector format is not supported). The legacy `standupDraft.webhook.type` /
-`standupDraft.webhook.url` pair still works and is migrated into `posting.targets` once
-on first run.
-
-- **Discord:** content is split at line/word boundaries into up to three messages
-  of ≤1,990 characters. If more would be needed, the first three are posted, the
-  remainder is skipped, and the full text is copied to the clipboard.
-- **Slack:** the Markdown draft is converted to Slack mrkdwn (`**bold**` →
-  `*bold*`, links → `<url|text>`), regardless of which tab is active. Because
-  Slack needs Markdown, edits made only in the Plain text tab are not sent to
-  Slack.
-- **Teams:** the draft is sent as an Adaptive Card (v1.4) in a Workflows message.
-
-### Auto-post (Pro preview)
-
-`standupDraft.autoPost.enabled` turns on scheduled posting while the editor is
-running. At `standupDraft.autoPost.time` (defaults to your reminder time) on
-`standupDraft.autoPost.days` (default Mon–Fri), Standup Draft generates your draft and:
-
-- **`review` mode (default):** asks first — *Post now*, *Open panel*, or *Skip today*.
-- **`auto` mode:** posts after a 60-second undo window.
-
-Posts go to every enabled `standupDraft.posting.targets` entry. Each day posts at
-most once per target (dedupe), failures retry three times with backoff, and a
-failed post keeps the draft for manual recovery. The editor must be running at
-the scheduled time; a cloud scheduler that works with the editor closed is a
-later phase. Auto-post is a Pro feature — the entitlement check is a local
-preview stub until accounts/billing ship.
 
 ## Feedback & rating
 
 Standup Draft is built in the open and feedback shapes it. Ways to reach us:
 
-- **In the panel:** after a draft, click 👍 or 👎 (next to Copy/Send). 👎 opens a
+- **In the panel:** after a draft, click 👍 or 👎 (next to Copy). 👎 opens a
   short feedback form; the link carries only your extension version, OS and
   model backend — never your draft or activity.
 - **Command palette:** **Standup Draft: Share Feedback** opens the same form any time.
@@ -373,8 +313,8 @@ Today:
   your OS keychain.
 - GitHub API calls happen only when GitHub context is enabled and credentials
   exist.
-- Only the draft you explicitly post is sent to your webhook. There is no
-  telemetry and no Standup Draft account.
+- This build never posts anywhere. There is no telemetry and no Standup Draft
+  account.
 
 Planned hosted model (opt-in, paid):
 
@@ -444,11 +384,7 @@ immediately.
 **“Removed N unverifiable mention(s)” / “Needs review”**
 The grounding check removed claims (file paths, `#numbers`, URLs, dates, people,
 completions) that were not in the activity. “Needs review” means a repair pass
-still left unverified claims — read the draft carefully before sending.
-
-**Posting failed**
-Check `standupDraft.webhook.type`/`url` and that the webhook still exists. Webhooks
-must return 2xx.
+still left unverified claims — read the draft carefully before using it.
 
 **No activity found**
 Commit or save some work, or increase `standupDraft.lookbackHours`. In a window with
@@ -472,8 +408,6 @@ planned.
   Antigravity, VSCodium and Windsurf; JetBrains, Zed, Neovim and Sublime need
   separate adapters.
 - **AI prompt capture is not included in this build.** Git, saved files and GitHub are the only activity sources.
-- **Auto-post needs a running editor.** The scheduled poster (Pro preview) only
-  fires while VS Code/Cursor is open; a cloud scheduler is a later phase.
 - **Grounding is deterministic, not perfect.** It verifies specific claims
   against the gathered activity; it cannot judge whether a true claim matters.
 - **Reminder timing requires the editor to be open.** There is no OS scheduler.
@@ -499,8 +433,7 @@ planned.
 - Marketplace listing cleanup (no placeholder screenshot, no proposed pricing
   table, less third-party branding in the description).
 - Everything from 0.1.3 and the feature work in this release: feedback loop,
-  shared pure core, grounding v2, context preflight, auto-post, multi-target
-  posting and the generate shortcut.
+  shared pure core, grounding v2, context preflight and the generate shortcut.
 
 **0.1.3 — beta (2026-11-01)**
 
@@ -525,7 +458,7 @@ planned.
   budget.
 - Packaging, publisher and test-runner metadata are in place.
 - Remaining: manual QA in a real extension host (BYOK setup, health check, real
-  GitHub sign-in, real Discord/Slack webhooks, multi-root and no-folder windows,
+  GitHub sign-in, multi-root and no-folder windows,
   cancel and soak tests), then a GitHub Release VSIX.
 
 **Next build — hardening and productization (working title 0.3.0)**
@@ -537,7 +470,6 @@ planned.
 - **Bundled quantized local model:** no Ollama setup for a useful free draft.
 - **Optional hosted model and plans:** Free local; Pro hosted/automation;
   Enterprise on-prem/SLA.
-- **Automatic posting:** optional scheduled Discord/Slack posts on paid plans.
 - **Editor support:** Antigravity and other VS Code-compatible forks in the test
   matrix.
 - **Self-hosted backend (Docker) evaluation** for Enterprise/on-prem — the
@@ -559,7 +491,7 @@ npm run test:e2e     # gated real-Ollama suite (sequential; STANDUP_OLLAMA_MODEL
 ```
 
 The test suite uses Node's built-in runner (no extra dependencies). It stubs the
-`vscode` API, starts local mock Ollama/webhook servers, creates temporary git
+`vscode` API, starts local mock Ollama servers, creates temporary git
 repos and synthetic SQLite databases. Real-model tests skip
 without their environment variables.
 
