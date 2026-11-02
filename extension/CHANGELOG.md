@@ -3,7 +3,26 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.2.0] — 2026-11-02
+
+Marketplace resubmission release. New extension identity and a smaller data-access
+surface; no change to how drafts are produced.
+
+### Changed
+
+- **Renamed from Shiplogue to Standup Draft.** Extension id
+  `phenzic.standup-draft`, commands and settings under `standupDraft.*`, storage
+  under `globalStorage/phenzic.standup-draft/`, provider secrets under
+  `standupDraft.provider.*`. 0.2.0 is a new extension id: uninstall 0.1.x,
+  reinstall, and run **Standup Draft: Set API Key** again.
+- **Cursor prompt capture is now opt-in and off by default.** On first run in a
+  host where Cursor's chat database exists, Standup Draft asks once before reading
+  it; **Not now** leaves it off. The extension README now has a Data & privacy
+  section describing exactly what is read, what can leave the machine, and how to
+  disable each source.
+- Marketplace listing cleanup: removed the screenshot placeholder and the proposed
+  pricing table from the extension README, and stopped leading the description
+  with third-party editor names.
 
 ### Added
 
@@ -11,16 +30,16 @@ All notable changes to this project will be documented here. Format follows
   generating); 👎 opens a feedback form carrying only version/OS/backend — never
   draft content. One feedback prompt after a few successful drafts, once per
   version, with 30-day snooze and permanent opt-out; a 👍 can trigger one
-  star/rate prompt per version. New commands: **Shiplogue: Share Feedback**,
+  star/rate prompt per version. New commands: **Standup Draft: Share Feedback**,
   **Star on GitHub**, **Rate on the Marketplace**. New settings
-  `shiplogue.feedback.enabled` / `shiplogue.feedback.promptAfter`.
+  `standupDraft.feedback.enabled` / `standupDraft.feedback.promptAfter`.
 
 ### Added
 
 - **Shared pure core** (`src/core/`): prompt builder, grounding, budget,
   formatting and git/GitHub/Cursor gatherers no longer import `vscode` — the
   extension passes settings in explicitly. Behavior is unchanged (full suite
-  green); this is the foundation for the Shiplogue agent (`agent/`, preview:
+  green); this is the foundation for the Standup Draft agent (`agent/`, preview:
   local event store with redaction/dedupe/retention + `shiplogue status`).
 - **Grounding v2 (hard gate):** every specific claim — file paths, `#numbers`,
   URLs, dates, versions, people, completion claims — must be backed by the
@@ -31,16 +50,16 @@ All notable changes to this project will be documented here. Format follows
   context window before any tokens are spent (compact AI prompts → drop oldest
   commits → shrink bodies/file lists → cap touches/GitHub), with the trim steps
   surfaced while loading and in the panel summary. Over-budget-beyond-minimum
-  refuses with an actionable error. New setting `shiplogue.model.contextTokens`.
-- **Scheduled auto-posting (Pro preview):** `shiplogue.autoPost.*` generates and
+  refuses with an actionable error. New setting `standupDraft.model.contextTokens`.
+- **Scheduled auto-posting (Pro preview):** `standupDraft.autoPost.*` generates and
   posts your stand-up on a schedule while the editor is running — review-first
   or automatic with a 60-second undo window, once per day per target, with
   retry + draft recovery on failure. The Pro entitlement check is a local stub
   until accounts/billing ship.
-- **Multi-target posting:** `shiplogue.posting.targets` posts the draft to every
+- **Multi-target posting:** `standupDraft.posting.targets` posts the draft to every
   enabled Slack, Discord and Teams incoming webhook at once, with per-target
   failure isolation and reporting. Teams uses a Workflows Adaptive Card (v1.4).
-  The legacy `shiplogue.webhook.type`/`url` pair keeps working and migrates into
+  The legacy `standupDraft.webhook.type`/`url` pair keeps working and migrates into
   the new list on first run. The Send button shows the target count.
 
 ### Changed

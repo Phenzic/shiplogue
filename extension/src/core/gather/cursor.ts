@@ -20,6 +20,12 @@ function cursorDbPath(): string | null {
   return candidates.find((p) => fs.existsSync(p)) ?? null;
 }
 
+// True when Cursor's chat database exists on this machine. Used by the opt-in
+// consent prompt; the collector itself still requires the setting to be on.
+export function cursorDbAvailable(): boolean {
+  return cursorDbPath() !== null;
+}
+
 async function sqliteJson(db: string, sql: string, signal?: AbortSignal): Promise<any[]> {
   // `signal` kills the sqlite3 child process on cancel so it never lingers.
   const { stdout } = await pexec(
@@ -107,7 +113,7 @@ async function scanComposerIds(wsRoot: string, folders: string[], signal?: Abort
         ids.add(id);
       }
     } catch (e) {
-      console.error("[shiplogue] cursor workspace db read failed:", e);
+      console.error("[standup-draft] cursor workspace db read failed:", e);
     }
   }
   return ids;
@@ -170,7 +176,7 @@ export async function collectCursorPrompts(
       .map((r) => ({ ts: r.ts, text: (r.text ?? "").replace(/\s+/g, " ").trim().slice(0, 280) }))
       .filter((p) => p.text.length > 0);
   } catch (e) {
-    console.error("[shiplogue] cursor prompt read failed:", e);
+    console.error("[standup-draft] cursor prompt read failed:", e);
     return [];
   }
 }

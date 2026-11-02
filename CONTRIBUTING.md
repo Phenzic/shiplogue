@@ -1,6 +1,6 @@
-# Contributing to Shiplogue
+# Contributing to Standup Draft
 
-Thanks for taking a look. Shiplogue is an early-stage, local-first VS Code-compatible
+Thanks for taking a look. Standup Draft is an early-stage, local-first VS Code-compatible
 extension, and the most useful contributions right now are bug reports, model
 quality feedback and editor compatibility reports.
 
@@ -10,7 +10,7 @@ quality feedback and editor compatibility reports.
   VSCodium, Windsurf, …), OS, model backend, and the smallest steps to reproduce.
 - **Report model quality** — especially invented specifics, missed commits, or
   drafts that needed heavy editing. Include the debug context from
-  *Shiplogue: Show Tracked Activity (debug)* with anything sensitive removed.
+  *Standup Draft: Show Tracked Activity (debug)* with anything sensitive removed.
 - **Test another editor** — VS Code-compatible forks are a target, but only some
   have been exercised in a real host.
 - **Improve docs, tests or the extension** — see the checklist below.
@@ -32,7 +32,7 @@ Ollama (or a provider API key) and `sqlite3` are only needed for the correspondi
 features/tests.
 
 ```bash
-git clone https://github.com/Phenzic/shiplogue.git
+git clone https://github.com/Phenzic/standupDraft.git
 cd shiplogue/extension
 npm install
 npm run compile

@@ -14,12 +14,12 @@ const DRAFT = "**Done**\n- Shipped the thing\n\n**Next**\n- More\n\n**Blockers**
 function setup({ config = {}, generateDraft = async () => DRAFT, targets } = {}) {
   stub.reset();
   stub.setConfig({
-    "shiplogue.autoPost.enabled": true,
-    "shiplogue.autoPost.time": "16:00",
-    "shiplogue.autoPost.days": [1, 2, 3, 4, 5],
-    "shiplogue.autoPost.mode": "review",
-    "shiplogue.reminder.time": "17:00",
-    ...(targets ? { "shiplogue.posting.targets": targets } : {}),
+    "standupDraft.autoPost.enabled": true,
+    "standupDraft.autoPost.time": "16:00",
+    "standupDraft.autoPost.days": [1, 2, 3, 4, 5],
+    "standupDraft.autoPost.mode": "review",
+    "standupDraft.reminder.time": "17:00",
+    ...(targets ? { "standupDraft.posting.targets": targets } : {}),
     ...config,
   });
   const state = new State(makeContext(tmpDir()));
@@ -33,7 +33,7 @@ const SUN = (h, m) => new Date(2026, 10, 1, h, m);
 
 test("disabled → nothing happens", async () => {
   let generated = 0;
-  const { ap } = setup({ config: { "shiplogue.autoPost.enabled": false }, generateDraft: async () => { generated++; return DRAFT; } });
+  const { ap } = setup({ config: { "standupDraft.autoPost.enabled": false }, generateDraft: async () => { generated++; return DRAFT; } });
   await ap.tick(MON(18, 0));
   assert.equal(generated, 0);
   assert.equal(stub.notifications.length, 0);
@@ -50,7 +50,7 @@ test("before the scheduled time or on an off day → nothing", async () => {
 test("autoPost.time falls back to the reminder time when empty", async () => {
   let generated = 0;
   const { ap } = setup({
-    config: { "shiplogue.autoPost.time": "" },
+    config: { "standupDraft.autoPost.time": "" },
     generateDraft: async () => { generated++; return DRAFT; },
   });
   await ap.tick(MON(16, 30)); // past 16:00 default? no — time "" → reminder 17:00
@@ -96,7 +96,7 @@ test("auto mode posts after the undo window unless undone", async (t) => {
   const server = await startServer(() => ({ status: 204 }));
   t.after(() => server.close());
   const { ap } = setup({
-    config: { "shiplogue.autoPost.mode": "auto" },
+    config: { "standupDraft.autoPost.mode": "auto" },
     targets: [{ type: "discord", url: server.url, enabled: true }],
   });
   await ap.tick(MON(18, 0)); // no answer queued → window expires (5ms in tests)
@@ -106,7 +106,7 @@ test("auto mode posts after the undo window unless undone", async (t) => {
   const server2 = await startServer(() => ({ status: 204 }));
   t.after(() => server2.close());
   const { ap: ap2 } = setup({
-    config: { "shiplogue.autoPost.mode": "auto" },
+    config: { "standupDraft.autoPost.mode": "auto" },
     targets: [{ type: "discord", url: server2.url, enabled: true }],
   });
   stub.infoAnswers.push("Undo");

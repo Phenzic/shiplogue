@@ -1,8 +1,8 @@
 {
-  "name": "shiplogue",
-  "displayName": "Shiplogue",
-  "description": "Drafts your daily stand-up from the work you already did. Local-first for VS Code, Cursor and Antigravity: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), then copied or posted to Discord/Slack.",
-  "version": "0.1.3",
+  "name": "standup-draft",
+  "displayName": "Standup Draft",
+  "description": "Drafts your daily stand-up from the work you already did. Local-first: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key, then copied or posted to Discord/Slack.",
+  "version": "0.2.0",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -15,13 +15,13 @@
     "standup",
     "stand-up",
     "daily",
-    "ollama",
-    "byok",
+    "productivity",
+    "developer-tools",
     "git",
     "github",
-    "cursor",
-    "llm",
-    "privacy"
+    "ai",
+    "local-first",
+    "byok"
   ],
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -42,11 +42,11 @@
   "capabilities": {
     "virtualWorkspaces": {
       "supported": false,
-      "description": "Shiplogue reads real repository history and local editor activity, which virtual workspaces do not provide."
+      "description": "Standup Draft reads real repository history and local editor activity, which virtual workspaces do not provide."
     },
     "untrustedWorkspaces": {
       "supported": false,
-      "description": "Shiplogue runs git commands in the workspace and records local activity, so it requires a trusted workspace."
+      "description": "Standup Draft runs git commands in the workspace and records local activity, so it requires a trusted workspace."
     }
   },
   "activationEvents": [
@@ -55,87 +55,87 @@
   "contributes": {
     "commands": [
       {
-        "command": "shiplogue.generate",
-        "title": "Shiplogue: Generate Today's Update"
+        "command": "standupDraft.generate",
+        "title": "Standup Draft: Generate Today's Update"
       },
       {
-        "command": "shiplogue.showActivity",
-        "title": "Shiplogue: Show Tracked Activity (debug)"
+        "command": "standupDraft.showActivity",
+        "title": "Standup Draft: Show Tracked Activity (debug)"
       },
       {
-        "command": "shiplogue.setProviderKey",
-        "title": "Shiplogue: Set API Key (Bring Your Own)"
+        "command": "standupDraft.setProviderKey",
+        "title": "Standup Draft: Set API Key (Bring Your Own)"
       },
       {
-        "command": "shiplogue.clearProviderKey",
-        "title": "Shiplogue: Clear API Key"
+        "command": "standupDraft.clearProviderKey",
+        "title": "Standup Draft: Clear API Key"
       },
       {
-        "command": "shiplogue.testProvider",
-        "title": "Shiplogue: Test Provider"
+        "command": "standupDraft.testProvider",
+        "title": "Standup Draft: Test Provider"
       },
       {
-        "command": "shiplogue.setReminderTime",
-        "title": "Shiplogue: Set Reminder Time"
+        "command": "standupDraft.setReminderTime",
+        "title": "Standup Draft: Set Reminder Time"
       },
       {
-        "command": "shiplogue.connectGitHub",
-        "title": "Shiplogue: Connect GitHub"
+        "command": "standupDraft.connectGitHub",
+        "title": "Standup Draft: Connect GitHub"
       },
       {
-        "command": "shiplogue.feedback",
-        "title": "Shiplogue: Share Feedback"
+        "command": "standupDraft.feedback",
+        "title": "Standup Draft: Share Feedback"
       },
       {
-        "command": "shiplogue.star",
-        "title": "Shiplogue: Star on GitHub"
+        "command": "standupDraft.star",
+        "title": "Standup Draft: Star on GitHub"
       },
       {
-        "command": "shiplogue.rate",
-        "title": "Shiplogue: Rate on the Marketplace"
+        "command": "standupDraft.rate",
+        "title": "Standup Draft: Rate on the Marketplace"
       },
       {
-        "command": "shiplogue.configureShortcut",
-        "title": "Shiplogue: Configure Keyboard Shortcut"
+        "command": "standupDraft.configureShortcut",
+        "title": "Standup Draft: Configure Keyboard Shortcut"
       }
     ],
     "keybindings": [
       {
-        "command": "shiplogue.generate",
+        "command": "standupDraft.generate",
         "key": "ctrl+shift+j",
         "mac": "cmd+shift+j",
         "when": "!terminalFocus"
       }
     ],
     "configuration": {
-      "title": "Shiplogue",
+      "title": "Standup Draft",
       "properties": {
-        "shiplogue.lookbackHours": {
+        "standupDraft.lookbackHours": {
           "type": "number",
           "default": 24,
           "description": "How many hours back to gather activity when generating a stand-up."
         },
-        "shiplogue.ollama.url": {
+        "standupDraft.ollama.url": {
           "type": "string",
           "default": "http://localhost:11434",
           "description": "Base URL of your local Ollama server."
         },
-        "shiplogue.ollama.model": {
+        "standupDraft.ollama.model": {
           "type": "string",
           "default": "llama3.2",
           "description": "Ollama model to use for summarizing your activity."
         },
-        "shiplogue.ollama.numPredict": {
+        "standupDraft.ollama.numPredict": {
           "type": "number",
           "default": 0,
           "markdownDescription": "Maximum tokens the model may generate. `0` (default) uses the per-detail budget (400/900/1600). Raise this if a reasoning model returns nothing."
         },
-        "shiplogue.ollama.numCtx": {
+        "standupDraft.ollama.numCtx": {
           "type": "number",
           "default": 8192,
           "description": "Context window size (tokens) passed to Ollama. Raise it on busy days if your activity is being cut off."
         },
-        "shiplogue.ollama.think": {
+        "standupDraft.ollama.think": {
           "type": "string",
           "enum": [
             "auto",
@@ -143,14 +143,14 @@
             "off"
           ],
           "enumDescriptions": [
-            "Let the model decide; if it returns nothing, Shiplogue retries once with thinking disabled and a larger budget",
+            "Let the model decide; if it returns nothing, Standup Draft retries once with thinking disabled and a larger budget",
             "Always enable reasoning (think: true)",
             "Always disable reasoning (think: false)"
           ],
           "default": "auto",
           "markdownDescription": "Control reasoning ('thinking') models such as gpt-oss or deepseek-r1."
         },
-        "shiplogue.model.backend": {
+        "standupDraft.model.backend": {
           "type": "string",
           "enum": [
             "auto",
@@ -167,7 +167,7 @@
           "default": "auto",
           "markdownDescription": "Which engine writes your stand-up. `auto` never falls back silently between hosted providers; with no provider configured it uses Ollama."
         },
-        "shiplogue.provider.type": {
+        "standupDraft.provider.type": {
           "type": "string",
           "enum": [
             "none",
@@ -184,44 +184,44 @@
             "Any endpoint that speaks the OpenAI Chat Completions API — OpenRouter, Groq, Together, LM Studio, llama.cpp"
           ],
           "default": "none",
-          "description": "API provider used when shiplogue.model.backend is 'provider' or 'auto'."
+          "description": "API provider used when standupDraft.model.backend is 'provider' or 'auto'."
         },
-        "shiplogue.provider.model": {
+        "standupDraft.provider.model": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Model id for the configured provider (for example `claude-sonnet-4-5`, `gpt-4o-mini`, `gemini-2.5-flash`). Run **Shiplogue: Set API Key** to pick from the provider's model list."
+          "markdownDescription": "Model id for the configured provider (for example `claude-sonnet-4-5`, `gpt-4o-mini`, `gemini-2.5-flash`). Run **Standup Draft: Set API Key** to pick from the provider's model list."
         },
-        "shiplogue.provider.baseUrl": {
+        "standupDraft.provider.baseUrl": {
           "type": "string",
           "default": "",
           "markdownDescription": "Endpoint base URL for `openai-compatible` providers, e.g. `http://localhost:1234/v1` or `https://openrouter.ai/api/v1`. Paths should not include `/chat/completions`."
         },
-        "shiplogue.provider.maxOutputTokens": {
+        "standupDraft.provider.maxOutputTokens": {
           "type": "number",
           "default": 1200,
           "minimum": 0,
-          "markdownDescription": "Hard cap on tokens the provider may generate. `0` uses the per-detail budget (400/900/1600); a positive value caps it with `Math.min`. If a thinking model returns no answer because it spent the budget on reasoning, Shiplogue retries once with a larger budget (at least 4096) and thinking disabled."
+          "markdownDescription": "Hard cap on tokens the provider may generate. `0` uses the per-detail budget (400/900/1600); a positive value caps it with `Math.min`. If a thinking model returns no answer because it spent the budget on reasoning, Standup Draft retries once with a larger budget (at least 4096) and thinking disabled."
         },
-        "shiplogue.github.useBuiltInAuth": {
+        "standupDraft.github.useBuiltInAuth": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Use the editor's built-in GitHub sign-in instead of a manual token. No PAT needed — run 'Shiplogue: Connect GitHub' once. Ignored if `shiplogue.github.token` is set."
+          "markdownDescription": "Use the editor's built-in GitHub sign-in instead of a manual token. No PAT needed — run 'Standup Draft: Connect GitHub' once. Ignored if `standupDraft.github.token` is set."
         },
-        "shiplogue.github.token": {
+        "standupDraft.github.token": {
           "type": "string",
           "default": "",
           "markdownDescription": "Optional GitHub personal access token. Only needed if you prefer NOT to use built-in sign-in (e.g. headless use). Leave empty to use built-in auth.",
           "scope": "machine"
         },
-        "shiplogue.github.repos": {
+        "standupDraft.github.repos": {
           "type": "array",
           "items": {
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "Repos to check, as `owner/name`. If empty, Shiplogue auto-detects from the current workspace's git `origin` remote."
+          "markdownDescription": "Repos to check, as `owner/name`. If empty, Standup Draft auto-detects from the current workspace's git `origin` remote."
         },
-        "shiplogue.format": {
+        "standupDraft.format": {
           "type": "string",
           "enum": [
             "done-next-blockers",
@@ -230,7 +230,7 @@
           "default": "done-next-blockers",
           "description": "Stand-up format to generate."
         },
-        "shiplogue.scope": {
+        "standupDraft.scope": {
           "type": "string",
           "enum": [
             "workspace",
@@ -243,7 +243,7 @@
           "default": "workspace",
           "description": "Which activity a generated stand-up includes. 'workspace' keeps each project's stand-up clean; 'all' combines your whole day."
         },
-        "shiplogue.detail": {
+        "standupDraft.detail": {
           "type": "string",
           "enum": [
             "concise",
@@ -258,7 +258,7 @@
           "default": "concise",
           "description": "How detailed the generated stand-up should be. Also switchable from the stand-up panel."
         },
-        "shiplogue.tone": {
+        "standupDraft.tone": {
           "type": "string",
           "enum": [
             "neutral",
@@ -275,7 +275,7 @@
           "default": "neutral",
           "description": "Voice of the generated stand-up. Also switchable from the stand-up panel."
         },
-        "shiplogue.posting.targets": {
+        "standupDraft.posting.targets": {
           "type": "array",
           "items": {
             "type": "object",
@@ -287,10 +287,10 @@
             "required": ["type", "url"]
           },
           "default": [],
-          "markdownDescription": "Post targets for the Send button — your stand-up goes to every enabled target (incoming webhook URLs). When empty, the legacy `shiplogue.webhook.type`/`url` pair is used.",
+          "markdownDescription": "Post targets for the Send button — your stand-up goes to every enabled target (incoming webhook URLs). When empty, the legacy `standupDraft.webhook.type`/`url` pair is used.",
           "scope": "machine"
         },
-        "shiplogue.webhook.type": {
+        "standupDraft.webhook.type": {
           "type": "string",
           "enum": [
             "none",
@@ -300,39 +300,39 @@
           "default": "none",
           "description": "Where the Send button posts your stand-up."
         },
-        "shiplogue.webhook.url": {
+        "standupDraft.webhook.url": {
           "type": "string",
           "default": "",
           "markdownDescription": "Incoming webhook URL for Discord or Slack. No bot or OAuth needed — create an incoming webhook in your channel settings.",
           "scope": "machine"
         },
-        "shiplogue.track.enabled": {
+        "standupDraft.track.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Track IDE activity (which files you edit and save). Stored locally only."
         },
-        "shiplogue.generate.timeoutSeconds": {
+        "standupDraft.generate.timeoutSeconds": {
           "type": "number",
           "default": 180,
           "markdownDescription": "Abort stand-up generation after this many seconds (a Cancel button is always available too). `0` disables the timeout."
         },
-        "shiplogue.autoPost.enabled": {
+        "standupDraft.autoPost.enabled": {
           "type": "boolean",
           "default": false,
           "markdownDescription": "Automatically generate and post your stand-up every scheduled day. A Pro feature (currently in preview). Works only while the editor is running."
         },
-        "shiplogue.autoPost.time": {
+        "standupDraft.autoPost.time": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Local `HH:MM` to auto-post. Empty = same as `shiplogue.reminder.time`."
+          "markdownDescription": "Local `HH:MM` to auto-post. Empty = same as `standupDraft.reminder.time`."
         },
-        "shiplogue.autoPost.days": {
+        "standupDraft.autoPost.days": {
           "type": "array",
           "items": { "type": "number", "minimum": 0, "maximum": 6 },
           "default": [1, 2, 3, 4, 5],
           "markdownDescription": "Days of the week to auto-post (0 = Sunday … 6 = Saturday)."
         },
-        "shiplogue.autoPost.mode": {
+        "standupDraft.autoPost.mode": {
           "type": "string",
           "enum": ["review", "auto"],
           "enumDescriptions": [
@@ -342,52 +342,53 @@
           "default": "review",
           "description": "Whether auto-post asks for confirmation first or posts automatically."
         },
-        "shiplogue.model.contextTokens": {
+        "standupDraft.model.contextTokens": {
           "type": "number",
           "default": 16384,
-          "markdownDescription": "Context window (tokens) for the local model; also the context budget estimate for BYOK providers. Ollama uses `shiplogue.ollama.numCtx`."
+          "markdownDescription": "Context window (tokens) for the local model; also the context budget estimate for BYOK providers. Ollama uses `standupDraft.ollama.numCtx`."
         },
-        "shiplogue.feedback.enabled": {
+        "standupDraft.feedback.enabled": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Allow the occasional (once per version) feedback prompt after a few successful drafts. Panel thumbs and the feedback commands always work regardless."
         },
-        "shiplogue.feedback.promptAfter": {
+        "standupDraft.feedback.promptAfter": {
           "type": "number",
           "default": 3,
           "description": "How many successful drafts trigger the one-time-per-version feedback prompt."
         },
-        "shiplogue.store.retentionDays": {
+        "standupDraft.store.retentionDays": {
           "type": "number",
           "default": 14,
           "markdownDescription": "Delete locally stored activity logs older than this many days on startup. `0` keeps them forever."
         },
-        "shiplogue.reminder.enabled": {
+        "standupDraft.reminder.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Show a daily local-time notification reminding you to send your stand-up."
         },
-        "shiplogue.reminder.time": {
+        "standupDraft.reminder.time": {
           "type": "string",
           "default": "16:00",
-          "markdownDescription": "Daily reminder time in 24h `HH:MM`, local time. Set on first run; change any time here or via 'Shiplogue: Set Reminder Time'."
+          "markdownDescription": "Daily reminder time in 24h `HH:MM`, local time. Set on first run; change any time here or via 'Standup Draft: Set Reminder Time'."
         },
-        "shiplogue.cursor.enabled": {
+        "standupDraft.cursor.enabled": {
           "type": "boolean",
-          "default": true,
-          "markdownDescription": "Include the AI prompts you gave Cursor's assistant today as context for the stand-up. Read locally & read-only from Cursor's chat DB; nothing is uploaded. No effect if Cursor isn't installed."
+          "default": false,
+          "markdownDescription": "Read Cursor's local chat history (read-only) to include your AI prompts as context. **Off by default.** Standup Draft asks once before enabling it; no effect if Cursor isn't installed."
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run clean && npm run compile",
+    "clean": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\"",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "npm run compile && node scripts/run-tests.mjs",
     "verify": "node scripts/verify.mjs",
     "test:local": "node --test --test-concurrency=1 test/model/e2e.local-model.test.js",
-    "test:e2e": "SHIPLOGUE_E2E=1 node --test --test-concurrency=1 test/e2e.ollama.test.js test/e2e.pipeline.test.js",
+    "test:e2e": "STANDUP_DRAFT_E2E=1 node --test --test-concurrency=1 test/e2e.ollama.test.js test/e2e.pipeline.test.js",
     "test:cursor": "CURSOR_REAL_DB=1 node --test test/e2e.local.test.js",
     "package": "npx --yes @vscode/vsce@4.1.0 package"
   },

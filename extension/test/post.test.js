@@ -9,17 +9,17 @@ const { toSlackMrkdwn } = require("../out/format");
 
 test("posting without a configured webhook fails fast", async () => {
   stub.reset();
-  stub.setConfig({ "shiplogue.webhook.type": "none", "shiplogue.webhook.url": "" });
+  stub.setConfig({ "standupDraft.webhook.type": "none", "standupDraft.webhook.url": "" });
   await assert.rejects(postToWebhook("hi"), /No posting target configured/);
 
-  stub.setConfig({ "shiplogue.webhook.type": "discord", "shiplogue.webhook.url": "" });
+  stub.setConfig({ "standupDraft.webhook.type": "discord", "standupDraft.webhook.url": "" });
   await assert.rejects(postToWebhook("hi"), /No posting target configured/);
 });
 
 test("Discord splits long posts into ordered messages under the 2000-char limit", async () => {
   const server = await startServer(() => ({ status: 204 }));
   stub.reset();
-  stub.setConfig({ "shiplogue.webhook.type": "discord", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "discord", "standupDraft.webhook.url": server.url });
   try {
     // ~4500 chars of word-wrapped lines → 3 messages (2 lines fit per message).
     const line = "word ".repeat(180).trim(); // 899 chars
@@ -40,7 +40,7 @@ test("Discord splits long posts into ordered messages under the 2000-char limit"
 test("Discord truncates after 3 messages and reports it", async () => {
   const server = await startServer(() => ({ status: 204 }));
   stub.reset();
-  stub.setConfig({ "shiplogue.webhook.type": "discord", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "discord", "standupDraft.webhook.url": server.url });
   try {
     const line = "word ".repeat(200).trim();
     const text = Array.from({ length: 12 }, (_, i) => `line${i} ${line}`).join("\n"); // ~12k chars
@@ -72,7 +72,7 @@ test("toSlackMrkdwn converts bold and links, keeps bullets", () => {
 test("Slack posts use {text} and are not truncated", async () => {
   const server = await startServer(() => ({ status: 200, body: "ok" }));
   stub.reset();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "slack", "standupDraft.webhook.url": server.url });
   try {
     const text = "y".repeat(5000);
     await postToWebhook(text);
@@ -86,7 +86,7 @@ test("Slack posts use {text} and are not truncated", async () => {
 test("a non-2xx webhook response surfaces the status without throwing", async () => {
   const server = await startServer(() => ({ status: 500, body: "nope" }));
   stub.reset();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "slack", "standupDraft.webhook.url": server.url });
   try {
     const result = await postToWebhook("hi");
     assert.equal(result.posted, 0);
@@ -103,7 +103,7 @@ test("posts to all enabled targets and reports per-target results", async () => 
   const teams = await startServer(() => ({ status: 200, body: "1" }));
   stub.reset();
   stub.setConfig({
-    "shiplogue.posting.targets": [
+    "standupDraft.posting.targets": [
       { type: "slack", url: slack.url, enabled: true },
       { type: "discord", url: discord.url, enabled: true },
       { type: "teams", url: teams.url, enabled: true },
@@ -142,7 +142,7 @@ test("a failing target never blocks the others, and errors carry no URL/secret",
   const bad = await startServer(() => ({ status: 500, body: "secret-xyz" }));
   stub.reset();
   stub.setConfig({
-    "shiplogue.posting.targets": [
+    "standupDraft.posting.targets": [
       { type: "discord", url: bad.url, enabled: true },
       { type: "slack", url: good.url, enabled: true },
     ],
@@ -165,13 +165,13 @@ test("a failing target never blocks the others, and errors carry no URL/secret",
 test("disabled and malformed targets are skipped; legacy pair is the fallback", async () => {
   stub.reset();
   stub.setConfig({
-    "shiplogue.posting.targets": [
+    "standupDraft.posting.targets": [
       { type: "slack", url: "", enabled: true },
       { type: "discord", url: "http://x", enabled: false },
       { type: "carrier-pigeon", url: "http://y", enabled: true },
     ],
-    "shiplogue.webhook.type": "discord",
-    "shiplogue.webhook.url": "http://legacy",
+    "standupDraft.webhook.type": "discord",
+    "standupDraft.webhook.url": "http://legacy",
   });
   const legacy = effectiveTargets();
   assert.equal(legacy.length, 1, "all-invalid list falls back to the legacy pair");
@@ -179,7 +179,7 @@ test("disabled and malformed targets are skipped; legacy pair is the fallback", 
   assert.equal(legacy[0].url, "http://legacy");
 
   stub.setConfig({
-    "shiplogue.posting.targets": [{ type: "teams", url: "http://t", enabled: true }],
+    "standupDraft.posting.targets": [{ type: "teams", url: "http://t", enabled: true }],
   });
   const targets = effectiveTargets();
   assert.deepEqual(targets, [{ type: "teams", url: "http://t", enabled: true }], "targets win over legacy");

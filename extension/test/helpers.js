@@ -11,13 +11,13 @@ const { execFileSync } = require("child_process");
 function installVscodeStub() {
   const Module = require("module");
   const stubPath = require.resolve("./vscode-stub.js");
-  if (!Module.__shiploguePatched) {
+  if (!Module.__standupDraftPatched) {
     const orig = Module._resolveFilename;
     Module._resolveFilename = function (request, ...rest) {
       if (request === "vscode") return stubPath;
       return orig.call(this, request, ...rest);
     };
-    Module.__shiploguePatched = true;
+    Module.__standupDraftPatched = true;
   }
   const mod = require(stubPath);
   mod.stub.reset();
@@ -41,7 +41,7 @@ function makeContext(storageDir, version = "0.1.3-test") {
   const secretValues = secretStores.get(storageDir);
   return {
     globalStorageUri: { fsPath: storageDir },
-    extension: { id: "phenzic.shiplogue", packageJSON: { version } },
+    extension: { id: "phenzic.standup-draft", packageJSON: { version } },
     globalState: {
       get(key, def) {
         return state.has(key) ? state.get(key) : def;

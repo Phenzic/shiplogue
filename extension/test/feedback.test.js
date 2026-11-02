@@ -12,8 +12,8 @@ const { Feedback, feedbackFormUrl, openFeedback, openRate, openStar } = require(
 function setup({ config = {}, version = "0.1.3-test" } = {}) {
   stub.reset();
   stub.setConfig({
-    "shiplogue.feedback.enabled": true,
-    "shiplogue.feedback.promptAfter": 3,
+    "standupDraft.feedback.enabled": true,
+    "standupDraft.feedback.promptAfter": 3,
     ...config,
   });
   const ctx = makeContext(tmpDir(), version);
@@ -38,7 +38,7 @@ test("recordSuccess increments the counter and prompts once after the threshold"
 
   await feedback.recordSuccess("Ollama · llama3.2");
   assert.equal(stub.notifications.length, 1);
-  assert.match(stub.notifications[0].message, /How's Shiplogue working for you/);
+  assert.match(stub.notifications[0].message, /How's Standup Draft working for you/);
   assert.deepEqual(stub.notifications[0].items, ["Share feedback", "Not now", "Don't ask again"]);
 
   // Same version: no second prompt even past the threshold.
@@ -84,7 +84,7 @@ test("'Don't ask again' opts out permanently", async () => {
 });
 
 test("feedback.enabled=false suppresses the prompt but still counts", async () => {
-  const { state, feedback } = setup({ config: { "shiplogue.feedback.enabled": false } });
+  const { state, feedback } = setup({ config: { "standupDraft.feedback.enabled": false } });
   for (let i = 0; i < 5; i++) await feedback.recordSuccess("Ollama · llama3.2");
   assert.equal(state.getSuccessfulDrafts(), 5);
   assert.equal(stub.notifications.length, 0);
@@ -127,7 +127,7 @@ test("thumbs up 'Rate on Marketplace' opens the review page", async () => {
   stub.infoAnswers.push("Rate on Marketplace");
   await feedback.recordThumbs("up", "Ollama · llama3.2");
   assert.deepEqual(stub.openedUrls, [
-    "https://marketplace.visualstudio.com/items?itemName=phenzic.shiplogue&ssr=false#review-details",
+    "https://marketplace.visualstudio.com/items?itemName=phenzic.standup-draft&ssr=false#review-details",
   ]);
 });
 

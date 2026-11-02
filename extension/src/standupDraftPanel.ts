@@ -31,8 +31,8 @@ function targetLabel(): string {
 
 // Singleton webview: shows the draft in Markdown + Plain-text tabs, an activity
 // summary, and a collapsible style editor.
-export class ShiploguePanel {
-  private static current: ShiploguePanel | undefined;
+export class StandupDraftPanel {
+  private static current: StandupDraftPanel | undefined;
   private panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
 
@@ -41,24 +41,24 @@ export class ShiploguePanel {
     state: State,
     onCancel?: () => void,
     onFeedback?: (value: "up" | "down", backend: string) => void,
-  ): ShiploguePanel {
-    if (ShiploguePanel.current) {
-      ShiploguePanel.current.onRegenerate = onRegenerate;
-      ShiploguePanel.current.onCancel = onCancel;
-      ShiploguePanel.current.onFeedback = onFeedback;
-      ShiploguePanel.current.state = state;
-      ShiploguePanel.current.syncDetail();
-      ShiploguePanel.current.panel.reveal();
-      return ShiploguePanel.current;
+  ): StandupDraftPanel {
+    if (StandupDraftPanel.current) {
+      StandupDraftPanel.current.onRegenerate = onRegenerate;
+      StandupDraftPanel.current.onCancel = onCancel;
+      StandupDraftPanel.current.onFeedback = onFeedback;
+      StandupDraftPanel.current.state = state;
+      StandupDraftPanel.current.syncDetail();
+      StandupDraftPanel.current.panel.reveal();
+      return StandupDraftPanel.current;
     }
     const panel = vscode.window.createWebviewPanel(
-      "shiplogue",
-      "Shiplogue",
+      "standupDraft",
+      "Standup Draft",
       vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: true },
     );
-    ShiploguePanel.current = new ShiploguePanel(panel, onRegenerate, state, onCancel, onFeedback);
-    return ShiploguePanel.current;
+    StandupDraftPanel.current = new StandupDraftPanel(panel, onRegenerate, state, onCancel, onFeedback);
+    return StandupDraftPanel.current;
   }
 
   private constructor(
@@ -127,7 +127,7 @@ export class ShiploguePanel {
         const detail = msg.detail as DetailLevel;
         await this.state.setDetail(detail);
         await vscode.workspace
-          .getConfiguration("shiplogue")
+          .getConfiguration("standupDraft")
           .update("detail", detail, vscode.ConfigurationTarget.Global);
         this.onRegenerate();
         break;
@@ -136,7 +136,7 @@ export class ShiploguePanel {
         const tone = msg.tone as Tone;
         await this.state.setTone(tone);
         await vscode.workspace
-          .getConfiguration("shiplogue")
+          .getConfiguration("standupDraft")
           .update("tone", tone, vscode.ConfigurationTarget.Global);
         this.onRegenerate();
         break;
@@ -172,7 +172,7 @@ export class ShiploguePanel {
   }
 
   dispose(): void {
-    ShiploguePanel.current = undefined;
+    StandupDraftPanel.current = undefined;
     this.panel.dispose();
     this.disposables.forEach((d) => d.dispose());
   }

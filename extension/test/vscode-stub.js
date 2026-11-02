@@ -60,7 +60,7 @@ const stub = {
     this.executedCommands = [];
   },
 
-  // Merge settings, e.g. { "shiplogue.ollama.model": "test" }.
+  // Merge settings, e.g. { "standupDraft.ollama.model": "test" }.
   setConfig(obj) {
     this.config = { ...this.config, ...obj };
   },

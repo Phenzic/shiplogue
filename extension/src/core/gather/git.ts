@@ -95,7 +95,7 @@ export async function collectCommitsFromFolders(
         });
       }
     } catch (e) {
-      console.error(`[shiplogue] git log failed in ${cwd}:`, e);
+      console.error(`[standup-draft] git log failed in ${cwd}:`, e);
     }
   }
   return out;

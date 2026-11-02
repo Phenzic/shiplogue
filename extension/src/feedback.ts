@@ -7,10 +7,10 @@ import { State } from "./state";
 // page is used because it works today. Swap FEEDBACK_FORM_URL when the form
 // lands — nothing else changes.
 export const FEEDBACK_FORM_URL =
-  "https://github.com/Phenzic/shiplogue/issues/new?labels=feedback&title=Shiplogue+feedback";
+  "https://github.com/Phenzic/shiplogue/issues/new?labels=feedback&title=Standup+Draft+feedback";
 export const GITHUB_REPO_URL = "https://github.com/Phenzic/shiplogue";
 export const MARKETPLACE_REVIEW_URL =
-  "https://marketplace.visualstudio.com/items?itemName=phenzic.shiplogue&ssr=false#review-details";
+  "https://marketplace.visualstudio.com/items?itemName=phenzic.standup-draft&ssr=false#review-details";
 
 const THIRTY_DAYS_MS = 30 * 24 * 3600_000;
 
@@ -65,7 +65,7 @@ export class Feedback {
     }
     await this.state.setFeedbackPromptedVersion(this.version);
     const pick = await vscode.window.showInformationMessage(
-      "How's Shiplogue working for you?",
+      "How's Standup Draft working for you?",
       "Share feedback",
       "Not now",
       "Don't ask again",
@@ -99,7 +99,7 @@ export class Feedback {
     }
     await this.state.setStarPromptedVersion(this.version);
     const pick = await vscode.window.showInformationMessage(
-      "If Shiplogue saved you time, a star helps others find it.",
+      "If Standup Draft saved you time, a star helps others find it.",
       "Star on GitHub",
       "Rate on Marketplace",
       "Not now",

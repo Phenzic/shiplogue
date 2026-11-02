@@ -9,9 +9,9 @@ const pkg = require("../package.json");
 
 test("generate has a cross-platform keybinding that avoids terminal focus", () => {
   const binding = (pkg.contributes.keybindings || []).find(
-    (k) => k.command === "shiplogue.generate",
+    (k) => k.command === "standupDraft.generate",
   );
-  assert.ok(binding, "shiplogue.generate keybinding is declared");
+  assert.ok(binding, "standupDraft.generate keybinding is declared");
   assert.equal(binding.key, "ctrl+shift+j");
   assert.equal(binding.mac, "cmd+shift+j");
   assert.equal(binding.when, "!terminalFocus");
@@ -23,5 +23,5 @@ test("configureShortcut opens the keyboard shortcuts editor filtered to generate
     (c) => c.id === "workbench.action.openGlobalKeybindings",
   );
   assert.ok(call, "openGlobalKeybindings was invoked");
-  assert.deepEqual(call.args, ["shiplogue.generate"]);
+  assert.deepEqual(call.args, ["standupDraft.generate"]);
 });

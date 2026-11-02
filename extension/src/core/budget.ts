@@ -183,8 +183,8 @@ export function planPrompt(
   if (estimated > budget) {
     throw new ContextBudgetError(
       `Your activity is too large for the model's context window even after trimming ` +
-        `(~${kfmt(estimated)} tokens vs ${kfmt(budget)} budget). Raise shiplogue.model.contextTokens ` +
-        `(or shiplogue.ollama.numCtx for Ollama), lower shiplogue.lookbackHours, or switch to the concise detail level.`,
+        `(~${kfmt(estimated)} tokens vs ${kfmt(budget)} budget). Raise standupDraft.model.contextTokens ` +
+        `(or standupDraft.ollama.numCtx for Ollama), lower standupDraft.lookbackHours, or switch to the concise detail level.`,
     );
   }
   return done();

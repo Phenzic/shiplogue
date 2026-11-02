@@ -45,7 +45,7 @@ function validDraft(doneCount = 1) {
 
 async function withOllama(replyFn, fn) {
   const server = await startServer((req) => ({ body: { response: replyFn(req) } }));
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "test-model" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "test-model" });
   try {
     return await fn(server);
   } finally {
@@ -170,7 +170,7 @@ test("a failed repair keeps the first draft", async () => {
     if (server.requests.length === 1) return { body: { response: validDraft(2) } };
     return { status: 500, body: { error: "boom" } };
   });
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "test-model" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "test-model" });
   try {
     const { text: out } = await generateStandup(baseCtx({ commits }));
     assert.equal(out, validDraft(2));
@@ -215,7 +215,7 @@ test("an empty model response is an error", async () => {
 
 test("a missing model produces actionable 404 guidance", async () => {
   const server = await startServer(() => ({ status: 404, body: { error: "model not found" } }));
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "ghost" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "ghost" });
   try {
     await assert.rejects(
       generateStandup(baseCtx()),
@@ -227,7 +227,7 @@ test("a missing model produces actionable 404 guidance", async () => {
 });
 
 test("an unreachable Ollama produces actionable connection guidance", async () => {
-  stub.setConfig({ "shiplogue.ollama.url": "http://127.0.0.1:1", "shiplogue.ollama.model": "m" });
+  stub.setConfig({ "standupDraft.ollama.url": "http://127.0.0.1:1", "standupDraft.ollama.model": "m" });
   await assert.rejects(
     generateStandup(baseCtx()),
     (e) => e instanceof OllamaError && /Couldn't reach Ollama at http:\/\/127\.0\.0\.1:1/.test(e.message),
@@ -236,7 +236,7 @@ test("an unreachable Ollama produces actionable connection guidance", async () =
 
 test("a server error is reported with its status", async () => {
   const server = await startServer(() => ({ status: 500, body: { error: "boom" } }));
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "m" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "m" });
   try {
     await assert.rejects(generateStandup(baseCtx()), /Ollama returned 500/);
   } finally {
@@ -245,7 +245,7 @@ test("a server error is reported with its status", async () => {
 });
 
 test("yesterday/today format switches the template headings in the prompt", async () => {
-  stub.setConfig({ "shiplogue.format": "yesterday-today-blockers" });
+  stub.setConfig({ "standupDraft.format": "yesterday-today-blockers" });
   await withOllama(
     () => "**Yesterday**\n- a\n\n**Today**\n- b\n\n**Blockers**\n- None",
     async (server) => {
@@ -266,7 +266,7 @@ test("thinking-model: empty response with populated `thinking` retries once with
       ? { body: { response: "", thinking: "long chain of reasoning...", done_reason: "length", eval_count: 400 } }
       : { body: { response: validDraft(1) } };
   });
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "thinking-model" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "thinking-model" });
   try {
     const { text: out } = await generateStandup(baseCtx());
     assert.equal(out, validDraft(1));
@@ -284,14 +284,14 @@ test("thinking-model: a still-empty retry yields an actionable error", async () 
   const server = await startServer(() => ({
     body: { response: "", thinking: "long chain of reasoning...", done_reason: "length", eval_count: 400 },
   }));
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "thinking-model" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "thinking-model" });
   try {
     await assert.rejects(
       generateStandup(baseCtx()),
       (e) =>
         e instanceof OllamaError &&
         /whole output budget on reasoning/.test(e.message) &&
-        /shiplogue\.ollama\.numPredict/.test(e.message),
+        /standupDraft\.ollama\.numPredict/.test(e.message),
     );
     assert.equal(server.requests.length, 2, "exactly one retry");
   } finally {
@@ -301,7 +301,7 @@ test("thinking-model: a still-empty retry yields an actionable error", async () 
 
 test("an empty response with NO thinking done_reason stays a plain empty-response error", async () => {
   const server = await startServer(() => ({ body: { response: "  " } }));
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "m" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "m" });
   try {
     await assert.rejects(generateStandup(baseCtx()), /empty response/);
     assert.equal(server.requests.length, 1, "no retry without evidence of reasoning");
@@ -314,7 +314,7 @@ test("think:'off' sends think:false; 'auto' sends no think key", async () => {
   await withOllama(
     () => validDraft(1),
     async (server) => {
-      stub.setConfig({ "shiplogue.ollama.think": "off" });
+      stub.setConfig({ "standupDraft.ollama.think": "off" });
       await generateStandup(baseCtx());
       assert.equal(server.requests[0].body.think, false);
     },
@@ -322,7 +322,7 @@ test("think:'off' sends think:false; 'auto' sends no think key", async () => {
   await withOllama(
     () => validDraft(1),
     async (server) => {
-      stub.setConfig({ "shiplogue.ollama.think": "auto" });
+      stub.setConfig({ "standupDraft.ollama.think": "auto" });
       await generateStandup(baseCtx());
       assert.equal("think" in server.requests[0].body, false);
     },
@@ -330,18 +330,18 @@ test("think:'off' sends think:false; 'auto' sends no think key", async () => {
   await withOllama(
     () => validDraft(1),
     async (server) => {
-      stub.setConfig({ "shiplogue.ollama.think": "on" });
+      stub.setConfig({ "standupDraft.ollama.think": "on" });
       await generateStandup(baseCtx());
       assert.equal(server.requests[0].body.think, true);
     },
   );
 });
 
-test("an explicit shiplogue.ollama.numPredict overrides the per-detail budget", async () => {
+test("an explicit standupDraft.ollama.numPredict overrides the per-detail budget", async () => {
   await withOllama(
     () => validDraft(1),
     async (server) => {
-      stub.setConfig({ "shiplogue.ollama.numPredict": 777, "shiplogue.ollama.numCtx": 16384 });
+      stub.setConfig({ "standupDraft.ollama.numPredict": 777, "standupDraft.ollama.numCtx": 16384 });
       await generateStandup(baseCtx());
       assert.equal(server.requests[0].body.options.num_predict, 777);
       assert.equal(server.requests[0].body.options.num_ctx, 16384);
@@ -463,7 +463,7 @@ test("a length-truncated draft (no Blockers section) retries once with a raised 
       ? { body: { response: partial, done_reason: "length" } }
       : { body: { response: validDraft(1), done_reason: "stop" } };
   });
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "m" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "m" });
   try {
     const { text } = await generateStandup(baseCtx());
     assert.equal(text, validDraft(1));
@@ -541,7 +541,7 @@ test("grounding violations trigger one repair pass; a clean repair wins", async 
     call++;
     return { body: { response: call === 1 ? dirty : clean } };
   });
-  stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "m" });
+  stub.setConfig({ "standupDraft.ollama.url": server.url, "standupDraft.ollama.model": "m" });
   try {
     const { text, verification } = await generateStandup(baseCtx());
     assert.equal(server.requests.length, 2, "one grounding repair call");

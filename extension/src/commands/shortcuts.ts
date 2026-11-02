@@ -5,6 +5,6 @@ import * as vscode from "vscode";
 export async function configureShortcut(): Promise<void> {
   await vscode.commands.executeCommand(
     "workbench.action.openGlobalKeybindings",
-    "shiplogue.generate",
+    "standupDraft.generate",
   );
 }

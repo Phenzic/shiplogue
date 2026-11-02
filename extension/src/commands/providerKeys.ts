@@ -57,7 +57,7 @@ async function listModels(config: ProviderConfig): Promise<string[]> {
     // A model list is a convenience, not a requirement: report and let the
     // user type the id instead.
     const message = e instanceof ProviderError ? e.message : "Could not list models.";
-    void vscode.window.showWarningMessage(`Shiplogue: ${message} You can enter a model id manually.`);
+    void vscode.window.showWarningMessage(`Standup Draft: ${message} You can enter a model id manually.`);
     return [];
   }
 }
@@ -72,7 +72,7 @@ async function pickModel(config: ProviderConfig): Promise<string | undefined> {
     });
   }
   const typed = await vscode.window.showInputBox({
-    title: `Shiplogue: ${labelOf(config.type)} model`,
+    title: `Standup Draft: ${labelOf(config.type)} model`,
     prompt: "Model id to use for generating stand-ups.",
     value: cfg().providerModel,
     ignoreFocusOut: true,
@@ -83,14 +83,14 @@ async function pickModel(config: ProviderConfig): Promise<string | undefined> {
 
 async function setConfigValue(key: string, value: string): Promise<void> {
   await vscode.workspace
-    .getConfiguration("shiplogue")
+    .getConfiguration("standupDraft")
     .update(key, value, vscode.ConfigurationTarget.Global);
 }
 
 export async function setProviderKey(): Promise<void> {
   if (!secretStorageAvailable()) {
     void vscode.window.showErrorMessage(
-      "Shiplogue: this editor does not expose secret storage, so API keys can't be saved. Use Ollama instead.",
+      "Standup Draft: this editor does not expose secret storage, so API keys can't be saved. Use Ollama instead.",
     );
     return;
   }
@@ -107,7 +107,7 @@ export async function setProviderKey(): Promise<void> {
   if (type === "openai-compatible") {
     const existing = cfg().providerBaseUrl;
     const raw = await vscode.window.showInputBox({
-      title: "Shiplogue: endpoint base URL",
+      title: "Standup Draft: endpoint base URL",
       prompt: "Base URL of the OpenAI-compatible API (for example http://localhost:1234/v1).",
       value: existing || "http://localhost:1234/v1",
       ignoreFocusOut: true,
@@ -120,7 +120,7 @@ export async function setProviderKey(): Promise<void> {
   }
 
   const key = await vscode.window.showInputBox({
-    title: `Shiplogue: ${label} API key`,
+    title: `Standup Draft: ${label} API key`,
     prompt:
       type === "openai-compatible"
         ? "API key, if the endpoint needs one. Stored in the OS keychain, never in settings."
@@ -168,7 +168,7 @@ export async function setProviderKey(): Promise<void> {
     // the model.
     await setConfigValue("provider.type", type);
     void vscode.window.showInformationMessage(
-      `Shiplogue: ${label} key saved, but no model chosen yet. Run "Shiplogue: Set API Key" again to finish.`,
+      `Standup Draft: ${label} key saved, but no model chosen yet. Run "Standup Draft: Set API Key" again to finish.`,
     );
     return;
   }
@@ -181,13 +181,13 @@ export async function setProviderKey(): Promise<void> {
   await setConfigValue("model.backend", "provider");
 
   void vscode.window.showInformationMessage(
-    `Shiplogue will use ${label} — ${model}. Run "Shiplogue: Test Provider" to check the key.`,
+    `Standup Draft will use ${label} — ${model}. Run "Standup Draft: Test Provider" to check the key.`,
   );
 }
 
 export async function clearProviderKey(): Promise<void> {
   if (!secretStorageAvailable()) {
-    void vscode.window.showErrorMessage("Shiplogue: this editor does not expose secret storage.");
+    void vscode.window.showErrorMessage("Standup Draft: this editor does not expose secret storage.");
     return;
   }
   const type = await pickType("Remove the stored API key for which provider?");
@@ -200,7 +200,7 @@ export async function clearProviderKey(): Promise<void> {
     await setConfigValue("model.backend", "auto");
   }
   void vscode.window.showInformationMessage(
-    `Shiplogue: removed the stored ${labelOf(type)} key.`,
+    `Standup Draft: removed the stored ${labelOf(type)} key.`,
   );
 }
 
@@ -215,8 +215,8 @@ export async function testProvider(): Promise<void> {
   }
   if (!config) {
     const message =
-      "No provider is configured. Run \"Shiplogue: Set API Key\" first, or switch shiplogue.model.backend to 'auto'.";
-    void vscode.window.showErrorMessage(`Shiplogue: ${message}`);
+      "No provider is configured. Run \"Standup Draft: Set API Key\" first, or switch standupDraft.model.backend to 'auto'.";
+    void vscode.window.showErrorMessage(`Standup Draft: ${message}`);
     return;
   }
 
@@ -235,13 +235,13 @@ export async function testProvider(): Promise<void> {
       config,
     );
     void vscode.window.showInformationMessage(
-      `Shiplogue: ${label} works — ${config.model} replied "${redactSecrets(res.text).slice(0, 40)}".`,
+      `Standup Draft: ${label} works — ${config.model} replied "${redactSecrets(res.text).slice(0, 40)}".`,
     );
   } catch (e) {
     const message =
       e instanceof ProviderError || e instanceof BackendUnavailableError
         ? e.message
         : `Something went wrong: ${(e as Error)?.message ?? e}`;
-    void vscode.window.showErrorMessage(`Shiplogue: ${redactSecrets(message)}`);
+    void vscode.window.showErrorMessage(`Standup Draft: ${redactSecrets(message)}`);
   }
 }

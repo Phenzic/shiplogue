@@ -5,20 +5,20 @@ const vm = require("vm");
 const { installVscodeStub, tmpDir, makeContext, startServer } = require("./helpers");
 
 const { stub } = installVscodeStub();
-const { ShiploguePanel } = require("../out/shiploguePanel");
+const { StandupDraftPanel } = require("../out/standupDraftPanel");
 const { State } = require("../out/state");
 const { setDetailGetter, setToneGetter } = require("../out/config");
 const { toPlainText } = require("../out/format");
 
 function freshPanel(detail = "concise") {
-  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
+  if (StandupDraftPanel.current) StandupDraftPanel.current.dispose();
   stub.reset();
   setDetailGetter(() => detail);
   setToneGetter(() => "neutral");
-  stub.setConfig({ "shiplogue.webhook.type": "none", "shiplogue.webhook.url": "" });
+  stub.setConfig({ "standupDraft.webhook.type": "none", "standupDraft.webhook.url": "" });
   const state = new State(makeContext(tmpDir()));
   let regenerated = 0;
-  const panel = ShiploguePanel.show(() => regenerated++, state);
+  const panel = StandupDraftPanel.show(() => regenerated++, state);
   const webview = stub.panels.at(-1);
   return { panel, state, webview, regenerated: () => regenerated };
 }
@@ -209,7 +209,7 @@ test("panel messages: setDetail persists globally and regenerates", async () => 
   await webview.messageHandler({ kind: "setDetail", detail: "elaborate" });
   assert.equal(state.getDetail(), "elaborate");
   assert.deepEqual(stub.configUpdates.at(-1), {
-    key: "shiplogue.detail",
+    key: "standupDraft.detail",
     value: "elaborate",
     target: 1,
   });
@@ -219,7 +219,7 @@ test("panel messages: setDetail persists globally and regenerates", async () => 
 test("panel messages: send posts the active text to the webhook", async () => {
   const server = await startServer(() => ({ status: 204 }));
   const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "slack", "standupDraft.webhook.url": server.url });
   try {
     await webview.messageHandler({ kind: "send", text: "stand-up body" });
     assert.equal(server.requests.length, 1);
@@ -233,7 +233,7 @@ test("panel messages: send posts the active text to the webhook", async () => {
 test("panel messages: a failed send shows the error instead of throwing", async () => {
   const server = await startServer(() => ({ status: 500, body: "nope" }));
   const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "slack", "standupDraft.webhook.url": server.url });
   try {
     await webview.messageHandler({ kind: "send", text: "body" });
     assert.match(stub.errors.at(-1).message, /Post failed: .*500/);
@@ -245,7 +245,7 @@ test("panel messages: a failed send shows the error instead of throwing", async 
 test("showing the panel twice reuses the same webview", () => {
   const { panel } = freshPanel();
   const state = new State(makeContext(tmpDir()));
-  const again = ShiploguePanel.show(() => {}, state);
+  const again = StandupDraftPanel.show(() => {}, state);
   assert.equal(again, panel);
   assert.equal(stub.panels.length, 1);
   assert.equal(stub.panels[0].visible, true);
@@ -312,13 +312,13 @@ test("busy state: loading disables Regenerate/Detail and shows Cancel; draft/err
 });
 
 test("panel messages: cancel invokes the onCancel callback", async () => {
-  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
+  if (StandupDraftPanel.current) StandupDraftPanel.current.dispose();
   stub.reset();
   setDetailGetter(() => "concise");
-  stub.setConfig({ "shiplogue.webhook.type": "none" });
+  stub.setConfig({ "standupDraft.webhook.type": "none" });
   const state = new State(makeContext(tmpDir()));
   let cancelled = 0;
-  ShiploguePanel.show(() => {}, state, () => cancelled++);
+  StandupDraftPanel.show(() => {}, state, () => cancelled++);
   await stub.panels.at(-1).messageHandler({ kind: "cancel" });
   assert.equal(cancelled, 1);
 });
@@ -326,7 +326,7 @@ test("panel messages: cancel invokes the onCancel callback", async () => {
 test("slack send posts the converted Markdown tab even when plain text is active", async () => {
   const server = await startServer(() => ({ status: 200, body: "ok" }));
   const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "slack", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "slack", "standupDraft.webhook.url": server.url });
   try {
     await webview.messageHandler({
       kind: "send",
@@ -346,7 +346,7 @@ test("slack send posts the converted Markdown tab even when plain text is active
 test("discord truncation copies the full text to the clipboard and says so", async () => {
   const server = await startServer(() => ({ status: 204 }));
   const { webview } = freshPanel();
-  stub.setConfig({ "shiplogue.webhook.type": "discord", "shiplogue.webhook.url": server.url });
+  stub.setConfig({ "standupDraft.webhook.type": "discord", "standupDraft.webhook.url": server.url });
   try {
     const line = "word ".repeat(200).trim();
     const long = Array.from({ length: 12 }, (_, i) => `line${i} ${line}`).join("\n");
@@ -364,7 +364,7 @@ test("panel messages: setTone persists globally and regenerates", async () => {
   await webview.messageHandler({ kind: "setTone", tone: "senior" });
   assert.equal(state.getTone(), "senior");
   assert.deepEqual(stub.configUpdates.at(-1), {
-    key: "shiplogue.tone",
+    key: "standupDraft.tone",
     value: "senior",
     target: 1,
   });
@@ -427,13 +427,13 @@ test("thumbs are hidden while loading, shown per draft, and post feedback with t
 });
 
 test("panel messages: feedback routes to the onFeedback callback", async () => {
-  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
+  if (StandupDraftPanel.current) StandupDraftPanel.current.dispose();
   stub.reset();
   setDetailGetter(() => "concise");
-  stub.setConfig({ "shiplogue.webhook.type": "none" });
+  stub.setConfig({ "standupDraft.webhook.type": "none" });
   const state = new State(makeContext(tmpDir()));
   const got = [];
-  ShiploguePanel.show(() => {}, state, undefined, (value, backend) => got.push([value, backend]));
+  StandupDraftPanel.show(() => {}, state, undefined, (value, backend) => got.push([value, backend]));
   await stub.panels.at(-1).messageHandler({ kind: "feedback", value: "up", backend: "Ollama · llama3.2" });
   await stub.panels.at(-1).messageHandler({ kind: "feedback", value: "bogus" });
   assert.deepEqual(got, [["up", "Ollama · llama3.2"]]);
@@ -442,7 +442,7 @@ test("panel messages: feedback routes to the onFeedback callback", async () => {
 test("the Send button label reflects the number of enabled targets", () => {
   const { webview } = freshPanel();
   stub.setConfig({
-    "shiplogue.posting.targets": [
+    "standupDraft.posting.targets": [
       { type: "slack", url: "http://a", enabled: true },
       { type: "teams", url: "http://b", enabled: true },
       { type: "discord", url: "http://c", enabled: false },
@@ -456,7 +456,7 @@ test("the Send button label reflects the number of enabled targets", () => {
 test("setDraft computes the target label from enabled posting targets", () => {
   const { panel, webview } = freshPanel();
   stub.setConfig({
-    "shiplogue.posting.targets": [
+    "standupDraft.posting.targets": [
       { type: "slack", url: "http://a", enabled: true },
       { type: "discord", url: "http://b", enabled: true },
     ],
@@ -464,11 +464,11 @@ test("setDraft computes the target label from enabled posting targets", () => {
   panel.setDraft({ markdown: "**Done**\n- x", summary: { commits: 1, files: 0, github: 0 } });
   assert.equal(webview.messages.at(-1).target, "2 targets");
 
-  stub.setConfig({ "shiplogue.posting.targets": [{ type: "teams", url: "http://t", enabled: true }] });
+  stub.setConfig({ "standupDraft.posting.targets": [{ type: "teams", url: "http://t", enabled: true }] });
   panel.setDraft({ markdown: "**Done**\n- x", summary: { commits: 1, files: 0, github: 0 } });
   assert.equal(webview.messages.at(-1).target, "teams");
 
-  stub.setConfig({ "shiplogue.posting.targets": [] });
+  stub.setConfig({ "standupDraft.posting.targets": [] });
   panel.setDraft({ markdown: "**Done**\n- x", summary: { commits: 1, files: 0, github: 0 } });
   assert.equal(webview.messages.at(-1).target, "");
 });

@@ -65,8 +65,8 @@ export function splitForDiscord(text: string, limit = DISCORD_LIMIT): string[] {
   return messages;
 }
 
-// The configured targets: the new `shiplogue.posting.targets` list wins; the
-// legacy `shiplogue.webhook.type/url` pair is the fallback when it's empty.
+// The configured targets: the new `standupDraft.posting.targets` list wins; the
+// legacy `standupDraft.webhook.type/url` pair is the fallback when it's empty.
 export function effectiveTargets(c = cfg()): PostTarget[] {
   const raw = c.postingTargets;
   const list = (Array.isArray(raw) ? raw : []).filter(
@@ -128,7 +128,7 @@ export async function postToWebhook(
   const targets = effectiveTargets().filter((t) => !onlyTypes || onlyTypes.includes(t.type));
   if (targets.length === 0) {
     throw new Error(
-      "No posting target configured. Set shiplogue.posting.targets (or the legacy shiplogue.webhook.type/url) in settings.",
+      "No posting target configured. Set standupDraft.posting.targets (or the legacy standupDraft.webhook.type/url) in settings.",
     );
   }
 

@@ -104,9 +104,9 @@ test("generateStandup never sends an over-budget prompt (elaborate heavy day)", 
     },
   }));
   stub.setConfig({
-    "shiplogue.ollama.url": server.url,
-    "shiplogue.ollama.model": "m",
-    "shiplogue.ollama.numCtx": 8192,
+    "standupDraft.ollama.url": server.url,
+    "standupDraft.ollama.model": "m",
+    "standupDraft.ollama.numCtx": 8192,
   });
   try {
     let reported;
@@ -128,9 +128,9 @@ test("generateStandup never sends an over-budget prompt (elaborate heavy day)", 
 test("generateStandup refuses (no backend call) when nothing fits", async () => {
   const server = await startServer(() => ({ body: { response: "x" } }));
   stub.setConfig({
-    "shiplogue.ollama.url": server.url,
-    "shiplogue.ollama.model": "m",
-    "shiplogue.ollama.numCtx": 2048,
+    "standupDraft.ollama.url": server.url,
+    "standupDraft.ollama.model": "m",
+    "standupDraft.ollama.numCtx": 2048,
   });
   try {
     await assert.rejects(generateStandup(heavyCtx()), (e) => e instanceof ContextBudgetError);

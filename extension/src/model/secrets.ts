@@ -15,7 +15,7 @@ export function secretStorageAvailable(): boolean {
 }
 
 export function providerKeyName(type: ActiveProviderType): string {
-  return `shiplogue.provider.${type}.apiKey`;
+  return `standupDraft.provider.${type}.apiKey`;
 }
 
 export async function getProviderKey(type: ActiveProviderType): Promise<string | undefined> {

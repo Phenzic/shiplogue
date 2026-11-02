@@ -8,7 +8,7 @@ import { gatherContext, contextToText } from "./gather";
 import { generateStandup } from "./summarize";
 import { githubToken } from "./github";
 import { buildReferences } from "./format";
-import { ShiploguePanel } from "./shiploguePanel";
+import { StandupDraftPanel } from "./standupDraftPanel";
 import { setSecretStorage } from "./model/secrets";
 import { loadProviderConfig, providerDisplayName } from "./model/registry";
 import { BackendMeta } from "./model/types";
@@ -17,6 +17,7 @@ import { configureShortcut } from "./commands/shortcuts";
 import { Feedback, openFeedback, openRate, openStar } from "./feedback";
 import { AutoPost } from "./autoPost";
 import { ActiveProviderType } from "./core/providers";
+import { cursorDbAvailable } from "./core/gather/cursor";
 
 let store: Store;
 let state: State;
@@ -49,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Migrate a previously saved workspace setting into globalState once.
   if (!state.hasDetail()) {
     const insp = vscode.workspace
-      .getConfiguration("shiplogue")
+      .getConfiguration("standupDraft")
       .inspect<"concise" | "standard" | "elaborate">("detail");
     const saved = insp?.globalValue ?? insp?.workspaceValue;
     if (saved) {
@@ -80,31 +81,66 @@ export function activate(context: vscode.ExtensionContext) {
   // activation and never throws.
   healthCheckDone = checkOllamaHealth();
   void healthCheckDone;
+  // Opt-in data access: never read Cursor's chat DB until the user says yes.
+  void maybeOfferCursorCapture(context);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("shiplogue.generate", () => runGenerate()),
-    vscode.commands.registerCommand("shiplogue.showActivity", () => runShowActivity()),
-    vscode.commands.registerCommand("shiplogue.setProviderKey", () => setProviderKey()),
-    vscode.commands.registerCommand("shiplogue.clearProviderKey", () => clearProviderKey()),
-    vscode.commands.registerCommand("shiplogue.testProvider", () => testProvider()),
-    vscode.commands.registerCommand("shiplogue.setReminderTime", () =>
-      reminder?.pickTime("What time should Shiplogue remind you daily? (24h, local)"),
+    vscode.commands.registerCommand("standupDraft.generate", () => runGenerate()),
+    vscode.commands.registerCommand("standupDraft.showActivity", () => runShowActivity()),
+    vscode.commands.registerCommand("standupDraft.setProviderKey", () => setProviderKey()),
+    vscode.commands.registerCommand("standupDraft.clearProviderKey", () => clearProviderKey()),
+    vscode.commands.registerCommand("standupDraft.testProvider", () => testProvider()),
+    vscode.commands.registerCommand("standupDraft.setReminderTime", () =>
+      reminder?.pickTime("What time should Standup Draft remind you daily? (24h, local)"),
     ),
-    vscode.commands.registerCommand("shiplogue.connectGitHub", async () => {
+    vscode.commands.registerCommand("standupDraft.connectGitHub", async () => {
       const token = await githubToken(true);
       vscode.window.showInformationMessage(
         token ? "GitHub connected — issues & PRs will be included." : "GitHub sign-in was cancelled.",
       );
     }),
-    vscode.commands.registerCommand("shiplogue.configureShortcut", () => configureShortcut()),
-    vscode.commands.registerCommand("shiplogue.feedback", () => openFeedback(extensionVersion(context))),
-    vscode.commands.registerCommand("shiplogue.star", () => openStar()),
-    vscode.commands.registerCommand("shiplogue.rate", () => openRate()),
+    vscode.commands.registerCommand("standupDraft.configureShortcut", () => configureShortcut()),
+    vscode.commands.registerCommand("standupDraft.feedback", () => openFeedback(extensionVersion(context))),
+    vscode.commands.registerCommand("standupDraft.star", () => openStar()),
+    vscode.commands.registerCommand("standupDraft.rate", () => openRate()),
   );
 }
 
+// Cursor prompt capture is off by default. Ask once per install, only in Cursor,
+// and only when a chat database actually exists. "Not now" pins the setting to
+// false so the collector never runs; the user can enable it later in Settings.
+async function maybeOfferCursorCapture(context: vscode.ExtensionContext): Promise<void> {
+  if (!/cursor/i.test(vscode.env.appName ?? "") || !cursorDbAvailable()) {
+    return;
+  }
+  if (context.globalState.get<boolean>("cursorPromptAnswered")) {
+    return;
+  }
+  const config = vscode.workspace.getConfiguration("standupDraft");
+  const insp = config.inspect<boolean>("cursor.enabled");
+  if (insp?.globalValue !== undefined || insp?.workspaceValue !== undefined) {
+    return;
+  }
+  await context.globalState.update("cursorPromptAnswered", true);
+  const choice = await vscode.window.showInformationMessage(
+    "Standup Draft can include the prompts you gave Cursor's assistant. It reads Cursor's local chat database read-only; the assembled stand-up is only sent to the model provider you configured. Enable Cursor prompt capture?",
+    "Enable",
+    "Not now",
+    "Learn more",
+  );
+  if (choice === "Enable") {
+    await config.update("cursor.enabled", true, vscode.ConfigurationTarget.Global);
+  } else if (choice === "Not now") {
+    await config.update("cursor.enabled", false, vscode.ConfigurationTarget.Global);
+  } else if (choice === "Learn more") {
+    void vscode.env.openExternal(
+      vscode.Uri.parse("https://github.com/Phenzic/shiplogue/blob/main/extension/README.md#data--privacy"),
+    );
+  }
+}
+
 async function runGenerate(): Promise<void> {
-  const panel = ShiploguePanel.show(
+  const panel = StandupDraftPanel.show(
     () => void runGenerate(),
     state,
     () => inFlight?.abort(),
@@ -147,7 +183,7 @@ async function runGenerate(): Promise<void> {
     if (!ctx.commits.length && !ctx.github.length && !ctx.touches.length && !ctx.cursorPrompts.length) {
       if (epoch === generationEpoch) {
         panel.setError(
-          `No activity found in the last ${cfg().lookbackHours}h. Commit some work, or increase shiplogue.lookbackHours.`,
+          `No activity found in the last ${cfg().lookbackHours}h. Commit some work, or increase standupDraft.lookbackHours.`,
         );
       }
       return;
@@ -214,7 +250,7 @@ async function runGenerate(): Promise<void> {
       if (epoch === generationEpoch) {
         panel.setCancelled(
           timedOut
-            ? `Generation timed out after ${timeoutSeconds}s. Increase shiplogue.generate.timeoutSeconds, or use a smaller/faster model.`
+            ? `Generation timed out after ${timeoutSeconds}s. Increase standupDraft.generate.timeoutSeconds, or use a smaller/faster model.`
             : "Cancelled.",
         );
       }
@@ -246,7 +282,7 @@ async function migratePostingTargets(): Promise<void> {
     const c = cfg();
     if (c.postingTargets.length === 0 && c.webhookType !== "none" && c.webhookUrl) {
       await vscode.workspace
-        .getConfiguration("shiplogue")
+        .getConfiguration("standupDraft")
         .update(
           "posting.targets",
           [{ type: c.webhookType, url: c.webhookUrl, enabled: true }],
@@ -304,7 +340,7 @@ async function checkOllamaHealth(): Promise<void> {
       models = (data.models ?? []).map((m) => m.name);
     } catch {
       const pick = await vscode.window.showWarningMessage(
-        "Shiplogue: Ollama isn't running — stand-ups can't be generated until it is.",
+        "Standup Draft: Ollama isn't running — stand-ups can't be generated until it is.",
         "How to install",
         "Dismiss",
       );
@@ -321,13 +357,13 @@ async function checkOllamaHealth(): Promise<void> {
       return;
     }
     const pick = await vscode.window.showWarningMessage(
-      `Shiplogue: model '${want}' isn't pulled in Ollama yet.`,
+      `Standup Draft: model '${want}' isn't pulled in Ollama yet.`,
       "Pull now",
       "Pick another model",
       "Dismiss",
     );
     if (pick === "Pull now") {
-      const term = vscode.window.createTerminal("Shiplogue: ollama pull");
+      const term = vscode.window.createTerminal("Standup Draft: ollama pull");
       term.show();
       term.sendText(`ollama pull ${want}`);
     } else if (pick === "Pick another model") {
@@ -336,7 +372,7 @@ async function checkOllamaHealth(): Promise<void> {
       });
       if (choice) {
         await vscode.workspace
-          .getConfiguration("shiplogue")
+          .getConfiguration("standupDraft")
           .update("ollama.model", choice, vscode.ConfigurationTarget.Global);
       }
     }
@@ -348,7 +384,7 @@ async function checkOllamaHealth(): Promise<void> {
 async function runShowActivity(): Promise<void> {  const ctx = await gatherContext(store);
   const doc = await vscode.workspace.openTextDocument({
     content:
-      `# Shiplogue activity (last ${cfg().lookbackHours}h)\n` +
+      `# Standup Draft activity (last ${cfg().lookbackHours}h)\n` +
       `# ${ctx.since.toISOString()} → ${ctx.until.toISOString()}\n\n` +
       contextToText(ctx),
     language: "markdown",
@@ -374,7 +410,7 @@ async function produceDraft(): Promise<string | undefined> {
     const { text } = await generateStandup(ctx);
     return text + buildReferences(ctx);
   } catch (e) {
-    console.error("[shiplogue] auto-post generation failed:", e);
+    console.error("[standup-draft] auto-post generation failed:", e);
     return undefined;
   }
 }

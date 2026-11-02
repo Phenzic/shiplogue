@@ -16,7 +16,7 @@ export function setToneGetter(fn: () => Tone): void {
 
 // Thin typed wrapper over the extension's settings.
 export function cfg() {
-  const c = vscode.workspace.getConfiguration("shiplogue");
+  const c = vscode.workspace.getConfiguration("standupDraft");
   return {
     lookbackHours: c.get<number>("lookbackHours", 24),
     ollamaUrl: c.get<string>("ollama.url", "http://localhost:11434").replace(/\/+$/, ""),
@@ -39,7 +39,7 @@ export function cfg() {
     trackEnabled: c.get<boolean>("track.enabled", true),
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),
-    cursorEnabled: c.get<boolean>("cursor.enabled", true),
+    cursorEnabled: c.get<boolean>("cursor.enabled", false),
     // Which drafting backend to use. "local" (bundled model) lands in 0.2.0;
     // until then it produces an actionable message rather than a crash.
     modelBackend: c.get<"auto" | "local" | "provider" | "ollama">("model.backend", "auto"),

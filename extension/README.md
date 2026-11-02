@@ -1,10 +1,10 @@
-# Shiplogue — VS Code-compatible extension
+# Standup Draft — VS Code-compatible extension
 
 **Local-first daily stand-ups, drafted from your actual IDE activity.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Phenzic/shiplogue/blob/main/LICENSE)
 
-Shiplogue watches the work you already did — git commits, saved files, GitHub PRs
+Standup Draft watches the work you already did — git commits, saved files, GitHub PRs
 and issues, and (in Cursor) the prompts you gave your AI assistant — then asks a
 model to write your stand-up. You review and edit the draft, then copy it or send
 it to Slack/Discord.
@@ -14,16 +14,36 @@ in a later build. Bring-your-own-key providers (Anthropic, OpenAI, Google, or an
 OpenAI-compatible endpoint) are available now if you would rather not run a local
 model. A higher-capacity hosted model is planned as an opt-in paid option.
 
-> **Status:** **0.1.3** beta. No Marketplace/Open VSX listing yet — install from the
-> release VSIX (or run from source). This build uses Ollama or your own API key.
+> **Status:** **0.2.0** beta. Marketplace submission is pending review — install
+> the VSIX from GitHub Releases (or run from source). This build uses Ollama or
+> your own API key.
 >
 > **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
 > OpenAI / Google / OpenAI-compatible), manual review, manual posting. Later:
 > bundled local model, hosted model, paid plans, automatic posting. Nothing paid
 > or hosted by us exists yet.
->
-> **Screenshot/GIF placeholder** — capture the Stand-up panel with a generated
-> draft and replace this block before publishing.
+
+## Data & privacy
+
+No account, no telemetry. Local activity is read only to draft a stand-up, and
+text leaves your machine only through the backend or webhook you configure.
+
+| Source | Default | What happens |
+| --- | --- | --- |
+| Git commits and changed files (current workspace) | On | Becomes prompt text for your model backend |
+| Saved/edited files (local activity log) | On | Becomes prompt text for your model backend |
+| GitHub PRs and issues | Only if you connect GitHub | Fetched from `api.github.com`; included in the prompt when drafting |
+| Cursor chat prompts | **Off — opt-in** | Read read-only from `state.vscdb` only after you enable it |
+| The draft | — | Sent to the model backend; posted only when you press **Send** (or enable auto-post) |
+
+- **Cursor is opt-in.** On first run in Cursor, Standup Draft asks once. **Not now**
+  leaves `standupDraft.cursor.enabled` false. The database is opened read-only and
+  is never modified or uploaded as a file.
+- **Ollama on localhost stays local.** A BYOK provider or a remote
+  `standupDraft.ollama.url` receives the prompt (activity included).
+- Turn tracking off entirely with `standupDraft.track.enabled: false`; disconnect
+  GitHub to stop those calls; leave every posting target empty to keep drafts on
+  your machine.
 
 ## Requirements
 
@@ -36,7 +56,7 @@ model. A higher-capacity hosted model is planned as an opt-in paid option.
     ollama pull llama3.2
     ```
   - or **your own API key** for Anthropic, OpenAI, Google Gemini, or any
-    OpenAI-compatible endpoint. Run **Shiplogue: Set API Key** and pick a model.
+    OpenAI-compatible endpoint. Run **Standup Draft: Set API Key** and pick a model.
     The key is stored in the OS keychain, not in settings.
   A bundled quantized model (no Ollama, no key) is planned, not available yet.
 - **Node/npm** for the development install.
@@ -49,11 +69,11 @@ model. A higher-capacity hosted model is planned as an opt-in paid option.
 | Backend | Status | Setup | Where activity goes |
 | --- | --- | --- | --- |
 | Ollama | **Available now** | Install Ollama, pull a model | Your local Ollama server |
-| Your own API key (BYOK) | **Available now** | `Shiplogue: Set API Key` | The provider you choose (Anthropic, OpenAI, Google, or your compatible endpoint) |
+| Your own API key (BYOK) | **Available now** | `Standup Draft: Set API Key` | The provider you choose (Anthropic, OpenAI, Google, or your compatible endpoint) |
 | Bundled quantized model | Planned (free) | None | On-device |
 | Hosted higher-capacity model | Planned (paid) | Opt-in account | Hosted API; raw diffs not retained |
 
-`shiplogue.model.backend` controls selection:
+`standupDraft.model.backend` controls selection:
 
 - `auto` (default) — a fully configured provider wins; otherwise Ollama.
 - `provider` — only the configured provider; fails loudly if it isn't set up.
@@ -68,7 +88,7 @@ The panel shows which engine wrote each draft (`via Ollama · llama3.2`,
 
 ### Bring your own API key
 
-1. Run **Shiplogue: Set API Key** from the Command Palette.
+1. Run **Standup Draft: Set API Key** from the Command Palette.
 2. Pick a provider.
 3. Paste the key (stored with VS Code SecretStorage → OS keychain).
 4. Pick a model from the provider's list, or type an id if listing fails.
@@ -78,17 +98,17 @@ For `openai-compatible`, enter the base URL too, e.g.
 
 Other commands:
 
-- **Shiplogue: Test Provider** — a short request with a realistic output budget
+- **Standup Draft: Test Provider** — a short request with a realistic output budget
   (thinking-by-default endpoints would otherwise fail spuriously), to prove key,
   endpoint and model.
-- **Shiplogue: Clear API Key** — deletes the stored key for a provider.
+- **Standup Draft: Clear API Key** — deletes the stored key for a provider.
 
 Keys are never written to `settings.json`, logs, or error messages. See
 [`PRIVACY.md`](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md) for what a cloud provider receives.
 
 ## Install and run (development)
 
-Shiplogue is not published to a marketplace yet.
+Standup Draft is not published to a marketplace yet.
 
 ```bash
 cd extension
@@ -99,14 +119,14 @@ npm run compile      # or: npm run watch
 Open the `extension/` folder in VS Code, Cursor or Antigravity and press **F5** to
 launch the Extension Development Host. In that window:
 
-- **Shiplogue: Generate Today's Update** — gather activity, generate a draft, open
+- **Standup Draft: Generate Today's Update** — gather activity, generate a draft, open
   the review panel.
-- **Shiplogue: Show Tracked Activity (debug)** — dump the raw gathered context so
+- **Standup Draft: Show Tracked Activity (debug)** — dump the raw gathered context so
   you can see exactly what the model sees.
-- **Shiplogue: Set Reminder Time** — choose the local time for the daily nudge.
-- **Shiplogue: Connect GitHub** — start the editor's GitHub sign-in for PR/issue
+- **Standup Draft: Set Reminder Time** — choose the local time for the daily nudge.
+- **Standup Draft: Connect GitHub** — start the editor's GitHub sign-in for PR/issue
   context.
-- **Shiplogue: Set API Key** / **Clear API Key** / **Test Provider** — configure,
+- **Standup Draft: Set API Key** / **Clear API Key** / **Test Provider** — configure,
   remove or verify a BYOK provider.
 
 If you prefer a VSIX, package one locally with `npx @vscode/vsce package` and
@@ -139,7 +159,7 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
 - **Two formats:** Done / Next / Blockers (default) or Yesterday / Today /
   Blockers.
 - **Reasoning-model support:** if a model spends its output budget on
-  `thinking` and returns nothing, Shiplogue retries once with a larger budget and
+  `thinking` and returns nothing, Standup Draft retries once with a larger budget and
   thinking disabled. Ollama uses `numPredict` / `numCtx` / `think`; a BYOK
   endpoint gets a retry at ≥4096 tokens with `reasoning_effort: "none"`, falling
   back to the budget alone if the endpoint rejects that parameter.
@@ -170,7 +190,7 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
 - Live progress with phase and elapsed seconds; a new run supersedes and cancels
   the previous one; a configurable timeout prevents a stuck request.
 - **Posting** to any number of Discord, Slack and Teams incoming webhooks at once
-  (`shiplogue.posting.targets`). Discord drafts are split into up to three
+  (`standupDraft.posting.targets`). Discord drafts are split into up to three
   messages; Slack gets Markdown converted to mrkdwn; Teams gets an Adaptive Card.
   Beyond three Discord messages, the full text is copied to the clipboard.
 - **Scheduled auto-posting** (Pro preview): generate and post on a schedule while
@@ -186,7 +206,7 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
   generate today's update without opening the command palette.
 - The binding is inactive while the terminal has focus, so it doesn't steal
   terminal shortcuts.
-- Run **Shiplogue: Configure Keyboard Shortcut** to open the Keyboard Shortcuts
+- Run **Standup Draft: Configure Keyboard Shortcut** to open the Keyboard Shortcuts
   editor filtered to the command if another extension or a keymap already uses
   the chord.
 
@@ -197,38 +217,38 @@ backends ship.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `shiplogue.lookbackHours` | `24` | How far back to gather activity |
-| `shiplogue.ollama.url` | `http://localhost:11434` | Ollama base URL |
-| `shiplogue.ollama.model` | `llama3.2` | Model used to summarize |
-| `shiplogue.ollama.numPredict` | `0` | Output token budget; `0` uses the per-detail default (400/900/1600) |
-| `shiplogue.ollama.numCtx` | `8192` | Context window passed to Ollama; raise for very busy days |
-| `shiplogue.model.contextTokens` | `16384` | Context budget for the local model / BYOK estimate; Ollama uses `shiplogue.ollama.numCtx` |
-| `shiplogue.ollama.think` | `auto` | Reasoning control: `auto` (retry with thinking off if empty), `on`, `off` |
-| `shiplogue.model.backend` | `auto` | `auto` / `local` / `provider` / `ollama` |
-| `shiplogue.provider.type` | `none` | `anthropic` / `openai` / `google` / `openai-compatible` |
-| `shiplogue.provider.model` | `""` | Model id, normally set by **Shiplogue: Set API Key** |
-| `shiplogue.provider.baseUrl` | `""` | Endpoint override, mainly for `openai-compatible` |
-| `shiplogue.provider.maxOutputTokens` | `1200` | Hard cap on provider output; `0` uses the detail budget. A reasoning-only reply may trigger one recovery request above this cap |
-| `shiplogue.github.useBuiltInAuth` | `true` | Use the editor's GitHub sign-in instead of a PAT |
-| `shiplogue.github.token` | `""` | Optional PAT; overrides built-in auth |
-| `shiplogue.github.repos` | `[]` | `owner/name` list; auto-detected from git `origin` when empty |
-| `shiplogue.format` | `done-next-blockers` | Or `yesterday-today-blockers` |
-| `shiplogue.scope` | `workspace` | `workspace` = folders open in this window; `all` = every project that day |
-| `shiplogue.detail` | `concise` | `concise` / `standard` / `elaborate` |
-| `shiplogue.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
-| `shiplogue.posting.targets` | `[]` | List of `{ type: discord \| slack \| teams, url, enabled }` — Send posts to all enabled targets |
-| `shiplogue.webhook.type` | `none` | Legacy single target (`discord` / `slack` / `none`); migrated into `posting.targets` |
-| `shiplogue.webhook.url` | `""` | Legacy incoming webhook URL (no bot/OAuth needed) |
-| `shiplogue.track.enabled` | `true` | Track file saves/edits locally |
-| `shiplogue.generate.timeoutSeconds` | `180` | Abort generation after N seconds; `0` disables |
-| `shiplogue.store.retentionDays` | `14` | Delete activity logs older than N days; `0` = keep forever |
-| `shiplogue.autoPost.enabled` | `false` | Pro preview: generate + post on a schedule (editor must be running) |
-| `shiplogue.autoPost.time` | `""` | Local `HH:MM`; empty = same as `shiplogue.reminder.time` |
-| `shiplogue.autoPost.days` | `[1,2,3,4,5]` | Weekdays to auto-post (0 = Sunday) |
-| `shiplogue.autoPost.mode` | `review` | `review` asks first; `auto` posts after a 60 s undo window |
-| `shiplogue.reminder.enabled` | `true` | Daily local-time nudge |
-| `shiplogue.reminder.time` | `16:00` | Reminder time in 24h `HH:MM`, local time |
-| `shiplogue.cursor.enabled` | `true` | Include Cursor AI prompts as context (Cursor only) |
+| `standupDraft.lookbackHours` | `24` | How far back to gather activity |
+| `standupDraft.ollama.url` | `http://localhost:11434` | Ollama base URL |
+| `standupDraft.ollama.model` | `llama3.2` | Model used to summarize |
+| `standupDraft.ollama.numPredict` | `0` | Output token budget; `0` uses the per-detail default (400/900/1600) |
+| `standupDraft.ollama.numCtx` | `8192` | Context window passed to Ollama; raise for very busy days |
+| `standupDraft.model.contextTokens` | `16384` | Context budget for the local model / BYOK estimate; Ollama uses `standupDraft.ollama.numCtx` |
+| `standupDraft.ollama.think` | `auto` | Reasoning control: `auto` (retry with thinking off if empty), `on`, `off` |
+| `standupDraft.model.backend` | `auto` | `auto` / `local` / `provider` / `ollama` |
+| `standupDraft.provider.type` | `none` | `anthropic` / `openai` / `google` / `openai-compatible` |
+| `standupDraft.provider.model` | `""` | Model id, normally set by **Standup Draft: Set API Key** |
+| `standupDraft.provider.baseUrl` | `""` | Endpoint override, mainly for `openai-compatible` |
+| `standupDraft.provider.maxOutputTokens` | `1200` | Hard cap on provider output; `0` uses the detail budget. A reasoning-only reply may trigger one recovery request above this cap |
+| `standupDraft.github.useBuiltInAuth` | `true` | Use the editor's GitHub sign-in instead of a PAT |
+| `standupDraft.github.token` | `""` | Optional PAT; overrides built-in auth |
+| `standupDraft.github.repos` | `[]` | `owner/name` list; auto-detected from git `origin` when empty |
+| `standupDraft.format` | `done-next-blockers` | Or `yesterday-today-blockers` |
+| `standupDraft.scope` | `workspace` | `workspace` = folders open in this window; `all` = every project that day |
+| `standupDraft.detail` | `concise` | `concise` / `standard` / `elaborate` |
+| `standupDraft.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
+| `standupDraft.posting.targets` | `[]` | List of `{ type: discord \| slack \| teams, url, enabled }` — Send posts to all enabled targets |
+| `standupDraft.webhook.type` | `none` | Legacy single target (`discord` / `slack` / `none`); migrated into `posting.targets` |
+| `standupDraft.webhook.url` | `""` | Legacy incoming webhook URL (no bot/OAuth needed) |
+| `standupDraft.track.enabled` | `true` | Track file saves/edits locally |
+| `standupDraft.generate.timeoutSeconds` | `180` | Abort generation after N seconds; `0` disables |
+| `standupDraft.store.retentionDays` | `14` | Delete activity logs older than N days; `0` = keep forever |
+| `standupDraft.autoPost.enabled` | `false` | Pro preview: generate + post on a schedule (editor must be running) |
+| `standupDraft.autoPost.time` | `""` | Local `HH:MM`; empty = same as `standupDraft.reminder.time` |
+| `standupDraft.autoPost.days` | `[1,2,3,4,5]` | Weekdays to auto-post (0 = Sunday) |
+| `standupDraft.autoPost.mode` | `review` | `review` asks first; `auto` posts after a 60 s undo window |
+| `standupDraft.reminder.enabled` | `true` | Daily local-time nudge |
+| `standupDraft.reminder.time` | `16:00` | Reminder time in 24h `HH:MM`, local time |
+| `standupDraft.cursor.enabled` | `false` | Include Cursor AI prompts as context. Opt-in; asks once in Cursor |
 
 Settings can be changed in the editor UI or `settings.json`. Detail and tone are
 also switchable from the panel; the panel's last choice is stored globally.
@@ -278,21 +298,13 @@ original pitch.
 The status line shows progress, cancellation, timeout, grounding removals and
 input-cap notes.
 
-## Plans (planned — not live)
-
-The intended model is freemium: **Free** local summaries (bundled model or your
-own Ollama), **Pro** with a hosted model and scheduled auto-posting, and
-**Enterprise** with on-prem/dedicated deployment. Prices are indicative and no
-billing exists yet. See the [project README](https://github.com/Phenzic/shiplogue/blob/main/README.md#plans-and-pricing-planned--not-live)
-for the proposed tiers.
-
 ## Posting
 
 Posting is **manual** in the current build: review the draft, then press **Send**.
-Configure one or more targets in `shiplogue.posting.targets`:
+Configure one or more targets in `standupDraft.posting.targets`:
 
 ```jsonc
-"shiplogue.posting.targets": [
+"standupDraft.posting.targets": [
   { "type": "discord", "url": "https://discord.com/api/webhooks/…", "enabled": true },
   { "type": "slack",   "url": "https://hooks.slack.com/…",        "enabled": true },
   { "type": "teams",   "url": "https://….powerplatform.com/…",    "enabled": true }
@@ -302,8 +314,8 @@ Configure one or more targets in `shiplogue.posting.targets`:
 Every enabled target gets the draft; a failure in one never blocks the others, and
 the result notification lists per-target successes/failures. No bot or OAuth app is
 required — incoming webhooks only (for Teams, a **Workflows** webhook; the retired
-Office 365 connector format is not supported). The legacy `shiplogue.webhook.type` /
-`shiplogue.webhook.url` pair still works and is migrated into `posting.targets` once
+Office 365 connector format is not supported). The legacy `standupDraft.webhook.type` /
+`standupDraft.webhook.url` pair still works and is migrated into `posting.targets` once
 on first run.
 
 - **Discord:** content is split at line/word boundaries into up to three messages
@@ -317,14 +329,14 @@ on first run.
 
 ### Auto-post (Pro preview)
 
-`shiplogue.autoPost.enabled` turns on scheduled posting while the editor is
-running. At `shiplogue.autoPost.time` (defaults to your reminder time) on
-`shiplogue.autoPost.days` (default Mon–Fri), Shiplogue generates your draft and:
+`standupDraft.autoPost.enabled` turns on scheduled posting while the editor is
+running. At `standupDraft.autoPost.time` (defaults to your reminder time) on
+`standupDraft.autoPost.days` (default Mon–Fri), Standup Draft generates your draft and:
 
 - **`review` mode (default):** asks first — *Post now*, *Open panel*, or *Skip today*.
 - **`auto` mode:** posts after a 60-second undo window.
 
-Posts go to every enabled `shiplogue.posting.targets` entry. Each day posts at
+Posts go to every enabled `standupDraft.posting.targets` entry. Each day posts at
 most once per target (dedupe), failures retry three times with backoff, and a
 failed post keeps the draft for manual recovery. The editor must be running at
 the scheduled time; a cloud scheduler that works with the editor closed is a
@@ -333,45 +345,45 @@ preview stub until accounts/billing ship.
 
 ## Feedback & rating
 
-Shiplogue is built in the open and feedback shapes it. Ways to reach us:
+Standup Draft is built in the open and feedback shapes it. Ways to reach us:
 
 - **In the panel:** after a draft, click 👍 or 👎 (next to Copy/Send). 👎 opens a
   short feedback form; the link carries only your extension version, OS and
   model backend — never your draft or activity.
-- **Command palette:** **Shiplogue: Share Feedback** opens the same form any time.
-- **Like it?** Run **Shiplogue: Star on GitHub** or **Shiplogue: Rate on the
+- **Command palette:** **Standup Draft: Share Feedback** opens the same form any time.
+- **Like it?** Run **Standup Draft: Star on GitHub** or **Standup Draft: Rate on the
   Marketplace** — ratings are how others find the extension.
 - After a few successful drafts you'll get one polite prompt per version asking
   how it's going; "Not now" snoozes it for 30 days, "Don't ask again" opts out
-  forever (`shiplogue.feedback.enabled` turns the prompt off entirely).
+  forever (`standupDraft.feedback.enabled` turns the prompt off entirely).
 
-## Privacy and local data
+## Privacy details
 
 The full current policy is in [`PRIVACY.md`](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md).
 
 Today:
 
 - Activity logs live under the editor's global storage:
-  `.../User/globalStorage/phenzic.shiplogue/activity/` (one JSON file per local
+  `.../User/globalStorage/phenzic.standup-draft/activity/` (one JSON file per local
   day). If you installed an earlier `standup-dev` dev build, its logs live under
   `standup-dev.standup/` and are not migrated automatically.
 - Cursor's chat database is opened read-only with `immutable=1`; it is never
   modified.
 - With Ollama on `localhost`, no activity text leaves the machine for
-  summarisation. A remote `shiplogue.ollama.url` sends it there by your choice.
+  summarisation. A remote `standupDraft.ollama.url` sends it there by your choice.
 - **With a BYOK provider, the assembled activity context and prompt are sent to
   that provider** (Anthropic, OpenAI, Google, or the OpenAI-compatible endpoint
   you configured) so it can write the draft. That is inherent to using a cloud
-  model; pick Ollama if activity must stay on-device. Shiplogue adds no other
+  model; pick Ollama if activity must stay on-device. Standup Draft adds no other
   network calls for drafting.
 - Provider API keys are stored with VS Code SecretStorage (OS keychain) and are
   never written to `settings.json`, logs, or error messages. Uninstalling the
-  extension does not necessarily remove them — use **Shiplogue: Clear API Key** or
+  extension does not necessarily remove them — use **Standup Draft: Clear API Key** or
   your OS keychain.
 - GitHub API calls happen only when GitHub context is enabled and credentials
   exist.
 - Only the draft you explicitly post is sent to your webhook. There is no
-  telemetry and no Shiplogue account.
+  telemetry and no Standup Draft account.
 
 Planned hosted model (opt-in, paid):
 
@@ -388,23 +400,23 @@ Planned hosted model (opt-in, paid):
 
 **“Ollama isn't running” warning at startup**
 Start Ollama (`ollama serve`, or `brew services start ollama` on macOS), then
-check `shiplogue.ollama.url`. The warning offers an install link; it never blocks
+check `standupDraft.ollama.url`. The warning offers an install link; it never blocks
 activation. It only appears when Ollama is the backend that would be used — a
 configured provider skips it.
 
 **“Anthropic rejected the API key” / “OpenAI is rate limiting this key”**
-Run **Shiplogue: Test Provider** to isolate key, endpoint and model in one request.
-Replace the key with **Shiplogue: Set API Key**; rate limits and quota are enforced
-by the provider, not Shiplogue. Error text never includes the key.
+Run **Standup Draft: Test Provider** to isolate key, endpoint and model in one request.
+Replace the key with **Standup Draft: Set API Key**; rate limits and quota are enforced
+by the provider, not Standup Draft. Error text never includes the key.
 
 **“could not find that model”**
-The model id is not available to that key (or was retired). Run **Shiplogue: Set API
-Key** again and pick from the list, or update `shiplogue.provider.model`.
+The model id is not available to that key (or was retired). Run **Standup Draft: Set API
+Key** again and pick from the list, or update `standupDraft.provider.model`.
 
-**A provider is configured but Shiplogue still talks to Ollama**
-Check `shiplogue.model.backend`. `provider` never falls back; `auto` uses the
+**A provider is configured but Standup Draft still talks to Ollama**
+Check `standupDraft.model.backend`. `provider` never falls back; `auto` uses the
 provider only when type, model and key (if required) are all present. A local
-OpenAI-compatible endpoint also needs `shiplogue.provider.baseUrl`.
+OpenAI-compatible endpoint also needs `standupDraft.provider.baseUrl`.
 
 **“Model 'X' isn't pulled” warning**
 Use **Pull now** to run `ollama pull X`, or **Pick another model** to choose an
@@ -416,30 +428,31 @@ quantized local model; the planned paid build adds an optional hosted model. Unt
 then, Ollama is the supported backend.
 
 **The draft is empty or cut off (Ollama)**
-Raise `shiplogue.ollama.numPredict` (e.g. 4096–8192), raise
-`shiplogue.ollama.numCtx`, or use a non-reasoning model such as `llama3.2`.
+Raise `standupDraft.ollama.numPredict` (e.g. 4096–8192), raise
+`standupDraft.ollama.numCtx`, or use a non-reasoning model such as `llama3.2`.
 Ollama already retries once with a larger budget and thinking disabled.
 
 **“The endpoint spent its whole output budget on reasoning…” (BYOK)**
 Thinking is on by default on some endpoints (DeepSeek, reasoning models served
-through OpenRouter/vLLM/llama.cpp). Shiplogue already retried once with a larger
+through OpenRouter/vLLM/llama.cpp). Standup Draft already retried once with a larger
 budget and thinking off. If it still happens, raise
-`shiplogue.provider.maxOutputTokens` (e.g. 4096–8192) or use a model without
+`standupDraft.provider.maxOutputTokens` (e.g. 4096–8192) or use a model without
 thinking mode. The error reports `finish_reason` and the reasoning-token count so
 you can tell truncation from an empty answer.
 
 **Cursor prompts never appear**
-Confirm you are running Cursor (not VS Code), `sqlite3` is on `PATH`, and
-`shiplogue.cursor.enabled` is true. With `shiplogue.scope: workspace`, prompts are
-scoped to the open workspace's chats.
+Cursor prompt capture is opt-in. Enable `standupDraft.cursor.enabled` (or answer
+**Enable** to the first-run prompt), confirm you are running Cursor, and make sure
+`sqlite3` is on `PATH`. With `standupDraft.scope: workspace`, prompts are scoped to
+the open workspace's chats.
 
 **GitHub items are missing**
-Run **Shiplogue: Connect GitHub**, or set a PAT in `shiplogue.github.token`. Only
+Run **Standup Draft: Connect GitHub**, or set a PAT in `standupDraft.github.token`. Only
 merged PRs you authored and closed issues assigned to you are included. If
-`shiplogue.github.repos` is empty, the repo is read from the git `origin` remote.
+`standupDraft.github.repos` is empty, the repo is read from the git `origin` remote.
 
 **Generation timed out**
-Increase `shiplogue.generate.timeoutSeconds`, reduce `shiplogue.lookbackHours`, use a
+Increase `standupDraft.generate.timeoutSeconds`, reduce `standupDraft.lookbackHours`, use a
 smaller model, or check the Cursor database size. The Cancel button aborts
 immediately.
 
@@ -449,18 +462,18 @@ completions) that were not in the activity. “Needs review” means a repair pa
 still left unverified claims — read the draft carefully before sending.
 
 **Posting failed**
-Check `shiplogue.webhook.type`/`url` and that the webhook still exists. Webhooks
+Check `standupDraft.webhook.type`/`url` and that the webhook still exists. Webhooks
 must return 2xx.
 
 **No activity found**
-Commit or save some work, or increase `shiplogue.lookbackHours`. In a window with
-no folder open, Shiplogue falls back to all projects.
+Commit or save some work, or increase `standupDraft.lookbackHours`. In a window with
+no folder open, Standup Draft falls back to all projects.
 
 **Context or token limits**
 The current build caps input at 25 commits, 20 Cursor prompts and 30 GitHub
 items and shows “showing N of M”. If your model still reports a context problem,
-raise `shiplogue.ollama.numCtx` (Ollama) or reduce `shiplogue.lookbackHours` / lower
-`shiplogue.detail` (providers). A preflight budget check with a clear warning is
+raise `standupDraft.ollama.numCtx` (Ollama) or reduce `standupDraft.lookbackHours` / lower
+`standupDraft.detail` (providers). A preflight budget check with a clear warning is
 planned.
 
 ## Known limitations
@@ -488,14 +501,27 @@ planned.
 - **`sqlite3` is required for Cursor prompts.** Without it, that source returns
   nothing.
 - **Built-in GitHub auth depends on the host.** A PAT always works.
-- **Not on a marketplace yet.** No Marketplace/Open VSX listing; the beta ships as a
-  GitHub prerelease with a VSIX.
+- **Marketplace submission pending.** No Marketplace listing yet; the beta ships
+  as a GitHub prerelease with a VSIX.
 - **Paid plans and the hosted service are proposals.** No billing exists yet;
   prices are indicative.
 
 ## Roadmap
 
-**0.1.3 — beta (current)**
+**0.2.0 — beta (current)**
+
+- Renamed from Shiplogue to **Standup Draft**: extension id
+  `phenzic.standup-draft`, commands and settings under `standupDraft.*`, new
+  storage and secret names. Uninstall 0.1.x and re-enter your provider key.
+- Cursor prompt capture is opt-in and off by default, with a first-run prompt and
+  a Data & privacy section.
+- Marketplace listing cleanup (no placeholder screenshot, no proposed pricing
+  table, less third-party branding in the description).
+- Everything from 0.1.3 and the feature work in this release: feedback loop,
+  shared pure core, grounding v2, context preflight, auto-post, multi-target
+  posting and the generate shortcut.
+
+**0.1.3 — beta (2026-11-01)**
 
 - Packaging cleanup for the Marketplace listing: removed a stray runtime
   dependency, trimmed tags to the documented limit, stopped shipping internal QA
@@ -521,7 +547,7 @@ planned.
   GitHub sign-in, real Discord/Slack webhooks, multi-root and no-folder windows,
   cancel and soak tests), then a GitHub Release VSIX.
 
-**Next build — hardening and productization (working title 0.2.0)**
+**Next build — hardening and productization (working title 0.3.0)**
 
 - **Hard grounding:** every specific claim must be backed by activity; no silent
   fixes; release gate.

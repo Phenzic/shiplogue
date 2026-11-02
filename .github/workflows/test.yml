@@ -31,7 +31,7 @@ jobs:
           sqlite3 --version
       - run: npm ci
       - run: npm test
-        # Gated suites (SHIPLOGUE_E2E, CURSOR_REAL_DB) skip automatically without
+        # Gated suites (STANDUP_DRAFT_E2E, CURSOR_REAL_DB) skip automatically without
         # a local Ollama / Cursor install.
 
   agent:

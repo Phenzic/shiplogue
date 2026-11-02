@@ -74,7 +74,7 @@ export class AutoPost {
       const markdown = await this.deps.generateDraft();
       if (!markdown) {
         vscode.window.showInformationMessage(
-          "Shiplogue auto-post: no activity found today — skipping.",
+          "Standup Draft auto-post: no activity found today — skipping.",
         );
         return;
       }
@@ -82,7 +82,7 @@ export class AutoPost {
       const mode = c.autoPostMode;
       if (mode === "review") {
         const pick = await vscode.window.showInformationMessage(
-          "Shiplogue: your stand-up draft is ready.",
+          "Standup Draft: your stand-up draft is ready.",
           "Post now",
           "Open panel",
           "Skip today",
@@ -90,7 +90,7 @@ export class AutoPost {
         if (pick === "Post now") {
           await this.postWithRetry(markdown, day);
         } else if (pick === "Open panel") {
-          await vscode.commands.executeCommand("shiplogue.generate");
+          await vscode.commands.executeCommand("standupDraft.generate");
         }
         return;
       }
@@ -98,7 +98,7 @@ export class AutoPost {
       // auto mode: 60-second undo window, then post.
       const undo = await Promise.race([
         vscode.window.showInformationMessage(
-          "Shiplogue: posting your stand-up in 60 seconds…",
+          "Standup Draft: posting your stand-up in 60 seconds…",
           "Undo",
         ),
         new Promise<void>((r) => setTimeout(r, this.deps.undoWindowMs ?? 60_000)).then(
@@ -132,7 +132,7 @@ export class AutoPost {
       }
       if (badTypes.length === 0) {
         await this.state.setAutoPostPendingDraft("");
-        vscode.window.showInformationMessage(`Shiplogue: stand-up auto-posted to ${okTypes.join(", ")}.`);
+        vscode.window.showInformationMessage(`Standup Draft: stand-up auto-posted to ${okTypes.join(", ")}.`);
         return;
       }
       pending = badTypes; // retry only the failed targets
@@ -142,14 +142,14 @@ export class AutoPost {
     await this.state.setAutoPostPendingDraft(markdown);
     const remaining = (pending ?? []).join(", ");
     const pick = await vscode.window.showErrorMessage(
-      `Shiplogue auto-post failed${remaining ? ` (${remaining})` : ""}. Your draft is saved.`,
+      `Standup Draft auto-post failed${remaining ? ` (${remaining})` : ""}. Your draft is saved.`,
       "Retry now",
       "Open panel",
     );
     if (pick === "Retry now") {
       await this.postWithRetry(markdown, day);
     } else if (pick === "Open panel") {
-      await vscode.commands.executeCommand("shiplogue.generate");
+      await vscode.commands.executeCommand("standupDraft.generate");
     }
   }
 }
