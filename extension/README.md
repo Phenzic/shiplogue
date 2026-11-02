@@ -13,7 +13,7 @@ in a later build. Bring-your-own-key providers (Anthropic, OpenAI, Google, or an
 OpenAI-compatible endpoint) are available now if you would rather not run a local
 model. A higher-capacity hosted model is planned as an opt-in paid option.
 
-> **Status:** **0.1.4** beta. Marketplace submission pending — install from the
+> **Status:** **0.1.5** beta. Marketplace submission pending — install from the
 > release VSIX (or run from source). This build uses Ollama or your own API key.
 >
 > **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
@@ -404,7 +404,12 @@ planned.
 
 ## Roadmap
 
-**0.1.4 — beta (current)**
+**0.1.5 — beta (current)**
+
+- Workflow-validation release (OIDC trusted publishing). No functional changes
+  from 0.1.4.
+
+**0.1.4 — beta (2026-11-02)**
 
 - Marketplace-safe build: copy-only. Webhook posting is removed; drafts are copied.
 - Cursor chat-DB capture remains enabled by default.

@@ -23,7 +23,7 @@ Shiplogue account and no telemetry.
 -->
 
 > **Current build vs planned.** This README describes the current development
-> tree. Today (0.1.4 beta): local Ollama or your own API key, manual review and
+> tree. Today (0.1.5 beta): local Ollama or your own API key, manual review and
 > manual review. Planned for the next build: bundled local model (no model setup),
 > optional hosted model and paid plans. Pricing and plans below
 > are proposals — no paid tier or hosted service exists yet.
@@ -268,10 +268,10 @@ Planned hosted model (opt-in, paid):
 ## Status and limitations
 
 I believe an honest list matters more than a polished one. This README describes
-the current development tree. The package version is `0.1.4`; there is no
+the current development tree. The package version is `0.1.5`; there is no
 Marketplace/Open VSX listing yet, and the manual launch QA/publishing step is
 still outstanding. See [`extension/CHANGELOG.md`](extension/CHANGELOG.md) for
-what changed in 0.1.4 and [`extension/PRIVACY.md`](extension/PRIVACY.md) for the
+what changed in 0.1.5 and [`extension/PRIVACY.md`](extension/PRIVACY.md) for the
 current local-data policy.
 
 - **A model backend is required: Ollama or your own API key.** The bundled local
@@ -305,7 +305,11 @@ current local-data policy.
 
 ## Roadmap
 
-**0.1.4 — beta (current)**
+**0.1.5 — beta (current)**
+
+- Workflow-validation release (OIDC trusted publishing). No functional changes.
+
+**0.1.4 — beta (2026-11-02)**
 
 - Marketplace-safe build: copy-only, with Cursor capture.
 - Everything from 0.1.3.

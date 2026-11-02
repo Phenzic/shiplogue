@@ -3,6 +3,12 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.5] — 2026-11-02
+
+Workflow-validation release. No functional changes; the extension is identical to
+0.1.4. This release verifies GitHub Actions Trusted Publishing (`vsce publish
+--oidc`) end to end.
+
 ## [0.1.4] — 2026-11-02
 
 Marketplace-safe build: copy-only, with Cursor capture.

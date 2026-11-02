@@ -2,7 +2,7 @@
   "name": "shiplogue",
   "displayName": "Shiplogue",
   "description": "Drafts your daily stand-up from the work you already did. Local-first for VS Code, Cursor and Antigravity: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), then copied.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
