@@ -3,7 +3,6 @@ import { Store } from "./store";
 import { cfg } from "./config";
 import { collectCommits } from "./git";
 import { collectGitHub, githubToken } from "./github";
-import { collectCursorPrompts } from "./cursor";
 import { ActivityEvent, FileTouch, StandupContext } from "./types";
 import { normalizeFolderPath } from "./paths";
 import { buildActivityText, detailDefaults as coreDetailDefaults, ContextTextOpts } from "./core/prompt";
@@ -123,12 +122,9 @@ export async function gatherContext(store: Store, opts: GatherOptions = {}): Pro
   onPhase?.("Gathering GitHub activity…");
   let github = await collectGitHub(token, c.githubRepos, since, signal);
   checkAborted();
-  let cursorPrompts: Awaited<ReturnType<typeof collectCursorPrompts>> = [];
-  if (c.cursorEnabled) {
-    onPhase?.("Gathering Cursor prompts…");
-    cursorPrompts = await collectCursorPrompts(since, until, folderPaths, signal);
-    checkAborted();
-  }
+  // Marketplace build: Cursor chat-DB capture is not included. The context
+  // field stays so the panel/prompt code is unchanged, but it is always empty.
+  let cursorPrompts: { ts: string; text: string }[] = [];
 
   // Sanitize untrusted text at the collection boundary: commit messages, issue
   // titles and AI prompts end up inside an LLM prompt verbatim.

@@ -58,7 +58,6 @@ extension/              the VS Code/Cursor extension
     paths.ts            cross-platform path normalization
     git.ts              commit collection
     github.ts           PR/issue collection
-    cursor.ts           Cursor chat DB reader + workspace scoping
     summarize.ts        prompts, model call, retry/repair/grounding
     format.ts           sublists, references, grounding, Slack mrkdwn
     shiploguePanel.ts   webview panel and message handling
@@ -79,17 +78,15 @@ extension/              the VS Code/Cursor extension
 ```bash
 npm test             # compile + default suite (no model or network needed)
 npm run test:e2e     # gated real-Ollama suite; run sequentially
-npm run test:cursor  # gated read-only Cursor DB suite
 ```
 
 The default suite uses Node's built-in test runner. It stubs the `vscode` API,
 starts local mock Ollama/webhook servers, creates temporary git repos and
-synthetic SQLite databases. Real-model and real-Cursor-DB suites skip unless
+synthetic SQLite databases. Real-model suites skip unless
 their environment variables are set:
 
 - `STANDUP_E2E=1` for the real-Ollama tests.
 - `STANDUP_OLLAMA_MODEL=<name>` to choose a model.
-- `CURSOR_REAL_DB=1` for the real Cursor database checks.
 
 Real-model tests must run with `--test-concurrency=1`; parallel files contend on
 one Ollama instance, which causes very slow runs and fetch failures.
@@ -102,8 +99,8 @@ one Ollama instance, which causes very slow runs and fetch failures.
 - User-facing failures should produce actionable messages (`OllamaError`,
   `ProviderError`/`BackendError`, or `panel.setError`). Background collectors must
   never throw — log and degrade to an empty result.
-- Keep privacy properties intact: activity stays local, Cursor's DB is opened
-  read-only, and nothing is posted without an explicit user action.
+- Keep privacy properties intact: activity stays local, this build reads no editor
+  chat database, and nothing is posted without an explicit user action.
 - Add a comment explaining *why* for non-obvious code, not *what*.
 
 ## Adding a setting

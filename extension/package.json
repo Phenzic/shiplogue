@@ -371,11 +371,6 @@
           "type": "string",
           "default": "16:00",
           "markdownDescription": "Daily reminder time in 24h `HH:MM`, local time. Set on first run; change any time here or via 'Standup Draft: Set Reminder Time'."
-        },
-        "standupDraft.cursor.enabled": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Read Cursor's local chat history (read-only) to include your AI prompts as context. **Off by default.** Standup Draft asks once before enabling it; no effect if Cursor isn't installed."
         }
       }
     }
@@ -389,7 +384,6 @@
     "verify": "node scripts/verify.mjs",
     "test:local": "node --test --test-concurrency=1 test/model/e2e.local-model.test.js",
     "test:e2e": "STANDUP_DRAFT_E2E=1 node --test --test-concurrency=1 test/e2e.ollama.test.js test/e2e.pipeline.test.js",
-    "test:cursor": "CURSOR_REAL_DB=1 node --test test/e2e.local.test.js",
     "package": "npx --yes @vscode/vsce@4.1.0 package"
   },
   "devDependencies": {

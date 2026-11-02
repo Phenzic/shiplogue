@@ -4,9 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Phenzic/standup-draft/blob/main/LICENSE)
 
-Standup Draft watches the work you already did — git commits, saved files, GitHub PRs
-and issues, and (in Cursor) the prompts you gave your AI assistant — then asks a
-model to write your stand-up. You review and edit the draft, then copy it or send
+Standup Draft watches the work you already did — git commits, saved files and
+GitHub PRs/issues — then asks a model to write your stand-up. You review and edit the draft, then copy it or send
 it to Slack/Discord.
 
 It is local-first by default: a local Ollama server, or a bundled quantized model
@@ -33,12 +32,10 @@ text leaves your machine only through the backend or webhook you configure.
 | Git commits and changed files (current workspace) | On | Becomes prompt text for your model backend |
 | Saved/edited files (local activity log) | On | Becomes prompt text for your model backend |
 | GitHub PRs and issues | Only if you connect GitHub | Fetched from `api.github.com`; included in the prompt when drafting |
-| Cursor chat prompts | **Off — opt-in** | Read read-only from `state.vscdb` only after you enable it |
 | The draft | — | Sent to the model backend; posted only when you press **Send** (or enable auto-post) |
 
-- **Cursor is opt-in.** On first run in Cursor, Standup Draft asks once. **Not now**
-  leaves `standupDraft.cursor.enabled` false. The database is opened read-only and
-  is never modified or uploaded as a file.
+- **This Marketplace build does not read Cursor's chat database.** It uses git,
+  saved files and GitHub only; no prompt history is opened or uploaded.
 - **Ollama on localhost stays local.** A BYOK provider or a remote
   `standupDraft.ollama.url` receives the prompt (activity included).
 - Turn tracking off entirely with `standupDraft.track.enabled: false`; disconnect
@@ -62,7 +59,6 @@ text leaves your machine only through the backend or webhook you configure.
 - **Node/npm** for the development install.
 - Optional: **GitHub** sign-in or a personal access token for merged-PR and
   closed-issue context.
-- Optional: **`sqlite3`** on `PATH` for Cursor prompt context.
 
 ## Model backends
 
@@ -144,8 +140,6 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
   window, including commit body and changed files.
 - Collects **merged PRs you authored** and **closed issues assigned to you** via
   the GitHub search API, using the editor's GitHub session or a PAT.
-- In **Cursor only**, reads the prompts you typed into Cursor's AI assistant from
-  its local `state.vscdb`, read-only, scoped to open workspaces.
 - With no folder open, falls back to all projects and says so in the panel.
 
 ### Drafting
@@ -179,7 +173,7 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
 - **Startup health check:** when Ollama is the actual backend, warns if it is
   unreachable or the configured model is not pulled, with actions to install,
   pull it, or pick another model. A configured provider skips this check.
-- **Input caps:** 25 commits, 20 Cursor prompts and 30 GitHub items, with
+- **Input caps:** 25 commits and 30 GitHub items, with
   “showing N of M” notes so omitted activity stays visible. A preflight
   token-budget check and priority trimming are planned.
 
@@ -248,7 +242,6 @@ backends ship.
 | `standupDraft.autoPost.mode` | `review` | `review` asks first; `auto` posts after a 60 s undo window |
 | `standupDraft.reminder.enabled` | `true` | Daily local-time nudge |
 | `standupDraft.reminder.time` | `16:00` | Reminder time in 24h `HH:MM`, local time |
-| `standupDraft.cursor.enabled` | `false` | Include Cursor AI prompts as context. Opt-in; asks once in Cursor |
 
 Settings can be changed in the editor UI or `settings.json`. Detail and tone are
 also switchable from the panel; the panel's last choice is stored globally.
@@ -367,8 +360,6 @@ Today:
   `.../User/globalStorage/phenzic.standup-draft/activity/` (one JSON file per local
   day). If you installed an earlier `standup-dev` dev build, its logs live under
   `standup-dev.standup/` and are not migrated automatically.
-- Cursor's chat database is opened read-only with `immutable=1`; it is never
-  modified.
 - With Ollama on `localhost`, no activity text leaves the machine for
   summarisation. A remote `standupDraft.ollama.url` sends it there by your choice.
 - **With a BYOK provider, the assembled activity context and prompt are sent to
@@ -440,12 +431,6 @@ budget and thinking off. If it still happens, raise
 thinking mode. The error reports `finish_reason` and the reasoning-token count so
 you can tell truncation from an empty answer.
 
-**Cursor prompts never appear**
-Cursor prompt capture is opt-in. Enable `standupDraft.cursor.enabled` (or answer
-**Enable** to the first-run prompt), confirm you are running Cursor, and make sure
-`sqlite3` is on `PATH`. With `standupDraft.scope: workspace`, prompts are scoped to
-the open workspace's chats.
-
 **GitHub items are missing**
 Run **Standup Draft: Connect GitHub**, or set a PAT in `standupDraft.github.token`. Only
 merged PRs you authored and closed issues assigned to you are included. If
@@ -453,7 +438,7 @@ merged PRs you authored and closed issues assigned to you are included. If
 
 **Generation timed out**
 Increase `standupDraft.generate.timeoutSeconds`, reduce `standupDraft.lookbackHours`, use a
-smaller model, or check the Cursor database size. The Cancel button aborts
+smaller model. The Cancel button aborts
 immediately.
 
 **“Removed N unverifiable mention(s)” / “Needs review”**
@@ -470,7 +455,7 @@ Commit or save some work, or increase `standupDraft.lookbackHours`. In a window 
 no folder open, Standup Draft falls back to all projects.
 
 **Context or token limits**
-The current build caps input at 25 commits, 20 Cursor prompts and 30 GitHub
+The current build caps input at 25 commits and 30 GitHub
 items and shows “showing N of M”. If your model still reports a context problem,
 raise `standupDraft.ollama.numCtx` (Ollama) or reduce `standupDraft.lookbackHours` / lower
 `standupDraft.detail` (providers). A preflight budget check with a clear warning is
@@ -486,7 +471,7 @@ planned.
 - **VS Code-compatible editors only.** Supported targets include VS Code, Cursor,
   Antigravity, VSCodium and Windsurf; JetBrains, Zed, Neovim and Sublime need
   separate adapters.
-- **AI prompt capture is Cursor-only.** VS Code/Copilot chat history is not read.
+- **AI prompt capture is not included in this build.** Git, saved files and GitHub are the only activity sources.
 - **Auto-post needs a running editor.** The scheduled poster (Pro preview) only
   fires while VS Code/Cursor is open; a cloud scheduler is a later phase.
 - **Grounding is deterministic, not perfect.** It verifies specific claims
@@ -496,10 +481,6 @@ planned.
   on macOS (and Windows where available) is still part of the launch checklist.
   Antigravity installs the VSIX; runtime QA there is pending. Windows paths are
   unit-tested, not verified on a real Windows machine.
-- **Cursor reads can be slow on very large databases.** This is why generation is
-  cancellable and has a timeout.
-- **`sqlite3` is required for Cursor prompts.** Without it, that source returns
-  nothing.
 - **Built-in GitHub auth depends on the host.** A PAT always works.
 - **Marketplace submission pending.** No Marketplace listing yet; the beta ships
   as a GitHub prerelease with a VSIX.
@@ -513,8 +494,8 @@ planned.
 - Renamed from Shiplogue to **Standup Draft**: extension id
   `phenzic.standup-draft`, commands and settings under `standupDraft.*`, new
   storage and secret names. Uninstall 0.1.x and re-enter your provider key.
-- Cursor prompt capture is opt-in and off by default, with a first-run prompt and
-  a Data & privacy section.
+- This Marketplace build excludes Cursor chat-DB capture; the full build offers it
+  as opt-in, off by default.
 - Marketplace listing cleanup (no placeholder screenshot, no proposed pricing
   table, less third-party branding in the description).
 - Everything from 0.1.3 and the feature work in this release: feedback loop,
@@ -575,12 +556,11 @@ npm run compile      # tsc -p ./
 npm run watch        # incremental compile
 npm test             # compile + default test suite
 npm run test:e2e     # gated real-Ollama suite (sequential; STANDUP_OLLAMA_MODEL=...)
-npm run test:cursor  # gated read-only Cursor DB suite
 ```
 
 The test suite uses Node's built-in runner (no extra dependencies). It stubs the
 `vscode` API, starts local mock Ollama/webhook servers, creates temporary git
-repos and synthetic SQLite databases. Real-model and real-Cursor-DB tests skip
+repos and synthetic SQLite databases. Real-model tests skip
 without their environment variables.
 
 For repository layout, coding conventions and the pull-request checklist, see

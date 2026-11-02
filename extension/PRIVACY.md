@@ -22,11 +22,8 @@ Standup Draft is **local-first**. Here is exactly what happens to your data.
 - The GitHub search API (merged PRs you authored, closed issues assigned to
   you), authenticated with the editor's built-in GitHub sign-in or an optional
   PAT you provide.
-- Cursor's chat database (`state.vscdb`), **read-only** (`sqlite3 -readonly`,
-  immutable mode), to include the AI prompts you gave your assistant. Nothing is
-  written back to it. This feature is Cursor-only, **off by default**, and only
-  runs after you opt in (`standupDraft.cursor.enabled`; the extension asks once in
-  Cursor).
+- This Marketplace build does **not** read Cursor's chat database or any other
+  editor's prompt history. (The full build offers that as an opt-in feature.)
 
 ## What leaves your machine
 

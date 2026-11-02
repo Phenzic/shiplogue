@@ -17,7 +17,6 @@ import { configureShortcut } from "./commands/shortcuts";
 import { Feedback, openFeedback, openRate, openStar } from "./feedback";
 import { AutoPost } from "./autoPost";
 import { ActiveProviderType } from "./core/providers";
-import { cursorDbAvailable } from "./core/gather/cursor";
 
 let store: Store;
 let state: State;
@@ -81,8 +80,6 @@ export function activate(context: vscode.ExtensionContext) {
   // activation and never throws.
   healthCheckDone = checkOllamaHealth();
   void healthCheckDone;
-  // Opt-in data access: never read Cursor's chat DB until the user says yes.
-  void maybeOfferCursorCapture(context);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("standupDraft.generate", () => runGenerate()),
@@ -104,39 +101,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("standupDraft.star", () => openStar()),
     vscode.commands.registerCommand("standupDraft.rate", () => openRate()),
   );
-}
-
-// Cursor prompt capture is off by default. Ask once per install, only in Cursor,
-// and only when a chat database actually exists. "Not now" pins the setting to
-// false so the collector never runs; the user can enable it later in Settings.
-async function maybeOfferCursorCapture(context: vscode.ExtensionContext): Promise<void> {
-  if (!/cursor/i.test(vscode.env.appName ?? "") || !cursorDbAvailable()) {
-    return;
-  }
-  if (context.globalState.get<boolean>("cursorPromptAnswered")) {
-    return;
-  }
-  const config = vscode.workspace.getConfiguration("standupDraft");
-  const insp = config.inspect<boolean>("cursor.enabled");
-  if (insp?.globalValue !== undefined || insp?.workspaceValue !== undefined) {
-    return;
-  }
-  await context.globalState.update("cursorPromptAnswered", true);
-  const choice = await vscode.window.showInformationMessage(
-    "Standup Draft can include the prompts you gave Cursor's assistant. It reads Cursor's local chat database read-only; the assembled stand-up is only sent to the model provider you configured. Enable Cursor prompt capture?",
-    "Enable",
-    "Not now",
-    "Learn more",
-  );
-  if (choice === "Enable") {
-    await config.update("cursor.enabled", true, vscode.ConfigurationTarget.Global);
-  } else if (choice === "Not now") {
-    await config.update("cursor.enabled", false, vscode.ConfigurationTarget.Global);
-  } else if (choice === "Learn more") {
-    void vscode.env.openExternal(
-      vscode.Uri.parse("https://github.com/Phenzic/standup-draft/blob/main/extension/README.md#data--privacy"),
-    );
-  }
 }
 
 async function runGenerate(): Promise<void> {
