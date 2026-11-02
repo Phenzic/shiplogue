@@ -33,7 +33,7 @@ features/tests.
 
 ```bash
 git clone https://github.com/Phenzic/standupDraft.git
-cd shiplogue/extension
+cd standup-draft/extension
 npm install
 npm run compile
 npm test

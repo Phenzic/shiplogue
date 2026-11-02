@@ -115,7 +115,7 @@ test("thumbs up counts and triggers the star prompt once per version", async () 
   assert.equal(state.getLastRating(), 1);
   assert.equal(stub.notifications.length, 1);
   assert.match(stub.notifications[0].message, /a star helps others find it/);
-  assert.deepEqual(stub.openedUrls, ["https://github.com/Phenzic/shiplogue"]);
+  assert.deepEqual(stub.openedUrls, ["https://github.com/Phenzic/standup-draft"]);
 
   await feedback.recordThumbs("up", "Ollama · llama3.2");
   assert.equal(state.getLastRating(), 2);
@@ -138,6 +138,6 @@ test("explicit commands open the right URLs", async () => {
   await openRate();
   assert.equal(stub.openedUrls.length, 3);
   assert.match(stub.openedUrls[0], /labels=feedback/);
-  assert.equal(stub.openedUrls[1], "https://github.com/Phenzic/shiplogue");
+  assert.equal(stub.openedUrls[1], "https://github.com/Phenzic/standup-draft");
   assert.match(stub.openedUrls[2], /marketplace\.visualstudio\.com/);
 });

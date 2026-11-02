@@ -134,7 +134,7 @@ async function maybeOfferCursorCapture(context: vscode.ExtensionContext): Promis
     await config.update("cursor.enabled", false, vscode.ConfigurationTarget.Global);
   } else if (choice === "Learn more") {
     void vscode.env.openExternal(
-      vscode.Uri.parse("https://github.com/Phenzic/shiplogue/blob/main/extension/README.md#data--privacy"),
+      vscode.Uri.parse("https://github.com/Phenzic/standup-draft/blob/main/extension/README.md#data--privacy"),
     );
   }
 }

@@ -7,10 +7,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Phenzic/shiplogue.git"
+    "url": "git+https://github.com/Phenzic/standup-draft.git"
   },
-  "bugs": "https://github.com/Phenzic/shiplogue/issues",
-  "homepage": "https://github.com/Phenzic/shiplogue#readme",
+  "bugs": "https://github.com/Phenzic/standup-draft/issues",
+  "homepage": "https://github.com/Phenzic/standup-draft#readme",
   "keywords": [
     "standup",
     "stand-up",

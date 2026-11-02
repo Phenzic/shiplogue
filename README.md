@@ -215,8 +215,8 @@ release, then Extensions view → `…` → **Install from VSIX** (or
 **Run from source:**
 
 ```bash
-git clone https://github.com/Phenzic/shiplogue.git
-cd shiplogue/extension
+git clone https://github.com/Phenzic/standup-draft.git
+cd standup-draft/extension
 npm install
 npm run compile
 ```

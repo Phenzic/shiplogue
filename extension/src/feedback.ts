@@ -7,8 +7,8 @@ import { State } from "./state";
 // page is used because it works today. Swap FEEDBACK_FORM_URL when the form
 // lands — nothing else changes.
 export const FEEDBACK_FORM_URL =
-  "https://github.com/Phenzic/shiplogue/issues/new?labels=feedback&title=Standup+Draft+feedback";
-export const GITHUB_REPO_URL = "https://github.com/Phenzic/shiplogue";
+  "https://github.com/Phenzic/standup-draft/issues/new?labels=feedback&title=Standup+Draft+feedback";
+export const GITHUB_REPO_URL = "https://github.com/Phenzic/standup-draft";
 export const MARKETPLACE_REVIEW_URL =
   "https://marketplace.visualstudio.com/items?itemName=phenzic.standup-draft&ssr=false#review-details";
 

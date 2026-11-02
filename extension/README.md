@@ -2,7 +2,7 @@
 
 **Local-first daily stand-ups, drafted from your actual IDE activity.**
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Phenzic/shiplogue/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Phenzic/standup-draft/blob/main/LICENSE)
 
 Standup Draft watches the work you already did — git commits, saved files, GitHub PRs
 and issues, and (in Cursor) the prompts you gave your AI assistant — then asks a
@@ -104,7 +104,7 @@ Other commands:
 - **Standup Draft: Clear API Key** — deletes the stored key for a provider.
 
 Keys are never written to `settings.json`, logs, or error messages. See
-[`PRIVACY.md`](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md) for what a cloud provider receives.
+[`PRIVACY.md`](https://github.com/Phenzic/standup-draft/blob/main/extension/PRIVACY.md) for what a cloud provider receives.
 
 ## Install and run (development)
 
@@ -359,7 +359,7 @@ Standup Draft is built in the open and feedback shapes it. Ways to reach us:
 
 ## Privacy details
 
-The full current policy is in [`PRIVACY.md`](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md).
+The full current policy is in [`PRIVACY.md`](https://github.com/Phenzic/standup-draft/blob/main/extension/PRIVACY.md).
 
 Today:
 
@@ -584,13 +584,13 @@ repos and synthetic SQLite databases. Real-model and real-Cursor-DB tests skip
 without their environment variables.
 
 For repository layout, coding conventions and the pull-request checklist, see
-[`CONTRIBUTING.md`](https://github.com/Phenzic/shiplogue/blob/main/CONTRIBUTING.md).
+[`CONTRIBUTING.md`](https://github.com/Phenzic/standup-draft/blob/main/CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](https://github.com/Phenzic/shiplogue/blob/main/LICENSE). The extension is free and open source; planned
+MIT — see [LICENSE](https://github.com/Phenzic/standup-draft/blob/main/LICENSE). The extension is free and open source; planned
 paid plans cover hosted inference, scheduled automation and enterprise
 deployment, not the local core.
 
-The project overview is in [`README.md`](https://github.com/Phenzic/shiplogue/blob/main/README.md); the repository is
-[Phenzic/shiplogue](https://github.com/Phenzic/shiplogue).
+The project overview is in [`README.md`](https://github.com/Phenzic/standup-draft/blob/main/README.md); the repository is
+[Phenzic/standup-draft](https://github.com/Phenzic/standup-draft).
