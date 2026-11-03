@@ -8,18 +8,18 @@ Shiplogue watches the work you already did — git commits, saved files, GitHub 
 and issues, and (in Cursor) the prompts you gave your AI assistant — then asks a
 model to write your stand-up. You review and edit the draft, then copy it.
 
-It is local-first by default: a local Ollama server, or a bundled quantized model
-in a later build. Bring-your-own-key providers (Anthropic, OpenAI, Google, or an
-OpenAI-compatible endpoint) are available now if you would rather not run a local
-model. A higher-capacity hosted model is planned as an opt-in paid option.
+It is local-first: run a local Ollama server, or use your own API key for
+Anthropic, OpenAI, Google, or an OpenAI-compatible endpoint. A hosted Shiplogue
+provider is planned as an opt-in paid option. **No model is bundled with the
+extension.**
 
-> **Status:** **0.1.6** beta. Marketplace submission pending — install from the
+> **Status:** **0.1.7** beta. Marketplace submission pending — install from the
 > release VSIX (or run from source). This build uses Ollama or your own API key.
 >
 > **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
 > OpenAI / Google / OpenAI-compatible), manual review. Later:
-> bundled local model, hosted model, paid plans. Nothing paid
-> or hosted by us exists yet.
+> the hosted Shiplogue provider and paid plans. Nothing paid or hosted by us exists
+> yet — and **no model is bundled** with the extension.
 >
 > **Screenshot/GIF placeholder** — capture the Stand-up panel with a generated
 > draft and replace this block before publishing.
@@ -37,7 +37,7 @@ model. A higher-capacity hosted model is planned as an opt-in paid option.
   - or **your own API key** for Anthropic, OpenAI, Google Gemini, or any
     OpenAI-compatible endpoint. Run **Shiplogue: Set API Key** and pick a model.
     The key is stored in the OS keychain, not in settings.
-  A bundled quantized model (no Ollama, no key) is planned, not available yet.
+  A hosted Shiplogue provider (paid) is planned; no model is bundled.
 - **Node/npm** for the development install.
 - Optional: **GitHub** sign-in or a personal access token for merged-PR and
   closed-issue context.
@@ -49,16 +49,13 @@ model. A higher-capacity hosted model is planned as an opt-in paid option.
 | --- | --- | --- | --- |
 | Ollama | **Available now** | Install Ollama, pull a model | Your local Ollama server |
 | Your own API key (BYOK) | **Available now** | `Shiplogue: Set API Key` | The provider you choose (Anthropic, OpenAI, Google, or your compatible endpoint) |
-| Bundled quantized model | Planned (free) | None | On-device |
-| Hosted higher-capacity model | Planned (paid) | Opt-in account | Hosted API; raw diffs not retained |
+| Shiplogue hosted provider | Planned (paid) | Opt-in Shiplogue account | Hosted Shiplogue API; raw diffs not retained |
 
 `shiplogue.model.backend` controls selection:
 
 - `auto` (default) — a fully configured provider wins; otherwise Ollama.
 - `provider` — only the configured provider; fails loudly if it isn't set up.
 - `ollama` — only Ollama.
-- `local` — reserved for the bundled model; in 0.1.x it explains that the model
-  isn't included.
 
 There is **no silent fallback** between a cloud provider and Ollama: if you chose
 a provider, a failure is reported instead of sending your activity somewhere else.
@@ -256,9 +253,9 @@ input-cap notes.
 
 ## Plans (planned — not live)
 
-The intended model is freemium: **Free** local summaries (bundled model or your
-own Ollama), **Pro** with a hosted model, and
-**Enterprise** with on-prem/dedicated deployment. Prices are indicative and no
+The intended model is freemium: **Free** summaries with Ollama or your own API
+key, **Pro** with the hosted Shiplogue provider, and **Enterprise** with
+on-prem/dedicated deployment. Prices are indicative and no
 billing exists yet. See the [project README](https://github.com/Phenzic/shiplogue/blob/main/README.md#plans-and-pricing-planned--not-live)
 for the proposed tiers.
 
@@ -290,7 +287,7 @@ Today:
 - This build never posts anywhere. There is no telemetry and no Shiplogue
   account.
 
-Planned hosted model (opt-in, paid):
+Planned hosted Shiplogue provider (opt-in, paid):
 
 - Only the assembled activity context for the summary is sent — not raw
   repository contents or full diffs.
@@ -328,9 +325,8 @@ Use **Pull now** to run `ollama pull X`, or **Pick another model** to choose an
 installed one. The check matches `model` with or without `:latest`.
 
 **I don't want to install Ollama**
-You currently need a model backend. The planned free build will include a small
-quantized local model; the planned paid build adds an optional hosted model. Until
-then, Ollama is the supported backend.
+Use **Shiplogue: Set API Key** with your own provider key. A hosted Shiplogue
+provider is planned for the paid plan; there is no bundled model.
 
 **The draft is empty or cut off (Ollama)**
 Raise `shiplogue.ollama.numPredict` (e.g. 4096–8192), raise
@@ -378,8 +374,8 @@ planned.
 
 ## Known limitations
 
-- **Ollama or an API key is required.** There is no bundled model yet; hosted
-  plans are planned, not available.
+- **Ollama, an API key, or the planned hosted provider is required.** No model is
+  bundled; the hosted plan is planned, not available.
 - **Reasoning-by-default providers can bill one extra call.** If the first reply
   is reasoning-only, the recovery request is a second paid call; it is skipped
   when the first reply already contains the answer.
@@ -412,7 +408,13 @@ planned.
 
 ## Roadmap
 
-**0.1.6 — beta (current)**
+**0.1.7 — beta (current)**
+
+- Removed the cancelled bundled-model plan and the reserved `local` backend.
+- No functional change; model options are Ollama, BYOK and the planned hosted
+  Shiplogue provider.
+
+**0.1.6 — beta (2026-11-03)**
 
 - Keyboard shortcut: `Cmd+Shift+'` (macOS) / `Ctrl+Shift+'` (Windows/Linux) for
   **Shiplogue: Generate Today's Update** across VS Code-compatible hosts.
@@ -460,8 +462,8 @@ planned.
   fixes; release gate.
 - **Context preflight:** estimate the prompt budget, trim by priority and show
   what was omitted before calling the model.
-- **Bundled quantized local model:** no Ollama setup for a useful free draft.
-- **Optional hosted model and plans:** Free local; Pro hosted/automation;
+- **Hosted Shiplogue provider:** a paid, opt-in backend with no local model setup.
+- **Hosted provider and plans:** Free Ollama/BYOK; Pro hosted/automation;
   Enterprise on-prem/SLA.
 - **Editor support:** Antigravity and other VS Code-compatible forks in the test
   matrix.

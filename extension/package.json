@@ -1,8 +1,8 @@
 {
   "name": "shiplogue",
   "displayName": "Shiplogue",
-  "description": "Drafts your daily stand-up from the work you already did. Local-first for VS Code, Cursor and Antigravity: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), then copied.",
-  "version": "0.1.6",
+  "description": "Drafts your daily stand-up from the work you already did. Local-first for VS Code, Cursor and Antigravity: git, IDE activity and GitHub become a Done / Next / Blockers update, written by Ollama, your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), or the hosted Shiplogue provider (planned, paid), then copied.",
+  "version": "0.1.7",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -135,18 +135,16 @@
           "type": "string",
           "enum": [
             "auto",
-            "local",
             "provider",
             "ollama"
           ],
           "enumDescriptions": [
             "Use a configured API provider if there is one, otherwise Ollama",
-            "Bundled local model (not included in the 0.1.x beta)",
             "Use the configured provider (Anthropic, OpenAI, Google or OpenAI-compatible)",
             "Use the local Ollama server"
           ],
           "default": "auto",
-          "markdownDescription": "Which engine writes your stand-up. `auto` never falls back silently between hosted providers; with no provider configured it uses Ollama."
+          "markdownDescription": "Which engine writes your stand-up. `auto` never falls back silently between hosted providers; with no provider configured it uses Ollama. There is no bundled model."
         },
         "shiplogue.provider.type": {
           "type": "string",

@@ -36,9 +36,9 @@ export function cfg() {
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),
     cursorEnabled: c.get<boolean>("cursor.enabled", true),
-    // Which drafting backend to use. "local" (bundled model) lands in 0.2.0;
-    // until then it produces an actionable message rather than a crash.
-    modelBackend: c.get<"auto" | "local" | "provider" | "ollama">("model.backend", "auto"),
+    // Which drafting backend to use. "auto" prefers a configured provider and
+    // otherwise uses Ollama. There is no bundled model.
+    modelBackend: c.get<"auto" | "provider" | "ollama">("model.backend", "auto"),
     providerType: c.get<"none" | "anthropic" | "openai" | "google" | "openai-compatible">(
       "provider.type",
       "none",

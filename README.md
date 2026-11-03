@@ -9,12 +9,10 @@ commits, saved files, GitHub activity and (in Cursor) AI prompts that make up yo
 day, then asks a model to write the first draft of your stand-up. You review and
 edit it and copy it.
 
-It runs on-device by default. Today that means bring-your-own
-[Ollama](https://ollama.com), or — if you would rather not run a model locally —
-your own API key for Anthropic, OpenAI, Google Gemini, or any OpenAI-compatible
-endpoint (DeepSeek, Kimi, OpenRouter, Groq, LM Studio…). The next build adds a
-small bundled quantized model so you won't need either. An optional
-higher-capacity hosted model is planned for users who want it. Local use needs no
+It runs with your own [Ollama](https://ollama.com), your own API key for
+Anthropic, OpenAI, Google Gemini, or any OpenAI-compatible endpoint (DeepSeek,
+Kimi, OpenRouter, Groq, LM Studio…), or — planned for the paid plan — the hosted
+Shiplogue provider. **No model is bundled with the extension.** Local use needs no
 Shiplogue account and no telemetry.
 
 <!-- Replace this block with docs/screenshot.png or a short GIF once captured. 
@@ -23,10 +21,9 @@ Shiplogue account and no telemetry.
 -->
 
 > **Current build vs planned.** This README describes the current development
-> tree. Today (0.1.6 beta): local Ollama or your own API key, manual review and
-> manual review. Planned for the next build: bundled local model (no model setup),
-> optional hosted model and paid plans. Pricing and plans below
-> are proposals — no paid tier or hosted service exists yet.
+> tree. Today (0.1.7 beta): local Ollama or your own API key, manual review.
+> Planned: the hosted Shiplogue provider and paid plans. Pricing below is a
+> proposal — no paid tier or hosted service exists yet.
 
 ## Why
 
@@ -37,8 +34,8 @@ themes, and writes a draft — so you start from something real instead of a bla
 box.
 
 It is local-first by design, not by accident: raw activity stays on your machine
-and the default model runs there. A hosted model is an opt-in upgrade for people
-who want a stronger summary, not a requirement.
+and the default Ollama backend runs there. The hosted Shiplogue provider is an
+opt-in upgrade for people who want a stronger summary, not a requirement.
 
 ## Who it's for
 
@@ -58,12 +55,11 @@ be needed); teams that want a hosted multi-person dashboard.
 | --- | --- | --- | --- |
 | **Ollama** (bring your own) | Available now | Install Ollama and pull a model | Your local Ollama server |
 | **Your own API key** (BYOK) | Available now | `Shiplogue: Set API Key` | The provider you choose (Anthropic, OpenAI, Google, or your compatible endpoint) |
-| **Bundled quantized model** | Planned, free tier | None — ships/downloads with the extension | On-device |
-| **Hosted higher-capacity model** | Planned, paid tier | Opt-in account | Hosted API; raw diffs are not retained |
+| **Shiplogue hosted provider** | Planned, paid tier | Opt-in Shiplogue account | Hosted Shiplogue API; raw diffs are not retained |
 
-The current build supports **Ollama or your own API key**. The bundled and hosted
-backends are planned; this README marks them clearly so nobody is surprised at
-install time. The goal is that a user with no model setup can still get a useful
+The current build supports **Ollama or your own API key**. The hosted Shiplogue
+provider is planned for the paid plan; this README marks it clearly so nobody is
+surprised at install time. The goal is that a user with no model setup can still get a useful
 local draft.
 
 ## What works today
@@ -135,7 +131,7 @@ Cursor chat DB (read-only, Cursor only) ────┘                         
                                                      grounding + formatting        │
                                                           panel: edit/copy ◀──┘
 
-Model backend today: Ollama or your own API key. Planned: bundled on-device model, optional hosted API.
+Model backend today: Ollama or your own API key. Planned: the hosted Shiplogue provider (paid).
 ```
 
 1. **Track** — save/edit events are debounced and written to a local per-day log.
@@ -158,15 +154,15 @@ current features are free and MIT-licensed.**
 
 | Tier | Planned features | Planned price |
 | --- | --- | --- |
-| **Free** | Bundled local model (or your own Ollama), review/copy, custom prompt templates | $0 |
-| **Pro** | Hosted higher-capacity model, advanced analytics, API access | $5–$10/month (indicative) |
+| **Free** | Ollama or your own API key, review/copy, custom prompt templates | $0 |
+| **Pro** | Hosted Shiplogue provider, advanced analytics, API access | $5–$10/month (indicative) |
 | **Enterprise** | Unlimited users, dedicated instance, SLA, on-prem/Docker option | Custom quote |
 
 - Prices and packaging are **proposals** and may change before launch.
 - Any Pro analytics will be opt-in, aggregate and free of repository contents or
   PII; the local build has no analytics.
-- The extension is open source; the hosted service is a separate product. A
-  hosted plan is not required to use the local model.
+- The extension is open source; the hosted service is a separate product. A paid
+  plan is not required to use Ollama or BYOK.
 - Marketplace installs cannot process payment; entitlements will be enforced by
   the hosted service, not by client-side checks.
 
@@ -268,15 +264,14 @@ Planned hosted model (opt-in, paid):
 ## Status and limitations
 
 I believe an honest list matters more than a polished one. This README describes
-the current development tree. The package version is `0.1.6`; there is no
+the current development tree. The package version is `0.1.7`; there is no
 Marketplace/Open VSX listing yet, and the manual launch QA/publishing step is
 still outstanding. See [`extension/CHANGELOG.md`](extension/CHANGELOG.md) for
-what changed in 0.1.6 and [`extension/PRIVACY.md`](extension/PRIVACY.md) for the
+what changed in 0.1.7 and [`extension/PRIVACY.md`](extension/PRIVACY.md) for the
 current local-data policy.
 
-- **A model backend is required: Ollama or your own API key.** The bundled local
-  model, hosted model and paid plans are planned, not
-  available.
+- **A model backend is required: Ollama, your own API key, or the planned hosted
+  provider.** No model is bundled; the hosted plan is planned, not available.
 - **VS Code-compatible editors only.** Built for VS Code, Cursor, Antigravity,
   VSCodium, Windsurf and similar forks. JetBrains, Zed, Neovim and Sublime need
   separate adapters.
@@ -305,7 +300,11 @@ current local-data policy.
 
 ## Roadmap
 
-**0.1.6 — beta (current)**
+**0.1.7 — beta (current)**
+
+- Removed the cancelled bundled-model plan and the reserved `local` backend.
+
+**0.1.6 — beta (2026-11-03)**
 
 - `Cmd+Shift+'` / `Ctrl+Shift+'` keyboard shortcut for generation.
 
@@ -352,8 +351,8 @@ current local-data policy.
   fixes. This is a release gate.
 - **Context preflight:** estimate the prompt budget, trim by priority and show
   exactly what was omitted before calling the model.
-- **Bundled quantized local model:** no Ollama setup for a useful free draft.
-- **Optional hosted model and plans:** Free local; Pro hosted/automation; Enterprise
+- **Hosted Shiplogue provider:** a paid, opt-in backend with no local model setup.
+- **Hosted provider and plans:** free Ollama/BYOK; Pro hosted/automation; Enterprise
   on-prem/SLA.
 - **Editor support:** Antigravity and VS Code-compatible forks in the test matrix.
 - **Self-hosted backend (Docker) evaluation** for Enterprise/on-prem — the

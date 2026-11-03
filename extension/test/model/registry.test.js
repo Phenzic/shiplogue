@@ -99,15 +99,6 @@ test("provider mode without a stored key fails instead of falling back", async (
   await assert.rejects(() => resolveBackend(), BackendUnavailableError);
 });
 
-test("local mode explains that the bundled model is not in this beta", async () => {
-  setSecretStorage(memorySecrets());
-  stub.setConfig({ "shiplogue.model.backend": "local" });
-  await assert.rejects(
-    () => resolveBackend(),
-    (e) => e instanceof BackendUnavailableError && /isn't part of this beta/.test(e.message),
-  );
-});
-
 test("an OpenAI-compatible endpoint works without a key when a URL is set", async () => {
   const server = await startServer(() => ({ body: { choices: [{ message: { content: "local" } }] } }));
   try {

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.7] — 2026-11-03
+
+Bundled-model cleanup. No functional change.
+
+### Changed
+
+- Removed the cancelled bundled local-model plan from the README and roadmap.
+- Removed the reserved `local` value from `shiplogue.model.backend`. Backends are
+  `auto`, `provider` and `ollama`; there is no bundled model.
+- Model options are Ollama, BYOK, or the hosted Shiplogue provider (planned, paid).
+
 ## [0.1.6] — 2026-11-03
 
 Keyboard shortcut release.

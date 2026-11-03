@@ -9,7 +9,7 @@ import { ProviderBackend } from "./providerBackend";
 import { getProviderKey } from "./secrets";
 import { BackendError, ModelBackend } from "./types";
 
-export type BackendSetting = "auto" | "local" | "provider" | "ollama";
+export type BackendSetting = "auto" | "provider" | "ollama";
 
 // User-facing selection error (shown verbatim in the panel).
 export class BackendUnavailableError extends BackendError {
@@ -61,16 +61,10 @@ export function providerDisplayName(type: ActiveProviderType): string {
   return PROVIDER_SHORT_LABELS[type];
 }
 
-// Selection order for `auto`: bundled local model (R4) → configured provider →
-// Ollama. There is deliberately no silent fallback between cloud providers.
+// Selection order for `auto`: configured provider → Ollama. There is
+// deliberately no silent fallback between cloud providers.
 export async function resolveBackend(): Promise<ModelBackend> {
   const setting = cfg().modelBackend;
-
-  if (setting === "local") {
-    throw new BackendUnavailableError(
-      "The bundled local model isn't part of this beta. Set shiplogue.model.backend to 'auto' or 'provider' (your own API key), or use 'ollama'.",
-    );
-  }
 
   if (setting === "ollama") {
     return new OllamaBackend();

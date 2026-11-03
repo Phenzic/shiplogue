@@ -187,9 +187,9 @@ Watcher coverage (agent-agnostic):
 ## 6. Brain: generation and rendering
 
 - Reuses `extension/src/core` after extraction: prompt, grounding, budget, providers.
-- Backends: **BYOK** (Anthropic/OpenAI/Google/compatible) and **Ollama** in v1. The 4B local
-  engine stays in the extension; an optional local bridge can come later. Do not add
-  `node-llama-cpp` to the agent package in v1.
+- Backends: **BYOK** (Anthropic/OpenAI/Google/compatible), **Ollama**, and the hosted
+  Shiplogue provider (paid) in v1. There is **no bundled model**; do not add
+  `node-llama-cpp` to the agent or extension packages.
 - Modes `concise|standard|elaborate`; tone `neutral|junior|mid|senior`; format
   `done-next-blockers|yesterday-today-blockers`.
 - Draft metadata: source counts, omissions, grounding removals, `needsReview`, backend/model,

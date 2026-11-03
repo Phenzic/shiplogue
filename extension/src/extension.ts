@@ -221,7 +221,7 @@ async function checkOllamaHealth(): Promise<void> {
     const c = cfg();
     // Only probe Ollama when it is the backend that would actually be used.
     // A configured provider must not trigger an "Ollama isn't running" warning.
-    if (c.modelBackend === "provider" || c.modelBackend === "local") {
+    if (c.modelBackend === "provider") {
       return;
     }
     if (c.modelBackend === "auto" && (await loadProviderConfig())) {
