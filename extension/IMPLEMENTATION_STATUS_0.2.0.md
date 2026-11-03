@@ -25,6 +25,10 @@ planned hosted Shiplogue provider (paid).
 - [x] Panel warning: "Needs review: N unverified claim(s)"
 - [ ] Eval fixtures (R8)
 
+## UI
+
+- [x] Model-provenance note under the Copy button ("done with … BYOK"/"done with Ollama")
+
 ## IDE prompt capture (before agent)
 
 Yes — the plan is a **unified capture layer**, not Cursor-only:

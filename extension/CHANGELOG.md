@@ -12,6 +12,8 @@
   reports what was dropped. `0` disables preflight.
 - AI prompt capture now covers **Cursor, VS Code Copilot and Antigravity** chat
   stores (read-only), with a background watcher for continuous capture.
+- A small provenance note under **Copy** shows the model used, e.g.
+  "done with OpenAI BYOK" or "done with Ollama".
 
 
 All notable changes to this project will be documented here. Format follows

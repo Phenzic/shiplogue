@@ -175,7 +175,7 @@ async function runGenerate(): Promise<void> {
           ...(notes.length ? { notes } : {}),
         },
         ...(warnings.length ? { warnings } : {}),
-        ...(backend ? { modelLabel: backendLabel(backend) } : {}),
+        ...(backend ? { modelLabel: backendLabel(backend), modelNote: backendNote(backend) } : {}),
       });
     }
   } catch (e: any) {
@@ -218,6 +218,20 @@ function backendLabel(meta: BackendMeta): string {
     return `Ollama · ${meta.model}`;
   }
   return `Local model · ${meta.model}`;
+}
+
+// Short note under the Copy button: "done with OpenAI BYOK", "done with Ollama".
+function backendNote(meta: BackendMeta): string {
+  if (meta.kind === "provider") {
+    const name = meta.provider
+      ? providerDisplayName(meta.provider as ActiveProviderType)
+      : "Provider";
+    return `${name} BYOK`;
+  }
+  if (meta.kind === "ollama") {
+    return "Ollama";
+  }
+  return "Local model";
 }
 
 // First-run health check: ping Ollama and verify the configured model is

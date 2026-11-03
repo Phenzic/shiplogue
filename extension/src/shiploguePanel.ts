@@ -10,6 +10,8 @@ export interface DraftPayload {
   warnings?: string[];
   // Which engine wrote the draft, e.g. "Ollama · llama3.2".
   modelLabel?: string;
+  // Short provenance under the Copy button, e.g. "OpenAI BYOK".
+  modelNote?: string;
   verification?: Verification;
 }
 
@@ -64,6 +66,7 @@ export class ShiploguePanel {
       summary: p.summary,
       warnings: p.warnings,
       modelLabel: p.modelLabel,
+      modelNote: p.modelNote,
       verification: p.verification,
       detail: c.detail,
       tone: c.tone,
@@ -159,6 +162,8 @@ export class ShiploguePanel {
   button.secondary { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
   button.action:hover { opacity: 0.9; }
   #status { margin-top: 10px; min-height: 16px; font-size: 12px; opacity: 0.85; }
+  .copy-block { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+  #modelNote { font-size: 10.5px; opacity: 0.55; line-height: 1.1; }
   .err { color: var(--vscode-errorForeground); white-space: pre-wrap; }
   .hint { font-size: 12px; opacity: 0.65; margin: 6px 0 0; }
 </style>
@@ -183,7 +188,10 @@ export class ShiploguePanel {
   </div>
 
   <div class="row">
-    <button class="action" id="copy">Copy</button>
+    <span class="copy-block">
+      <button class="action" id="copy">Copy</button>
+      <span id="modelNote"></span>
+    </span>
     <button class="action secondary" id="regen">Regenerate</button>
     <button class="action secondary" id="cancel" style="display:none">Cancel</button>
     <label style="font-size:12px;opacity:.8;margin-left:auto">Detail
@@ -210,6 +218,7 @@ export class ShiploguePanel {
   const txt = document.getElementById('txt');
   const status = document.getElementById('status');
   const meta = document.getElementById('meta');
+  const modelNote = document.getElementById('modelNote');
   const cancelBtn = document.getElementById('cancel');
   const regenBtn = document.getElementById('regen');
   const detailSel = document.getElementById('detail');
@@ -265,6 +274,7 @@ export class ShiploguePanel {
       setBusy(true);
       md.value = ''; txt.value = ''; txtEdited = false;
       md.placeholder = m.label; status.textContent = m.label; status.className = '';
+      modelNote.textContent = '';
     } else if (m.kind === 'init' || m.kind === 'draft') {
       if (m.kind === 'draft') {
         setBusy(false);
@@ -277,6 +287,7 @@ export class ShiploguePanel {
           s.github ? s.github + ' GitHub items' : '',
           m.modelLabel ? 'via ' + m.modelLabel : ''
         ].filter(Boolean).join(' · ');
+        modelNote.textContent = m.modelNote ? 'done with ' + m.modelNote : '';
         if (s.notes && s.notes.length) {
           meta.textContent += (meta.textContent ? ' — ' : '') + s.notes.join('; ');
         }

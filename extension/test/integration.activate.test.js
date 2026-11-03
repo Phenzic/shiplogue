@@ -155,6 +155,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.deepEqual(draft.summary, { commits: 2, files: 1, github: 2 });
   assert.equal(draft.detail, "concise");
   assert.equal(draft.modelLabel, "Ollama · test-model");
+  assert.equal(draft.modelNote, "Ollama");
 
   // What the model actually received. (The activation-time health check also
   // hits the mock server with GET /api/tags — filter to generate calls.)
