@@ -2,7 +2,7 @@
   "name": "shiplogue",
   "displayName": "Shiplogue",
   "description": "Drafts your daily stand-up from the work you already did. Local-first for VS Code, Cursor and Antigravity: git, IDE activity and GitHub become a Done / Next / Blockers update, written by a local model or your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), then copied.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -282,7 +282,14 @@
           "markdownDescription": "Include the AI prompts you gave Cursor's assistant today as context for the stand-up. Read locally & read-only from Cursor's chat DB; nothing is uploaded. No effect if Cursor isn't installed."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "shiplogue.generate",
+        "key": "ctrl+shift+'",
+        "mac": "cmd+shift+'"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run clean && npm run compile",

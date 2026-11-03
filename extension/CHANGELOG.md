@@ -3,6 +3,16 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.6] — 2026-11-03
+
+Keyboard shortcut release.
+
+### Added
+
+- `Cmd+Shift+'` (macOS) / `Ctrl+Shift+'` (Windows/Linux) fires
+  **Shiplogue: Generate Today's Update** in VS Code, Cursor, Antigravity and other
+  VS Code-compatible hosts.
+
 ## [0.1.5] — 2026-11-02
 
 Workflow-validation release. No functional changes; the extension is identical to
