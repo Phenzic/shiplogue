@@ -1,7 +1,8 @@
 import { cfg } from "./config";
 import { StandupContext } from "./types";
 import { contextToText } from "./gather";
-import { enforceSublists, verifyGrounding } from "./format";
+import { enforceSublists } from "./format";
+import { verifyClaims, Verification } from "./grounding";
 import { resolveBackend } from "./model/registry";
 import { BackendMeta } from "./model/types";
 
@@ -140,6 +141,7 @@ export interface GenerateResult {
   // Which engine produced the draft, so the panel can show it. Absent only if
   // the backend failed before returning text.
   backend?: BackendMeta;
+  verification?: Verification;
 }
 
 export async function generateStandup(ctx: StandupContext, signal?: AbortSignal): Promise<GenerateResult> {
@@ -196,10 +198,14 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
   }
 
   const formatted = enforceSublists(text);
-  const { cleanDraft, removed } = verifyGrounding(formatted, ctx);
+  const verification = verifyClaims(formatted, ctx);
   const warnings =
-    removed.length > 0
-      ? [`⚠ Removed ${removed.length} unverifiable mention(s): ${[...new Set(removed)].join(", ")}`]
+    verification.removed.length > 0
+      ? [`⚠ Removed ${verification.removed.length} unverifiable mention(s): ${[...new Set(verification.removed)].join(", ")}`]
       : [];
-  return { text: cleanDraft, warnings, backend: meta };
+  const unsupported = verification.violations.filter((v) => v.kind === "completion").length;
+  if (verification.needsReview && unsupported > 0) {
+    warnings.push(`⚠ ${unsupported} completion claim(s) need review before sending`);
+  }
+  return { text: verification.cleanDraft, warnings, backend: meta, verification };
 }

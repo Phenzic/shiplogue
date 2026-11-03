@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Grounding v2, first slice: structured claim checks for paths, numbers, URLs and
+  completion verbs. Unsupported completion claims set `needsReview`; invented
+  URLs are removed deterministically.
+
+
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
@@ -13,6 +22,16 @@ Bundled-model cleanup. No functional change.
 - Removed the reserved `local` value from `shiplogue.model.backend`. Backends are
   `auto`, `provider` and `ollama`; there is no bundled model.
 - Model options are Ollama, BYOK, or the hosted Shiplogue provider (planned, paid).
+
+### Documentation
+
+- Rewrote the Marketplace details: features at a glance, install paths for VS Code /
+  Cursor / Antigravity, a first-run quick start, and the Marketplace-vs-source
+  version split.
+- Added the Marketplace badge and removed the visible screenshot placeholder until
+  a real capture is available.
+- Corrected the backend list and the shortcut documentation (`Cmd+Shift+'` /
+  `Ctrl+Shift+'`).
 
 ## [0.1.6] — 2026-11-03
 
