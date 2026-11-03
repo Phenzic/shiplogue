@@ -387,6 +387,8 @@ planned.
   separate adapters.
 - **AI prompt capture is Cursor-only.** VS Code/Copilot chat history is not read.
 - **Copy-only.** No webhooks or scheduled posting in this build.
+- **Private files are excluded.** `.env`, keys and any path ignored by
+  `.gitignore`/`.*ignore` are never recorded. File contents are never read.
 - **Grounding covers file/#number references today.** The next build makes every
   specific claim a hard, verifiable rule and warns rather than silently accepting
   an unverified detail.

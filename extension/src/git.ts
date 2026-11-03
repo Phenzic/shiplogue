@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { Commit } from "./types";
+import { isPrivatePath } from "./ignore";
 
 const pexec = promisify(execFile);
 
@@ -81,7 +82,7 @@ export async function collectCommits(since: Date, until: Date, signal?: AbortSig
         const files = filesBlob
           .split("\n")
           .map((f) => f.trim())
-          .filter(Boolean);
+          .filter((f) => f && !isPrivatePath(f, cwd));
         out.push({
           hash: hash.trim().slice(0, 8),
           date: date ?? "",

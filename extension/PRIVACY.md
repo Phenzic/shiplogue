@@ -16,6 +16,15 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
   **Shiplogue: Clear API Key** to delete one; uninstalling the extension may leave
   the keychain entry behind.
 
+## What is never read
+
+- **Project file contents.** Shiplogue records file paths and timestamps only.
+- **Private paths.** `.env` (and `.env.*`), private keys/certificates, credential
+  stores, `.ssh`/`.aws`/`.gnupg`/`.kube`/`.docker` directories, and any path
+  matched by `.gitignore` or another `.*ignore` file in the workspace are filtered
+  out before an event is stored. This is enforced in the tracker, the git
+  collector and the activity store.
+
 ## What is read
 
 - `git log` for your workspace repos (your own commits only).

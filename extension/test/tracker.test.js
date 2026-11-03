@@ -82,6 +82,23 @@ test("noise paths are ignored", () => {
   tracker.dispose();
 });
 
+test("private and ignored files are never recorded", () => {
+  const root = tmpDir("standup-privacy-");
+  fs.writeFileSync(path.join(root, ".gitignore"), "*.log\nsecret/\n");
+  stub.reset();
+  stub.setFolders([{ fsPath: root, name: "proj" }]);
+  const store = new Store(makeContext(tmpDir()));
+  const tracker = new Tracker(store);
+  tracker.start();
+  stub.emitSave(stub.makeDoc(path.join(root, ".env")));
+  stub.emitSave(stub.makeDoc(path.join(root, "debug.log")));
+  stub.emitSave(stub.makeDoc(path.join(root, "secret", "key.txt")));
+  stub.emitSave(stub.makeDoc(path.join(root, "src", "app.ts")));
+  store.flush();
+  assert.deepEqual(store.readRange(new Date(Date.now() - 3600e3), new Date(Date.now() + 60e3)).map((e) => e.file), ["src/app.ts"]);
+  tracker.dispose();
+});
+
 test("untitled and non-file documents are ignored", () => {
   const { tracker, flush, read } = setup();
   stub.emitSave(stub.makeDoc(path.join(ROOT, "src/u.ts"), { isUntitled: true }));

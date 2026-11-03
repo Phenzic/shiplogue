@@ -12,6 +12,10 @@ Keyboard shortcut release.
 - `Cmd+Shift+'` (macOS) / `Ctrl+Shift+'` (Windows/Linux) fires
   **Shiplogue: Generate Today's Update** in VS Code, Cursor, Antigravity and other
   VS Code-compatible hosts.
+- Hard privacy filter: private paths are never tracked. `.env`, keys/credential
+  stores and `.ssh`/`.aws`-style directories are always excluded; any path matched
+  by `.gitignore` or another `.*ignore` file is excluded too. Enforced in the
+  tracker, the git collector and the activity store.
 
 ## [0.1.5] — 2026-11-02
 

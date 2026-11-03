@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { Store } from "./store";
 import { ActivityEvent } from "./types";
 import { normalizeFolderPath, normalizeSlashes } from "./paths";
+import { isPrivatePath } from "./ignore";
 
 // Watches editor activity and records low-noise events: every save, and at most
 // one "edit" heartbeat per file per throttle window. Skips non-file documents
@@ -43,6 +44,11 @@ export class Tracker {
     );
 
     if (/(^|[\\/])(node_modules|\.git|dist|out|build|\.next|coverage)([\\/]|$)/.test(rel)) {
+      return;
+    }
+    // Never record private/ignored paths. The ignore policy is shared with the
+    // git collector and the store; see src/ignore.ts.
+    if (isPrivatePath(rel, folder?.uri.fsPath)) {
       return;
     }
 

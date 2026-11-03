@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { ActivityEvent } from "./types";
+import { isAlwaysPrivate, isPrivatePath } from "./ignore";
 
 // Local, on-disk activity log. One JSON file per day under the extension's
 // global storage dir. Nothing here ever leaves the machine.
@@ -29,6 +30,11 @@ export class Store {
 
   // Queue an event; flushed to disk on a short debounce.
   add(ev: ActivityEvent): void {
+    // Cheap guard: the tracker already applies the full ignore policy, but a
+    // private path must never reach the on-disk log even if a caller bypasses it.
+    if (isAlwaysPrivate(ev.file)) {
+      return;
+    }
     this.buffer.push(ev);
     if (!this.flushTimer) {
       this.flushTimer = setTimeout(() => this.flush(), 3000);
@@ -127,7 +133,14 @@ export class Store {
       if (!fs.existsSync(file)) {
         return [];
       }
-      return JSON.parse(fs.readFileSync(file, "utf8")) as ActivityEvent[];
+      const events = JSON.parse(fs.readFileSync(file, "utf8")) as ActivityEvent[];
+      // Defense in depth for logs written before ignore support, and for a
+      // workspace whose .gitignore changed after an event was recorded.
+      return events.filter(
+        (ev) =>
+          !isAlwaysPrivate(ev.file) &&
+          (!ev.projectPath || !isPrivatePath(ev.file, ev.projectPath)),
+      );
     } catch {
       return [];
     }

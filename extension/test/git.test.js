@@ -2,6 +2,8 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { execFileSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 const { installVscodeStub, tmpDir, makeGitRepo } = require("./helpers");
 
 const { stub } = installVscodeStub();
@@ -26,6 +28,24 @@ test("collectCommits parses hash, subject, body, files and repo slug", async () 
 
   const second = commits.find((c) => c.subject.includes("docs"));
   assert.deepEqual(second.files.sort(), ["a.ts", "b.md"]);
+});
+
+test("collectCommits excludes private and ignored commit files", async () => {
+  const { dir, run } = makeGitRepo();
+  fs.writeFileSync(path.join(dir, ".gitignore"), ".env\nsecret/\n");
+  fs.writeFileSync(path.join(dir, ".env"), "SECRET=1\n");
+  fs.mkdirSync(path.join(dir, "secret"));
+  fs.writeFileSync(path.join(dir, "secret", "key.txt"), "key\n");
+  fs.writeFileSync(path.join(dir, "app.ts"), "export {};\n");
+  run(["add", "-A", "-f"]);
+  run(["commit", "-q", "-m", "feat: add app and secret config"]);
+  stub.reset();
+  stub.setFolders([{ fsPath: dir, name: "demo" }]);
+  const now = Date.now();
+  const commits = await collectCommits(new Date(now - 3600e3), new Date(now + 60e3));
+  const c = commits.find((x) => x.subject.includes("secret config"));
+  assert.ok(c);
+  assert.deepEqual(c.files.sort(), ["app.ts"]);
 });
 
 test("collectCommits honours the time window", async () => {
