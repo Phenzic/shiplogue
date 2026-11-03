@@ -1,28 +1,44 @@
 # Shiplogue — VS Code-compatible extension
 
-**Local-first daily stand-ups, drafted from your actual IDE activity.**
+**Your daily stand-up, drafted from the work you actually did.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Phenzic/shiplogue/blob/main/LICENSE)
+[![Marketplace](https://img.shields.io/badge/Marketplace-Shiplogue-1e3a5f.svg)](https://marketplace.visualstudio.com/items?itemName=phenzic.shiplogue)
 
 Shiplogue watches the work you already did — git commits, saved files, GitHub PRs
 and issues, and (in Cursor) the prompts you gave your AI assistant — then asks a
-model to write your stand-up. You review and edit the draft, then copy it.
+model to write your stand-up. Review and edit the draft, then copy it.
 
 It is local-first: run a local Ollama server, or use your own API key for
-Anthropic, OpenAI, Google, or an OpenAI-compatible endpoint. A hosted Shiplogue
-provider is planned as an opt-in paid option. **No model is bundled with the
-extension.**
+Anthropic, OpenAI, Google, or an OpenAI-compatible endpoint. **No model is bundled
+with the extension.**
 
-> **Status:** **0.1.7** beta. Marketplace submission pending — install from the
-> release VSIX (or run from source). This build uses Ollama or your own API key.
->
-> **Current vs planned:** today: Ollama, bring-your-own-key providers (Anthropic /
-> OpenAI / Google / OpenAI-compatible), manual review. Later:
-> the hosted Shiplogue provider and paid plans. Nothing paid or hosted by us exists
-> yet — and **no model is bundled** with the extension.
->
-> **Screenshot/GIF placeholder** — capture the Stand-up panel with a generated
-> draft and replace this block before publishing.
+> **Versions:** Marketplace `0.1.6` · source `0.1.7` (not published yet).
+> Install from the Marketplace where available, or from the release VSIX.
+
+## Features at a glance
+
+| What you get | Details |
+| --- | --- |
+| **Drafted from real work** | Your commits (with changed files), file saves, merged PRs, closed issues, and Cursor AI prompts — not a blank page. |
+| **A fixed, useful format** | Done / Next / Blockers (or Yesterday / Today / Blockers), one accomplishment per bullet, 3+ files turned into sub-bullets. |
+| **Your model, your privacy** | Local Ollama, or your own Anthropic / OpenAI / Google / OpenAI-compatible key. Keys stay in the OS keychain; no telemetry. |
+| **Three detail levels, four tones** | Concise, Standard, Elaborate; Neutral, Junior, Mid, Senior. Switch from the panel and regenerate. |
+| **Review before you share** | Markdown and Plain-text tabs, both editable; Copy, Regenerate and Cancel. |
+| **Built for the editor** | One shortcut (`Cmd+Shift+'` / `Ctrl+Shift+'`), a daily reminder, and a panel that stays out of the way. |
+| **Works where you work** | VS Code, Cursor, Antigravity and other VS Code-compatible editors. |
+
+## Install
+
+- **Marketplace (VS Code):** search for **Shiplogue**, or run
+  `code --install-extension phenzic.shiplogue`.
+- **Cursor / Antigravity:** if the listing is not in their gallery yet, download
+  the Marketplace VSIX and use **Install from VSIX**.
+- **From source:** see [Install and run (development)](#install-and-run-development).
+
+First run: either run Ollama locally, or run **Shiplogue: Set API Key** and pick a
+provider. Then press `Cmd+Shift+'` / `Ctrl+Shift+'` or run
+**Shiplogue: Generate Today's Update**.
 
 ## Requirements
 
@@ -84,7 +100,8 @@ Keys are never written to `settings.json`, logs, or error messages. See
 
 ## Install and run (development)
 
-Shiplogue is not published to a marketplace yet.
+The Marketplace build is published; the source tree can be ahead of it. To run the
+source version:
 
 ```bash
 cd extension
@@ -185,7 +202,7 @@ backends ship.
 | `shiplogue.ollama.numPredict` | `0` | Output token budget; `0` uses the per-detail default (400/900/1600) |
 | `shiplogue.ollama.numCtx` | `8192` | Context window passed to Ollama; raise for very busy days |
 | `shiplogue.ollama.think` | `auto` | Reasoning control: `auto` (retry with thinking off if empty), `on`, `off` |
-| `shiplogue.model.backend` | `auto` | `auto` / `local` / `provider` / `ollama` |
+| `shiplogue.model.backend` | `auto` | `auto` / `provider` / `ollama` |
 | `shiplogue.provider.type` | `none` | `anthropic` / `openai` / `google` / `openai-compatible` |
 | `shiplogue.provider.model` | `""` | Model id, normally set by **Shiplogue: Set API Key** |
 | `shiplogue.provider.baseUrl` | `""` | Endpoint override, mainly for `openai-compatible` |

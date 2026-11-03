@@ -4,9 +4,12 @@
 
 ### Added
 
-- Grounding v2, first slice: structured claim checks for paths, numbers, URLs and
-  completion verbs. Unsupported completion claims set `needsReview`; invented
-  URLs are removed deterministically.
+- Grounding v2: structured claim checks for paths, numbers, URLs, completion,
+  people and dates. Unsupported claims trigger one repair call, then set
+  `needsReview` with a panel warning; invented URLs are removed deterministically.
+- Context preflight: set `shiplogue.model.contextTokens` to guarantee no
+  over-budget prompt is sent; activity is trimmed by priority and the draft
+  reports what was dropped. `0` disables preflight.
 
 
 All notable changes to this project will be documented here. Format follows

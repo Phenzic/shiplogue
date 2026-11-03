@@ -153,6 +153,26 @@ test("loading, draft and error messages drive the UI", () => {
   assert.equal(ui.els.status.className, "err");
 });
 
+test("needs-review verification is surfaced in the status line", () => {
+  const { webview } = freshPanel();
+  const ui = bootWebview(webview.webview.html);
+  ui.sendMessage({
+    kind: "draft",
+    markdown: "**Done**\n- Shipped it",
+    summary: {},
+    detail: "concise",
+    verification: {
+      cleanDraft: "**Done**\n- Shipped it",
+      removed: [],
+      violations: [{ kind: "completion", text: "Shipped" }],
+      checkedClaims: 1,
+      needsReview: true,
+    },
+  });
+  assert.match(ui.els.status.textContent, /Needs review/);
+  assert.equal(ui.els.status.className, "err");
+});
+
 test("copying respects the active tab; editing plain text survives markdown sync", () => {
   const { webview } = freshPanel();
   const ui = bootWebview(webview.webview.html);

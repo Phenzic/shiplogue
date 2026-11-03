@@ -39,6 +39,14 @@ test("completion verbs are accepted when commit evidence exists", () => {
   assert.equal(v.needsReview, false);
 });
 
+test("unsupported people and dates are flagged", () => {
+  const p = verifyClaims("- Paired with Alice on the rewrite", ctx());
+  assert.ok(p.violations.some((x) => x.kind === "person"));
+  assert.equal(p.needsReview, true);
+  const d = verifyClaims("- Shipped v2.0 on 2026-03-01", ctx());
+  assert.ok(d.violations.some((x) => x.kind === "date"));
+});
+
 test("inferred bullets are exempt from completion verification", () => {
   const v = verifyClaims("- (inferred) Ship the onboarding flow next", ctx());
   assert.equal(v.needsReview, false);

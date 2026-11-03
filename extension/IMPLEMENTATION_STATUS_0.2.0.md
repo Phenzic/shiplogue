@@ -1,6 +1,6 @@
 # Implementation Status — 0.2.0
 
-Baseline: `main` at 0.1.7 (178 pass / 10 skipped / 0 fail).
+Baseline: `main` at 0.1.7 (191 pass / 10 skipped / 0 fail on this branch).
 Decision 2026-11-03: **no bundled model**. Backends are Ollama, BYOK, and the
 planned hosted Shiplogue provider (paid).
 
@@ -20,9 +20,10 @@ planned hosted Shiplogue provider (paid).
 - [x] `needsReview` signal for unsupported completion claims
 - [x] Wired into `summarize`; warnings still shown; `verification` payload added
 - [x] Tests: 183 pass / 10 skipped / 0 fail (5 new grounding tests)
-- [ ] One repair call, re-verify, `verification` payload in the panel
-- [ ] Person/date/metric taxonomy
-- [ ] Eval fixtures
+- [x] One repair call, re-verify, `verification` payload in the panel
+- [x] Person/date taxonomy; unsupported claims set `needsReview`
+- [x] Panel warning: "Needs review: N unverified claim(s)"
+- [ ] Eval fixtures (R8)
 
 ## IDE prompt capture (before agent)
 
@@ -41,6 +42,9 @@ Yes — the plan is a **unified capture layer**, not Cursor-only:
 
 ## R7 — context preflight
 
-- [ ] Budget estimate + priority trimming
-- [ ] Actionable warning before send
-- [ ] Tests
+- [x] `shiplogue.model.contextTokens` setting (0 = off)
+- [x] Conservative token estimate + priority trimming (prompts → commits → bodies → files → touches → GitHub)
+- [x] Refuses with an actionable error when even the minimum does not fit
+- [x] Post-draft warning reports what was dropped
+- [ ] Pre-generation loading note in the panel
+- [x] Tests (191 pass / 10 skipped)

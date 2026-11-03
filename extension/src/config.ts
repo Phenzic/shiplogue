@@ -39,6 +39,8 @@ export function cfg() {
     // Which drafting backend to use. "auto" prefers a configured provider and
     // otherwise uses Ollama. There is no bundled model.
     modelBackend: c.get<"auto" | "provider" | "ollama">("model.backend", "auto"),
+    // Context window for preflight; 0 disables preflight (coarse caps only).
+    modelContextTokens: c.get<number>("model.contextTokens", 0),
     providerType: c.get<"none" | "anthropic" | "openai" | "google" | "openai-compatible">(
       "provider.type",
       "none",

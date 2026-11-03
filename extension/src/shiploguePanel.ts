@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
 import { DetailLevel, State, Tone } from "./state";
+import type { Verification } from "./grounding";
 
 export interface DraftPayload {
   markdown: string;
@@ -9,6 +10,7 @@ export interface DraftPayload {
   warnings?: string[];
   // Which engine wrote the draft, e.g. "Ollama · llama3.2".
   modelLabel?: string;
+  verification?: Verification;
 }
 
 // Singleton webview: shows the draft in Markdown + Plain-text tabs, an activity
@@ -62,6 +64,7 @@ export class ShiploguePanel {
       summary: p.summary,
       warnings: p.warnings,
       modelLabel: p.modelLabel,
+      verification: p.verification,
       detail: c.detail,
       tone: c.tone,
     });
@@ -277,10 +280,11 @@ export class ShiploguePanel {
         if (s.notes && s.notes.length) {
           meta.textContent += (meta.textContent ? ' — ' : '') + s.notes.join('; ');
         }
-        status.textContent = (m.warnings && m.warnings.length)
-          ? m.warnings.join(' ')
-          : 'Review and edit, then copy.';
-        status.className = '';
+        const unreviewed = m.verification && m.verification.needsReview;
+        status.textContent = unreviewed
+          ? 'Needs review: ' + m.verification.violations.length + ' unverified claim(s) — check before copying.'
+          : ((m.warnings && m.warnings.length) ? m.warnings.join(' ') : 'Review and edit, then copy.');
+        status.className = unreviewed ? 'err' : '';
       }
       if (m.detail) detailSel.value = m.detail;
       if (m.tone) toneSel.value = m.tone;

@@ -283,6 +283,12 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Include the AI prompts you gave Cursor's assistant today as context for the stand-up. Read locally & read-only from Cursor's chat DB; nothing is uploaded. No effect if Cursor isn't installed."
+        },
+        "shiplogue.model.contextTokens": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Context window (tokens) used for the pre-generation prompt budget. `0` disables preflight and uses only the coarse input caps. Set this to your model's context window to guarantee no over-budget prompt is sent."
         }
       }
     },
