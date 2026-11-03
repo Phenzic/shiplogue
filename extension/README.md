@@ -162,7 +162,8 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
 ### Keyboard shortcut
 
 Press **`Cmd+Shift+'`** on macOS or **`Ctrl+Shift+'`** on Windows/Linux to run
-**Shiplogue: Generate Today's Update** from any VS Code-compatible host.
+**Shiplogue: Generate Today's Update** from any VS Code-compatible host. Run
+**Shiplogue: Configure Keyboard Shortcut** to rebind it.
 
 ### Review
 

@@ -81,6 +81,11 @@
       {
         "command": "shiplogue.connectGitHub",
         "title": "Shiplogue: Connect GitHub"
+      },
+      {
+        "command": "shiplogue.configureShortcut",
+        "title": "Shiplogue: Configure Keyboard Shortcut",
+        "category": "Shiplogue"
       }
     ],
     "configuration": {

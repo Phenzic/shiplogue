@@ -13,6 +13,7 @@ import { setSecretStorage } from "./model/secrets";
 import { loadProviderConfig, providerDisplayName } from "./model/registry";
 import { BackendMeta } from "./model/types";
 import { clearProviderKey, setProviderKey, testProvider } from "./commands/providerKeys";
+import { configureShortcut } from "./commands/shortcuts";
 import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
@@ -76,6 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("shiplogue.setReminderTime", () =>
       reminder?.pickTime("What time should Shiplogue remind you daily? (24h, local)"),
     ),
+    vscode.commands.registerCommand("shiplogue.configureShortcut", () => configureShortcut()),
     vscode.commands.registerCommand("shiplogue.connectGitHub", async () => {
       const token = await githubToken(true);
       vscode.window.showInformationMessage(

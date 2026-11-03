@@ -11,7 +11,8 @@ Keyboard shortcut release.
 
 - `Cmd+Shift+'` (macOS) / `Ctrl+Shift+'` (Windows/Linux) fires
   **Shiplogue: Generate Today's Update** in VS Code, Cursor, Antigravity and other
-  VS Code-compatible hosts.
+  VS Code-compatible hosts. **Shiplogue: Configure Keyboard Shortcut** opens the
+  editor's keybindings UI filtered to the command.
 - Hard privacy filter: private paths are never tracked. `.env`, keys/credential
   stores and `.ssh`/`.aws`-style directories are always excluded; any path matched
   by `.gitignore` or another `.*ignore` file is excluded too. Enforced in the

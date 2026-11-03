@@ -47,7 +47,6 @@ function baseConfig(overrides) {
     "shiplogue.reminder.enabled": false,
     "shiplogue.reminder.time": "23:59",
     "shiplogue.track.enabled": true,
-    "shiplogue.webhook.type": "none",
     "shiplogue.scope": "workspace",
     "shiplogue.format": "done-next-blockers",
     "shiplogue.detail": "concise",
@@ -123,6 +122,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
     [...stub.commandRegistry.keys()].sort(),
     [
       "shiplogue.clearProviderKey",
+      "shiplogue.configureShortcut",
       "shiplogue.connectGitHub",
       "shiplogue.generate",
       "shiplogue.setProviderKey",
