@@ -31,9 +31,10 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 - The GitHub search API (merged PRs you authored, closed issues assigned to
   you), authenticated with the editor's built-in GitHub sign-in or an optional
   PAT you provide.
-- Cursor's chat database (`state.vscdb`), **read-only** (`sqlite3 -readonly`,
-  immutable mode), to include the AI prompts you gave your assistant. Nothing
-  is written back to it. This feature is Cursor-only and can be turned off with
+- Local chat stores for **Cursor, VS Code Copilot and Antigravity**, **read-only**,
+  to include the AI prompts you gave your assistant. Cursor uses `state.vscdb`
+  (`sqlite3 -readonly`, immutable); VS Code-family hosts use their local
+  `chatSessions` JSON/JSONL files. Nothing is written back. Disable with
   `shiplogue.cursor.enabled`.
 
 ## What leaves your machine

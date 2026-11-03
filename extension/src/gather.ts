@@ -3,7 +3,7 @@ import { Store } from "./store";
 import { cfg } from "./config";
 import { collectCommits } from "./git";
 import { collectGitHub, githubToken } from "./github";
-import { collectCursorPrompts } from "./cursor";
+import { collectAllPrompts } from "./promptSources";
 import { ActivityEvent, FileTouch, StandupContext } from "./types";
 import { normalizeFolderPath } from "./paths";
 import { sanitizeUntrusted } from "./format";
@@ -120,10 +120,10 @@ export async function gatherContext(store: Store, opts: GatherOptions = {}): Pro
   onPhase?.("Gathering GitHub activity…");
   let github = await collectGitHub(token, c.githubRepos, since, signal);
   checkAborted();
-  let cursorPrompts: Awaited<ReturnType<typeof collectCursorPrompts>> = [];
+  let cursorPrompts: Awaited<ReturnType<typeof collectAllPrompts>> = [];
   if (c.cursorEnabled) {
     onPhase?.("Gathering Cursor prompts…");
-    cursorPrompts = await collectCursorPrompts(since, until, folderPaths, signal);
+    cursorPrompts = await collectAllPrompts(since, until, folderPaths, signal);
     checkAborted();
   }
 

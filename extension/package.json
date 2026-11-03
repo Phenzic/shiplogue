@@ -282,7 +282,7 @@
         "shiplogue.cursor.enabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Include the AI prompts you gave Cursor's assistant today as context for the stand-up. Read locally & read-only from Cursor's chat DB; nothing is uploaded. No effect if Cursor isn't installed."
+          "markdownDescription": "Include AI prompts from Cursor, VS Code Copilot, Antigravity and compatible chat stores as context. Read locally and read-only; nothing is uploaded as a file."
         },
         "shiplogue.model.contextTokens": {
           "type": "number",

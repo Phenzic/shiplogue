@@ -137,8 +137,9 @@ install it with `code --install-extension <file>.vsix` (or the Cursor CLI).
   window, including commit body and changed files.
 - Collects **merged PRs you authored** and **closed issues assigned to you** via
   the GitHub search API, using the editor's GitHub session or a PAT.
-- In **Cursor only**, reads the prompts you typed into Cursor's AI assistant from
-  its local `state.vscdb`, read-only, scoped to open workspaces.
+- Reads the prompts you typed into **Cursor, VS Code Copilot and Antigravity** from
+  their local chat stores, read-only, scoped to open workspaces. A background
+  watcher keeps capture current while the editor runs.
 - With no folder open, falls back to all projects and says so in the panel.
 
 ### Drafting
@@ -399,7 +400,7 @@ planned.
 - **VS Code-compatible editors only.** Supported targets include VS Code, Cursor,
   Antigravity, VSCodium and Windsurf; JetBrains, Zed, Neovim and Sublime need
   separate adapters.
-- **AI prompt capture is Cursor-only.** VS Code/Copilot chat history is not read.
+- **AI prompt capture is local-only.** It reads Cursor, VS Code Copilot and Antigravity chat stores; other hosts need an adapter.
 - **Copy-only.** No webhooks or scheduled posting in this build.
 - **Private files are excluded.** `.env`, keys and any path ignored by
   `.gitignore`/`.*ignore` are never recorded. File contents are never read.

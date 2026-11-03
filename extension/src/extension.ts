@@ -14,11 +14,13 @@ import { loadProviderConfig, providerDisplayName } from "./model/registry";
 import { BackendMeta } from "./model/types";
 import { clearProviderKey, setProviderKey, testProvider } from "./commands/providerKeys";
 import { configureShortcut } from "./commands/shortcuts";
+import { PromptWatcher } from "./promptWatcher";
 import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
 let state: State;
 let tracker: Tracker | undefined;
+let promptWatcher: PromptWatcher | undefined;
 let reminder: Reminder | undefined;
 
 // Generation runs are serialized by a monotonic epoch: a new run (Regenerate,
@@ -58,6 +60,11 @@ export function activate(context: vscode.ExtensionContext) {
     tracker = new Tracker(store);
     tracker.start();
   }
+
+  // Continuous prompt capture across Cursor/VS Code/Antigravity-compatible
+  // hosts. The watcher is silent; failures never block activation.
+  promptWatcher = new PromptWatcher();
+  promptWatcher.start();
 
   reminder = new Reminder(state, () => void runGenerate());
   void reminder.ensureSetup().then(() => reminder?.start());
@@ -291,6 +298,7 @@ async function runShowActivity(): Promise<void> {  const ctx = await gatherConte
 
 export function deactivate() {
   tracker?.dispose();
+  promptWatcher?.dispose();
   reminder?.dispose();
   store?.flush();
 }

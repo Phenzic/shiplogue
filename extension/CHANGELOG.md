@@ -10,6 +10,8 @@
 - Context preflight: set `shiplogue.model.contextTokens` to guarantee no
   over-budget prompt is sent; activity is trimmed by priority and the draft
   reports what was dropped. `0` disables preflight.
+- AI prompt capture now covers **Cursor, VS Code Copilot and Antigravity** chat
+  stores (read-only), with a background watcher for continuous capture.
 
 
 All notable changes to this project will be documented here. Format follows
