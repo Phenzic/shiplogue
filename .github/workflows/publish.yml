@@ -40,13 +40,9 @@ jobs:
       - name: Publish extension
         run: npx --yes @vscode/vsce@4.1.0 publish --oidc
 
-      # Open VSX: uncomment these two steps once the `phenzic` namespace is
-      # approved. Add an OVSX_TOKEN repository secret first
-      # (open-vsx.org -> Settings -> Access Tokens).
-      # - name: Package VSIX for Open VSX
-      #   run: npx --yes @vscode/vsce@4.1.0 package --out shiplogue.vsix
-      # - name: Publish to Open VSX
-      #   run: npx --yes ovsx publish shiplogue.vsix -p "$OVSX_TOKEN"
-      #   env:
-      #     OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
-        
+      - name: Package VSIX for Open VSX
+        run: npx --yes @vscode/vsce@4.1.0 package --out shiplogue.vsix
+      - name: Publish to Open VSX
+        run: npx --yes ovsx publish shiplogue.vsix -p "$OVSX_TOKEN"
+        env:
+          OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
