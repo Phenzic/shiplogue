@@ -60,8 +60,4 @@ work; no reinstall of the connector key is needed.
 
 ## Checksums
 
-SHA-256 for `shiplogue-0.1.8.vsix`:
-
-```
-cc7815bffb20b44117254c5f9bb327db0ee0060bccea5deb232eda4145c6222f
-```
+SHA-256: `ac050b1e4f6b186bedfa9b4b3df1f6f18f7a344e4451b1fe83964ad76e8ffcef`  `shiplogue-0.1.8.vsix`
