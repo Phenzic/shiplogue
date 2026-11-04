@@ -8,9 +8,13 @@ dist/
 
 # Local launch copy and drafts — not part of the extension
 marketing/
+/ARCHITECTURE.md
+/IMPLEMENTATION_PLAN*.md
+/IMPLEMENTATION_STATUS*.md
 /extension/IMPLEMENTATION_PLAN.md
 /extension/IMPLEMENTATION_STATUS.md
 /extension/IMPLEMENTATION_STATUS_0.1.0.md
+/extension/IMPLEMENTATION_STATUS*.md
 /extension/IMPLEMENTATION_PLAN_2.md
 /extension/IMPLEMENTATION_PLAN_3.md
 /extension/IMPLEMENTATION_PLAN_4.md
