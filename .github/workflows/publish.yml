@@ -46,3 +46,14 @@ jobs:
         run: npx --yes ovsx publish shiplogue.vsix -p "$OVSX_TOKEN"
         env:
           OVSX_TOKEN: ${{ secrets.OVSX_TOKEN }}
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(jq -r .version extension/package.json)"
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" shiplogue.vsix --clobber
+          else
+            gh release create "$TAG" shiplogue.vsix --title "Release v${VERSION}" --notes-file RELEASE_NOTES_0.1.8.md
+          fi
