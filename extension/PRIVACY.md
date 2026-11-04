@@ -15,6 +15,10 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
   `settings.json`, activity logs, output channels, or error messages. Use
   **Shiplogue: Clear API Key** to delete one; uninstalling the extension may leave
   the keychain entry behind.
+- **The optional Shiplogue connector key** is stored with VS Code SecretStorage,
+  never in `settings.json` or logs. **Shiplogue: Disconnect Cloud** deletes it.
+  The key is only sent to the cloud origin configured in `shiplogue.cloud.url`
+  (default `https://shiplogue.dev`) as an `Authorization` header.
 
 ## What is never read
 
@@ -31,9 +35,10 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 - The GitHub search API (merged PRs you authored, closed issues assigned to
   you), authenticated with the editor's built-in GitHub sign-in or an optional
   PAT you provide.
-- Cursor's chat database (`state.vscdb`), **read-only** (`sqlite3 -readonly`,
-  immutable mode), to include the AI prompts you gave your assistant. Nothing
-  is written back to it. This feature is Cursor-only and can be turned off with
+- Local chat stores for **Cursor, VS Code Copilot and Antigravity**, **read-only**,
+  to include the AI prompts you gave your assistant. Cursor uses `state.vscdb`
+  (`sqlite3 -readonly`, immutable); VS Code-family hosts use their local
+  `chatSessions` JSON/JSONL files. Nothing is written back. Disable with
   `shiplogue.cursor.enabled`.
 
 ## What leaves your machine
@@ -49,8 +54,16 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 - Model listing and **Shiplogue: Test Provider** also contact the configured
   provider; they send no activity, only the request needed to list models or ask
   for a one-word reply.
+- **Optional cloud sync.** If you connect a connector key and leave
+  `shiplogue.cloud.enabled` on, the finished stand-up draft (Markdown), its date,
+  title, the model label, and the configured time-saved estimate are sent to the
+  Shiplogue API at `shiplogue.cloud.url` (default `https://shiplogue.dev`) so it
+  can appear on your private dashboard. Raw activity, prompts, file contents, and
+  activity events are **not** uploaded by this build. Disconnect the connector or
+  turn off `shiplogue.cloud.enabled` to keep drafts entirely local.
 - This build does **not** post anywhere. The final draft leaves your machine only
-  when you copy it yourself.
+  when you copy it yourself, or when optional cloud sync stores it as a draft on
+  your dashboard.
 - GitHub API calls go only to `api.github.com`, only when GitHub collection is
   possible (token present).
 

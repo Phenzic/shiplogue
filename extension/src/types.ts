@@ -42,6 +42,7 @@ export interface FileTouch {
 export interface CursorPrompt {
   ts: string; // ISO
   text: string;
+  source?: "cursor" | "vscode" | "antigravity" | "chat-session";
 }
 
 // Everything gathered for one stand-up generation.

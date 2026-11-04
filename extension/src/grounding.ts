@@ -1,7 +1,7 @@
 import { StandupContext } from "./types";
 import { verifyGrounding } from "./format";
 
-export type ClaimKind = "path" | "number" | "url" | "completion";
+export type ClaimKind = "path" | "number" | "url" | "completion" | "person" | "date";
 
 export interface GroundingViolation {
   kind: ClaimKind;
@@ -19,6 +19,10 @@ export interface Verification {
 const COMPLETION =
   /\b(merged|shipped|released|deployed|fixed|added|completed|launched)\b/i;
 const URLISH = /https?:\/\/[^\s)]+/g;
+const HANDLE = /(?:^|[^\w])@([A-Za-z0-9_][A-Za-z0-9_-]*)/g;
+const WITH_PERSON = /\b(?:with|paired with)\s+([A-Z][a-z]{2,})\b/g;
+const DATEISH = /\b(20\d{2}|Q[1-4]|v?\d+\.\d+)\b/g;
+const PERSON_STOP = new Set(["React", "Slack", "Code", "GitHub", "Docker", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
 
 // Grounding v2 (first slice): keep the deterministic path/number gate and add
 // URL + completion checks. URLs not present in the activity are removed
@@ -62,10 +66,33 @@ export function verifyClaims(draft: string, ctx: StandupContext): Verification {
     }
 
     const isInferred = /^\s*- (?:\(inferred\)|\*\(inferred\)\*)/i.test(rewritten);
-    if (!isInferred && ctx.commits.length === 0 && ctx.github.length === 0) {
-      const verb = rewritten.match(COMPLETION);
-      if (verb) {
-        violations.push({ kind: "completion", text: verb[0] });
+    if (!isInferred) {
+      if (ctx.commits.length === 0 && ctx.github.length === 0) {
+        const verb = rewritten.match(COMPLETION);
+        if (verb) {
+          violations.push({ kind: "completion", text: verb[0] });
+        }
+      }
+
+      for (const m of rewritten.matchAll(HANDLE)) {
+        const name = m[1];
+        if (!activityText.includes(`@${name}`) && !activityText.includes(name)) {
+          violations.push({ kind: "person", text: `@${name}` });
+        }
+      }
+      for (const m of rewritten.matchAll(WITH_PERSON)) {
+        const name = m[1];
+        if (!PERSON_STOP.has(name) && !activityText.toLowerCase().includes(name.toLowerCase())) {
+          violations.push({ kind: "person", text: name });
+        }
+      }
+      if (COMPLETION.test(rewritten)) {
+        for (const m of rewritten.matchAll(DATEISH)) {
+          const token = m[0];
+          if (!activityText.includes(token)) {
+            violations.push({ kind: "date", text: token });
+          }
+        }
       }
     }
 
@@ -88,6 +115,8 @@ export function verifyClaims(draft: string, ctx: StandupContext): Verification {
     removed,
     violations,
     checkedClaims,
-    needsReview: violations.some((v) => v.kind === "completion"),
+    needsReview: violations.some(
+      (v) => v.kind === "completion" || v.kind === "person" || v.kind === "date",
+    ),
   };
 }

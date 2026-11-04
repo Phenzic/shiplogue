@@ -41,4 +41,13 @@ export class State {
   setLastReminderYmd(ymd: string): Thenable<void> {
     return this.ctx.globalState.update("lastReminderYmd", ymd);
   }
+
+  // The latest version we have already shown an update prompt for. Persisted so
+  // the notice appears once per version, not once per window/activation.
+  getUpdatePromptedVersion(): string {
+    return this.ctx.globalState.get<string>("updatePromptedVersion", "");
+  }
+  setUpdatePromptedVersion(version: string): Thenable<void> {
+    return this.ctx.globalState.update("updatePromptedVersion", version);
+  }
 }

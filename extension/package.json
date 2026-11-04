@@ -1,8 +1,8 @@
 {
   "name": "shiplogue",
   "displayName": "Shiplogue",
-  "description": "Drafts your daily stand-up from the work you already did. Local-first for VS Code, Cursor and Antigravity: git, IDE activity and GitHub become a Done / Next / Blockers update, written by Ollama, your own API key (Anthropic, OpenAI, Google, OpenAI-compatible), or the hosted Shiplogue provider (planned, paid), then copied.",
-  "version": "0.1.7",
+  "description": "Turn your git, IDE and GitHub activity into a review-ready daily stand-up with Ollama or your own API key.",
+  "version": "0.1.8",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -10,7 +10,7 @@
     "url": "git+https://github.com/Phenzic/shiplogue.git"
   },
   "bugs": "https://github.com/Phenzic/shiplogue/issues",
-  "homepage": "https://github.com/Phenzic/shiplogue#readme",
+  "homepage": "https://shiplogue.dev",
   "keywords": [
     "standup",
     "stand-up",
@@ -85,6 +85,26 @@
       {
         "command": "shiplogue.configureShortcut",
         "title": "Shiplogue: Configure Keyboard Shortcut",
+        "category": "Shiplogue"
+      },
+      {
+        "command": "shiplogue.connectCloud",
+        "title": "Shiplogue: Connect Cloud",
+        "category": "Shiplogue"
+      },
+      {
+        "command": "shiplogue.disconnectCloud",
+        "title": "Shiplogue: Disconnect Cloud",
+        "category": "Shiplogue"
+      },
+      {
+        "command": "shiplogue.cloudStatus",
+        "title": "Shiplogue: Cloud Status",
+        "category": "Shiplogue"
+      },
+      {
+        "command": "shiplogue.checkUpdate",
+        "title": "Shiplogue: Check for Update",
         "category": "Shiplogue"
       }
     ],
@@ -282,7 +302,35 @@
         "shiplogue.cursor.enabled": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Include the AI prompts you gave Cursor's assistant today as context for the stand-up. Read locally & read-only from Cursor's chat DB; nothing is uploaded. No effect if Cursor isn't installed."
+          "markdownDescription": "Include AI prompts from Cursor, VS Code Copilot, Antigravity and compatible chat stores as context. Read locally and read-only; nothing is uploaded as a file."
+        },
+        "shiplogue.model.contextTokens": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Context window (tokens) used for the pre-generation prompt budget. `0` disables preflight and uses only the coarse input caps. Set this to your model's context window to guarantee no over-budget prompt is sent."
+        },
+        "shiplogue.cloud.url": {
+          "type": "string",
+          "default": "https://shiplogue.dev",
+          "markdownDescription": "Shiplogue Cloud origin used for connector-key validation and stand-up sync. Point this at `http://localhost:3000` while developing locally."
+        },
+        "shiplogue.cloud.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Sync generated stand-ups to the connected Shiplogue workspace. Cloud sync is inactive until you run **Shiplogue: Connect Cloud**; turn this off to keep drafts local only."
+        },
+        "shiplogue.cloud.estimatedMinutesSaved": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 120,
+          "markdownDescription": "Conservative estimate recorded with each synced stand-up for the dashboard's time-reclaimed metric. Set `0` to report none."
+        },
+        "shiplogue.update.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show update notifications when a newer version is published on Marketplace or Open VSX."
         }
       }
     },

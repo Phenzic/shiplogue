@@ -6,6 +6,7 @@ const { installVscodeStub, startServer } = require("./helpers");
 const { stub } = installVscodeStub();
 const { generateStandup, OllamaError } = require("../out/summarize");
 const { setDetailGetter, setToneGetter } = require("../out/config");
+const { estimateTokens } = require("../out/model/budget");
 
 function baseCtx(overrides = {}) {
   return {
@@ -148,7 +149,20 @@ test("under-splitting triggers exactly one repair pass when the work can support
 test("no repair pass when there isn't enough distinct work to honestly split", async () => {
   setDetailGetter(() => "standard");
   await withOllama(
-    () => validDraft(2),
+    () =>
+      [
+        "Hey team, here's what I worked on today:",
+        "",
+        "**Done**",
+        "- Worked on change 1.",
+        "- Worked on change 2.",
+        "",
+        "**Next**",
+        "- Keep going.",
+        "",
+        "**Blockers**",
+        "- None",
+      ].join("\n"),
     async (server) => {
       await generateStandup(baseCtx({ commits: [] })); // 0 distinct items
       assert.equal(server.requests.length, 1);
@@ -506,6 +520,49 @@ test("each tone injects its voice rule; neutral adds no tone block", async () =>
     async (server) => {
       await generateStandup(baseCtx());
       assert.doesNotMatch(server.requests[0].body.prompt, /Voice:/, "neutral keeps the prompt unchanged");
+    },
+  );
+});
+
+test("R6 repairs unsupported completion claims once and re-verifies", async () => {
+  setDetailGetter(() => "concise");
+  let call = 0;
+  await withOllama(
+    () => {
+      call++;
+      return call === 1
+        ? ["Hey team, here's what I worked on today:", "", "**Done**", "- Shipped the rewrite.", "", "**Next**", "- Keep going.", "", "**Blockers**", "- None"].join("\n")
+        : ["Hey team, here's what I worked on today:", "", "**Done**", "- Worked on the rewrite.", "", "**Next**", "- Keep going.", "", "**Blockers**", "- None"].join("\n");
+    },
+    async (server) => {
+      const { text, verification } = await generateStandup(baseCtx({ commits: [], github: [] }));
+      assert.equal(server.requests.length, 2);
+      assert.match(server.requests[1].body.prompt, /not supported by the activity/);
+      assert.equal(verification.needsReview, false);
+      assert.match(text, /Worked on the rewrite/);
+    },
+  );
+});
+
+test("R7 trims a heavy prompt to the configured context before sending", async () => {
+  setDetailGetter(() => "standard");
+  const commits = Array.from({ length: 40 }, (_, i) => ({
+    hash: `h${i}`,
+    date: new Date().toISOString(),
+    subject: `change ${i} `.repeat(10),
+    body: "body ".repeat(120),
+    repo: "acme/demo",
+    files: ["a.ts", "b.ts", "c.ts", "d.ts", "e.ts", "f.ts", "g.ts"],
+  }));
+  await withOllama(
+    () => validDraft(5),
+    async (server) => {
+      stub.setConfig({ "shiplogue.model.contextTokens": 8192 });
+      const { contextReport } = await generateStandup(baseCtx({ commits }));
+      const budget = 8192 - 900 - 256;
+      assert.ok(server.requests[0].body.prompt, "backend received a prompt");
+      assert.ok(estimateTokens(server.requests[0].body.prompt) <= budget, "prompt must fit the budget");
+      assert.ok(contextReport, "preflight report is returned");
     },
   );
 });

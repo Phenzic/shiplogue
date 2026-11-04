@@ -50,6 +50,7 @@ function baseConfig(overrides) {
     "shiplogue.scope": "workspace",
     "shiplogue.format": "done-next-blockers",
     "shiplogue.detail": "concise",
+    "shiplogue.update.enabled": false,
     ...overrides,
   };
 }
@@ -121,9 +122,13 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.deepEqual(
     [...stub.commandRegistry.keys()].sort(),
     [
+      "shiplogue.checkUpdate",
       "shiplogue.clearProviderKey",
+      "shiplogue.cloudStatus",
       "shiplogue.configureShortcut",
+      "shiplogue.connectCloud",
       "shiplogue.connectGitHub",
+      "shiplogue.disconnectCloud",
       "shiplogue.generate",
       "shiplogue.setProviderKey",
       "shiplogue.setReminderTime",
@@ -155,6 +160,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.deepEqual(draft.summary, { commits: 2, files: 1, github: 2 });
   assert.equal(draft.detail, "concise");
   assert.equal(draft.modelLabel, "Ollama · test-model");
+  assert.equal(draft.modelNote, "Ollama");
 
   // What the model actually received. (The activation-time health check also
   // hits the mock server with GET /api/tags — filter to generate calls.)
@@ -309,6 +315,46 @@ test("health check: a configured provider skips the Ollama probe entirely", asyn
   await ext.healthCheckDone;
   assert.equal(stub.notifications.filter((n) => n.warning).length, 0);
   assert.deepEqual(stub.openedUrls, []);
+});
+
+test("cloud sync: a connected key posts the generated stand-up", async (t) => {
+  const { dir } = makeGitRepo();
+  const storage = tmpDir();
+  const ollama = await startServer(() => ({ body: { response: DRAFT } }));
+  const cloud = await startServer((req) => {
+    if (req.url === "/api/v1/standups") {
+      return { status: 201, body: { standup: { id: "s1" } } };
+    }
+    return { status: 404, body: { error: "not found" } };
+  });
+  t.after(async () => {
+    await ollama.close();
+    await cloud.close();
+  });
+
+  const key = `shp_live_${"c".repeat(40)}`;
+  await withActivation(t, {
+    repoDir: dir,
+    storage,
+    config: baseConfig({
+      "shiplogue.ollama.url": ollama.url,
+      "shiplogue.cloud.url": cloud.url,
+      "shiplogue.cloud.enabled": true,
+      "shiplogue.cloud.estimatedMinutesSaved": 12,
+    }),
+    secrets: { "shiplogue.cloud.connectorKey": key },
+  });
+
+  await commands.executeCommand("shiplogue.generate");
+  await waitFor(() => cloud.requests.some((r) => r.url === "/api/v1/standups"), 5000);
+
+  const rec = cloud.requests.find((r) => r.url === "/api/v1/standups");
+  assert.equal(rec.headers.authorization, `Bearer ${key}`);
+  assert.equal(rec.body.timeSavedMinutes, 12);
+  assert.equal(rec.body.status, "draft");
+  assert.match(rec.body.bodyMarkdown, /\*\*Done\*\*/);
+  assert.match(rec.body.standupDate, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(rec.body.title, `Standup for ${rec.body.standupDate}`);
 });
 
 test("health check: a missing model offers 'Pull now' in a terminal", async (t) => {

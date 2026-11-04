@@ -53,6 +53,7 @@ function bootWebview(html) {
     txt: makeEl("txt"),
     status: makeEl("status"),
     meta: makeEl("meta"),
+    modelNote: makeEl("modelNote"),
       regen: makeEl("regen"),
     cancel: makeEl("cancel"),
     copy: makeEl("copy"),
@@ -150,6 +151,39 @@ test("loading, draft and error messages drive the UI", () => {
 
   ui.sendMessage({ kind: "error", message: "Couldn't reach Ollama" });
   assert.equal(ui.els.status.textContent, "Couldn't reach Ollama");
+  assert.equal(ui.els.status.className, "err");
+});
+
+test("model provenance note is shown under the copy button", () => {
+  const { webview } = freshPanel();
+  const ui = bootWebview(webview.webview.html);
+  ui.sendMessage({
+    kind: "draft",
+    markdown: "**Done**\n- Worked on it",
+    summary: {},
+    detail: "concise",
+    modelNote: "OpenAI BYOK",
+  });
+  assert.equal(ui.els.modelNote.textContent, "done with OpenAI BYOK");
+});
+
+test("needs-review verification is surfaced in the status line", () => {
+  const { webview } = freshPanel();
+  const ui = bootWebview(webview.webview.html);
+  ui.sendMessage({
+    kind: "draft",
+    markdown: "**Done**\n- Shipped it",
+    summary: {},
+    detail: "concise",
+    verification: {
+      cleanDraft: "**Done**\n- Shipped it",
+      removed: [],
+      violations: [{ kind: "completion", text: "Shipped" }],
+      checkedClaims: 1,
+      needsReview: true,
+    },
+  });
+  assert.match(ui.els.status.textContent, /Needs review/);
   assert.equal(ui.els.status.className, "err");
 });
 

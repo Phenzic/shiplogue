@@ -1,6 +1,6 @@
 # Implementation Status — 0.2.0
 
-Baseline: `main` at 0.1.7 (178 pass / 10 skipped / 0 fail).
+Baseline: `main` at 0.1.7 (193 pass / 10 skipped / 0 fail on this branch).
 Decision 2026-11-03: **no bundled model**. Backends are Ollama, BYOK, and the
 planned hosted Shiplogue provider (paid).
 
@@ -20,9 +20,14 @@ planned hosted Shiplogue provider (paid).
 - [x] `needsReview` signal for unsupported completion claims
 - [x] Wired into `summarize`; warnings still shown; `verification` payload added
 - [x] Tests: 183 pass / 10 skipped / 0 fail (5 new grounding tests)
-- [ ] One repair call, re-verify, `verification` payload in the panel
-- [ ] Person/date/metric taxonomy
-- [ ] Eval fixtures
+- [x] One repair call, re-verify, `verification` payload in the panel
+- [x] Person/date taxonomy; unsupported claims set `needsReview`
+- [x] Panel warning: "Needs review: N unverified claim(s)"
+- [ ] Eval fixtures (R8)
+
+## UI
+
+- [x] Model-provenance note under the Copy button ("done with … BYOK"/"done with Ollama")
 
 ## IDE prompt capture (before agent)
 
@@ -33,14 +38,18 @@ Yes — the plan is a **unified capture layer**, not Cursor-only:
 - A watcher keeps reading new prompts/events while the IDE runs (debounced,
   single-instance, deduped), instead of only a one-shot gather.
 
-- [ ] Adapter interface + Cursor adapter (existing DB)
-- [ ] VS Code / Antigravity chat-session adapters
-- [ ] Watcher for live updates (single instance, debounce, dedupe)
-- [ ] Merge into gather with source labels; privacy filters stay enforced
-- [ ] Tests/fixtures per IDE
+- [x] Adapter interface + Cursor adapter (existing DB)
+- [x] VS Code / Antigravity chat-session adapters (JSON/JSONL)
+- [x] Watcher for live updates (15 s poll, unref'd, deduped)
+- [x] Merge into gather with source labels; privacy filters stay enforced
+- [x] Tests/fixtures for chat sessions
+- [ ] Claude Code / Copilot / Codex / Gemini hooks (agent A3)
 
 ## R7 — context preflight
 
-- [ ] Budget estimate + priority trimming
-- [ ] Actionable warning before send
-- [ ] Tests
+- [x] `shiplogue.model.contextTokens` setting (0 = off)
+- [x] Conservative token estimate + priority trimming (prompts → commits → bodies → files → touches → GitHub)
+- [x] Refuses with an actionable error when even the minimum does not fit
+- [x] Post-draft warning reports what was dropped
+- [ ] Pre-generation loading note in the panel
+- [x] Tests (191 pass / 10 skipped)

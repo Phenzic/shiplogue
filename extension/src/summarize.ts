@@ -3,6 +3,7 @@ import { StandupContext } from "./types";
 import { contextToText } from "./gather";
 import { enforceSublists } from "./format";
 import { verifyClaims, Verification } from "./grounding";
+import { BudgetReport, ContextBudgetError, trimForBudget } from "./model/budget";
 import { resolveBackend } from "./model/registry";
 import { BackendMeta } from "./model/types";
 
@@ -142,12 +143,18 @@ export interface GenerateResult {
   // the backend failed before returning text.
   backend?: BackendMeta;
   verification?: Verification;
+  contextReport?: BudgetReport;
 }
 
 export async function generateStandup(ctx: StandupContext, signal?: AbortSignal): Promise<GenerateResult> {
   const c = cfg();
   const level = DETAIL_LEVELS[c.detail] ?? DETAIL_LEVELS.concise;
-  const prompt = buildPrompt(ctx);
+  const budget = c.modelContextTokens > 0 ? c.modelContextTokens - level.predict - 256 : 0;
+  if (c.modelContextTokens > 0 && budget <= 0) {
+    throw new ContextBudgetError(0, budget);
+  }
+  const planned = budget > 0 ? trimForBudget(ctx, buildPrompt, budget) : undefined;
+  const prompt = planned?.prompt ?? buildPrompt(ctx);
 
   // Resolve once per run: a backend switch mid-generation would produce a
   // draft whose label doesn't match its source.
@@ -198,7 +205,42 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
   }
 
   const formatted = enforceSublists(text);
-  const verification = verifyClaims(formatted, ctx);
+  let verification = verifyClaims(formatted, ctx);
+
+  // R6 repair pass: only when unsupported completion/person/date claims remain.
+  // Paths/numbers/URLs are already removed deterministically above.
+  if (verification.needsReview) {
+    const unsupported = verification.violations
+      .filter((v) => v.kind === "completion" || v.kind === "person" || v.kind === "date")
+      .map((v) => v.text);
+    const repairPrompt = [
+      prompt,
+      "",
+      "Your previous draft:",
+      verification.cleanDraft,
+      "",
+      `These claims are not supported by the activity: ${[...new Set(unsupported)].join(", ")}.`,
+      "Rewrite the stand-up using ONLY facts supported by the activity. Remove or soften those claims; do not invent replacements. Keep the same template.",
+      "Output only the stand-up, nothing else.",
+    ].join("\n");
+    try {
+      const repaired = await backend.generate({
+        prompt: repairPrompt,
+        temperature: level.temperature,
+        maxTokens: level.predict,
+        signal,
+      });
+      verification = verifyClaims(enforceSublists(repaired.text), ctx);
+      text = repaired.text;
+      meta = repaired.meta;
+    } catch (e: any) {
+      if (e?.name === "AbortError" || signal?.aborted) {
+        throw e;
+      }
+      /* keep the first draft if the repair call fails */
+    }
+  }
+
   const warnings =
     verification.removed.length > 0
       ? [`⚠ Removed ${verification.removed.length} unverifiable mention(s): ${[...new Set(verification.removed)].join(", ")}`]
@@ -207,5 +249,10 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
   if (verification.needsReview && unsupported > 0) {
     warnings.push(`⚠ ${unsupported} completion claim(s) need review before sending`);
   }
-  return { text: verification.cleanDraft, warnings, backend: meta, verification };
+  if (planned && planned.report.dropped.commits + planned.report.dropped.prompts + planned.report.dropped.github + planned.report.dropped.touches > 0) {
+    warnings.push(
+      `Context trimmed to ${planned.report.estimated}/${planned.report.budget} tokens: dropped ${planned.report.dropped.commits} commits, ${planned.report.dropped.prompts} prompts, ${planned.report.dropped.github} GitHub items, ${planned.report.dropped.touches} files.`,
+    );
+  }
+  return { text: verification.cleanDraft, warnings, backend: meta, verification, contextReport: planned?.report };
 }

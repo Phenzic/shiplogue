@@ -9,17 +9,29 @@ import { generateStandup } from "./summarize";
 import { githubToken } from "./github";
 import { buildReferences } from "./format";
 import { ShiploguePanel } from "./shiploguePanel";
+import {
+  AUTO_UPDATE_SETTINGS_QUERY,
+  EXTENSION_ID,
+  MARKETPLACE_URL,
+  OPEN_VSX_URL,
+  checkForUpdate,
+} from "./versionCheck";
 import { setSecretStorage } from "./model/secrets";
 import { loadProviderConfig, providerDisplayName } from "./model/registry";
 import { BackendMeta } from "./model/types";
 import { clearProviderKey, setProviderKey, testProvider } from "./commands/providerKeys";
 import { configureShortcut } from "./commands/shortcuts";
+import { cloudStatus, connectCloud, disconnectCloud, initCloud } from "./commands/cloud";
+import type { CloudClient } from "./cloud";
+import { PromptWatcher } from "./promptWatcher";
 import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
 let state: State;
 let tracker: Tracker | undefined;
+let promptWatcher: PromptWatcher | undefined;
 let reminder: Reminder | undefined;
+let cloud: CloudClient | undefined;
 
 // Generation runs are serialized by a monotonic epoch: a new run (Regenerate,
 // Detail change) aborts and supersedes the previous one, whose late results
@@ -34,6 +46,8 @@ export let healthCheckDone: Promise<void> | undefined;
 export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
   state = new State(context);
+  cloud = initCloud(context);
+  cloudWarningShown = false;
   // Provider keys live only in SecretStorage (OS keychain). Guard because a
   // few hosts (and the test stub) do not implement it.
   if (context.secrets) {
@@ -59,6 +73,11 @@ export function activate(context: vscode.ExtensionContext) {
     tracker.start();
   }
 
+  // Continuous prompt capture across Cursor/VS Code/Antigravity-compatible
+  // hosts. The watcher is silent; failures never block activation.
+  promptWatcher = new PromptWatcher();
+  promptWatcher.start();
+
   reminder = new Reminder(state, () => void runGenerate());
   void reminder.ensureSetup().then(() => reminder?.start());
 
@@ -67,6 +86,12 @@ export function activate(context: vscode.ExtensionContext) {
   // activation and never throws.
   healthCheckDone = checkOllamaHealth();
   void healthCheckDone;
+
+  // Extension-side update check: VS Code handles marketplace auto-update for
+  // installed extensions; this adds a GitHub-Releases-based notice (covers manual
+  // VSIX installs, which have no marketplace update channel). Fire-and-forget;
+  // never blocks or breaks activation.
+  void runUpdateCheck(context);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("shiplogue.generate", () => runGenerate()),
@@ -78,6 +103,10 @@ export function activate(context: vscode.ExtensionContext) {
       reminder?.pickTime("What time should Shiplogue remind you daily? (24h, local)"),
     ),
     vscode.commands.registerCommand("shiplogue.configureShortcut", () => configureShortcut()),
+    vscode.commands.registerCommand("shiplogue.connectCloud", () => connectCloud()),
+    vscode.commands.registerCommand("shiplogue.disconnectCloud", () => disconnectCloud()),
+    vscode.commands.registerCommand("shiplogue.cloudStatus", () => cloudStatus()),
+    vscode.commands.registerCommand("shiplogue.checkUpdate", () => void runUpdateCheck(context, true)),
     vscode.commands.registerCommand("shiplogue.connectGitHub", async () => {
       const token = await githubToken(true);
       vscode.window.showInformationMessage(
@@ -168,8 +197,9 @@ async function runGenerate(): Promise<void> {
           ...(notes.length ? { notes } : {}),
         },
         ...(warnings.length ? { warnings } : {}),
-        ...(backend ? { modelLabel: backendLabel(backend) } : {}),
+        ...(backend ? { modelLabel: backendLabel(backend), modelNote: backendNote(backend) } : {}),
       });
+      void syncDraftToCloud(markdown, backend ? backendLabel(backend) : undefined);
     }
   } catch (e: any) {
     if (controller.signal.aborted) {
@@ -199,6 +229,22 @@ async function runGenerate(): Promise<void> {
   }
 }
 
+let cloudWarningShown = false;
+
+async function syncDraftToCloud(markdown: string, modelLabel?: string): Promise<void> {
+  if (!cloud) return;
+  const result = await cloud.syncStandup({ markdown, modelLabel });
+  if (result.status !== "failed") return;
+  console.warn(`[shiplogue] cloud sync failed: ${result.error}`);
+  if (cloudWarningShown) return;
+  cloudWarningShown = true;
+  const action = await vscode.window.showWarningMessage(
+    `Stand-up saved locally, but cloud sync failed: ${result.error}`,
+    "Cloud status",
+  );
+  if (action === "Cloud status") await cloudStatus();
+}
+
 // Human label for the panel's "via …" badge.
 function backendLabel(meta: BackendMeta): string {
   if (meta.kind === "provider") {
@@ -211,6 +257,20 @@ function backendLabel(meta: BackendMeta): string {
     return `Ollama · ${meta.model}`;
   }
   return `Local model · ${meta.model}`;
+}
+
+// Short note under the Copy button: "done with OpenAI BYOK", "done with Ollama".
+function backendNote(meta: BackendMeta): string {
+  if (meta.kind === "provider") {
+    const name = meta.provider
+      ? providerDisplayName(meta.provider as ActiveProviderType)
+      : "Provider";
+    return `${name} BYOK`;
+  }
+  if (meta.kind === "ollama") {
+    return "Ollama";
+  }
+  return "Local model";
 }
 
 // First-run health check: ping Ollama and verify the configured model is
@@ -278,6 +338,63 @@ async function checkOllamaHealth(): Promise<void> {
   }
 }
 
+// Extension-side update check: compare the running version against the latest
+// published listing (Marketplace + Open VSX) and notify once per version. The
+// editor's own auto-update handles gallery installs; this covers manual VSIX
+// installs and takes the user to the right place when they need to act.
+// Never throws.
+async function runUpdateCheck(context: vscode.ExtensionContext, force = false): Promise<void> {
+  try {
+    if (!cfg().updateEnabled && !force) return;
+    const result = await checkForUpdate(context);
+    if (!result.updateAvailable) {
+      if (force) {
+        await vscode.window.showInformationMessage(
+          `Shiplogue is up to date (v${result.currentVersion}).`,
+        );
+      }
+      return;
+    }
+    const latest = result.latestVersion;
+    if (!latest) return;
+    if (!force && state.getUpdatePromptedVersion() === latest) return;
+    await state.setUpdatePromptedVersion(latest);
+
+    const action = await vscode.window.showInformationMessage(
+      `Shiplogue v${latest} is available (you're using v${result.currentVersion}).`,
+      "Update now",
+      "Open listing",
+      "Enable auto-update",
+    );
+    const listing =
+      result.source === "openvsx" ||
+      /cursor|antigravity|vscodium|windsurf/i.test(vscode.env?.appName ?? "")
+        ? OPEN_VSX_URL
+        : MARKETPLACE_URL;
+
+    if (action === "Update now") {
+      try {
+        // Asks the host's gallery to install the latest build. Works for
+        // Marketplace/Open VSX installs; a manual VSIX may prompt or open the
+        // extension page instead.
+        await vscode.commands.executeCommand("workbench.extensions.installExtension", EXTENSION_ID);
+      } catch {
+        void vscode.env.openExternal(vscode.Uri.parse(listing));
+      }
+    } else if (action === "Open listing") {
+      void vscode.env.openExternal(vscode.Uri.parse(listing));
+    } else if (action === "Enable auto-update") {
+      // The extension cannot change this setting itself; open the exact toggle.
+      await vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        AUTO_UPDATE_SETTINGS_QUERY,
+      );
+    }
+  } catch {
+    /* update check must never break activation */
+  }
+}
+
 async function runShowActivity(): Promise<void> {  const ctx = await gatherContext(store);
   const doc = await vscode.workspace.openTextDocument({
     content:
@@ -291,6 +408,7 @@ async function runShowActivity(): Promise<void> {  const ctx = await gatherConte
 
 export function deactivate() {
   tracker?.dispose();
+  promptWatcher?.dispose();
   reminder?.dispose();
   store?.flush();
 }
