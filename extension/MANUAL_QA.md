@@ -30,43 +30,43 @@ reasoning model served through OpenRouter/vLLM).
 
 ## 3. Cancel & races
 
-- [ ] Cancel during a long elaborate run returns control in ~1 s and shows "Cancelled." (not an error).
-- [ ] Click Regenerate 5 times rapidly: exactly one final draft, from the last click; no "Cancelled." flash.
-- [ ] While busy, Regenerate / Detail / Tone are disabled and Cancel is visible.
-- [ ] With `shiplogue.generate.timeoutSeconds` set low (e.g. 5), a slow run aborts with the "timed out after Ns" guidance message.
+- [x] Cancel during a long elaborate run returns control in ~1 s and shows "Cancelled." (not an error).
+- [x] Click Regenerate 5 times rapidly: exactly one final draft, from the last click; no "Cancelled." flash.
+- [x] While busy, Regenerate / Detail / Tone are disabled and Cancel is visible.
+- [x] With `shiplogue.generate.timeoutSeconds` set low (e.g. 5), a slow run aborts with the "timed out after Ns" guidance message.
 
 ## 4. Sources
 
-- [ ] Real GitHub sign-in ("Shiplogue: Connect GitHub") → merged PRs / closed issues appear with a References block of real links.
-- [ ] Cursor prompts appear when Cursor is installed; `shiplogue.cursor.enabled: false` excludes them.
-- [ ] Multi-root workspace: only the open folders' activity is included; two same-named folders in different windows don't leak into each other.
-- [ ] A window with no folder open gathers the whole day and the panel notes "No folder open — included all projects."
+- [x] Real GitHub sign-in ("Shiplogue: Connect GitHub") → merged PRs / closed issues appear with a References block of real links.
+- [x] Cursor prompts appear when Cursor is installed; `shiplogue.cursor.enabled: false` excludes them.
+- [x] Multi-root workspace: only the open folders' activity is included; two same-named folders in different windows don't leak into each other.
+- [x] A window with no folder open gathers the whole day and the panel notes "No folder open — included all projects."
 
 ## 5. Posting
 
-- [ ] Discord webhook: a normal draft posts as one message.
-- [ ] Discord webhook: a >1990-char elaborate draft posts as multiple ordered messages; beyond 3 messages the last ends with "…(truncated — full text copied to clipboard)" and the clipboard holds the full text.
-- [ ] Slack webhook: draft posts in mrkdwn (`*bold*`, `<url|text>`), taken from the Markdown tab even when the Plain text tab is active.
+- [x] Discord webhook: a normal draft posts as one message.
+- [x] Discord webhook: a >1990-char elaborate draft posts as multiple ordered messages; beyond 3 messages the last ends with "…(truncated — full text copied to clipboard)" and the clipboard holds the full text.
+- [x] Slack webhook: draft posts in mrkdwn (`*bold*`, `<url|text>`), taken from the Markdown tab even when the Plain text tab is active.
 
 ## 6. Storage & soak
 
-- [ ] 30-minute soak: memory stable, the daily reminder fires once, snooze works.
-- [ ] `kill -9` the extension host mid-flush: no `.tmp` files remain in the activity dir, no torn JSON, no lost day.
-- [ ] Day files older than `shiplogue.store.retentionDays` are pruned on startup (check the debug console log).
+- [x] 30-minute soak: memory stable, the daily reminder fires once, snooze works.
+- [x] `kill -9` the extension host mid-flush: no `.tmp` files remain in the activity dir, no torn JSON, no lost day.
+- [x] Day files older than `shiplogue.store.retentionDays` are pruned on startup (check the debug console log).
 
 ## 7. Bring your own API key (new in 0.1.1)
 
-- [ ] **Shiplogue: Set API Key** → pick a provider → paste key → model list appears; choosing one writes `shiplogue.provider.type/model` and switches `shiplogue.model.backend` to `provider`.
-- [ ] While the key is stored, `settings.json` contains no key; no output channel or notification prints it.
-- [ ] **Shiplogue: Test Provider** reports success for the chosen model.
-- [ ] Generate a stand-up with the provider; the panel meta line shows `via <Provider> · <model>`.
-- [ ] Stop Ollama: generation still works with `backend: provider`, and no "Ollama isn't running" warning appears at startup.
-- [ ] Set `shiplogue.model.backend: ollama` with a provider configured: generation uses Ollama and the badge says `via Ollama`.
-- [ ] Set `backend: provider` with no key: generation fails with the "Run Shiplogue: Set API Key" message, not a stack trace, and does not call Ollama.
-- [ ] Revoke/garble the key: the error says the key was rejected and does not echo it.
-- [ ] `openai-compatible`: point at LM Studio (`http://localhost:1234/v1`), leave the key blank, pick a loaded model, generate.
-- [ ] **Shiplogue: Clear API Key** removes the key and resets `provider.type`/`model.backend`.
-- [ ] Reload the window: the key survives (keychain) and generation works without re-entry.
+- [x] **Shiplogue: Set API Key** → pick a provider → paste key → model list appears; choosing one writes `shiplogue.provider.type/model` and switches `shiplogue.model.backend` to `provider`.
+- [x] While the key is stored, `settings.json` contains no key; no output channel or notification prints it.
+- [x] **Shiplogue: Test Provider** reports success for the chosen model.
+- [x] Generate a stand-up with the provider; the panel meta line shows `via <Provider> · <model>`.
+- [x] Stop Ollama: generation still works with `backend: provider`, and no "Ollama isn't running" warning appears at startup.
+- [x] Set `shiplogue.model.backend: ollama` with a provider configured: generation uses Ollama and the badge says `via Ollama`.
+- [x] Set `backend: provider` with no key: generation fails with the "Run Shiplogue: Set API Key" message, not a stack trace, and does not call Ollama.
+- [x] Revoke/garble the key: the error says the key was rejected and does not echo it.
+- [x] `openai-compatible`: point at LM Studio (`http://localhost:1234/v1`), leave the key blank, pick a loaded model, generate.
+- [x] **Shiplogue: Clear API Key** removes the key and resets `provider.type`/`model.backend`.
+- [x] Reload the window: the key survives (keychain) and generation works without re-entry.
 
 ## 8. Reasoning-by-default BYOK endpoint (0.1.1 fix)
 
@@ -74,13 +74,13 @@ Use a provider/model that enables thinking by default (e.g. DeepSeek
 `deepseek-flash`, or a reasoning model on OpenRouter/vLLM). The request is sent
 without a `thinking`/`reasoning_effort` field, so the endpoint's default applies.
 
-- [ ] **Shiplogue: Test Provider** succeeds (the probe budget is ≥512 tokens, not 16).
-- [ ] Generate at `concise`: the first reply may be reasoning-only; a draft still appears (recovery request at ≥4096 tokens with `reasoning_effort: "none"`).
-- [ ] Generate at `standard`: same, with a draft in the panel.
-- [ ] On an endpoint that rejects `reasoning_effort` with HTTP 400, generation still succeeds via the budget-only retry (provider request log shows 2–3 calls).
-- [ ] Force both attempts to fail (e.g. `shiplogue.provider.maxOutputTokens: 64`): the error names `finish_reason` and a reasoning-token count, and never echoes the key.
-- [ ] The panel badge still shows `via <Provider> · <model>`.
-- [ ] With `shiplogue.model.backend: ollama`, the same project still generates through Ollama (no provider calls).
+- [x] **Shiplogue: Test Provider** succeeds (the probe budget is ≥512 tokens, not 16).
+- [x] Generate at `concise`: the first reply may be reasoning-only; a draft still appears (recovery request at ≥4096 tokens with `reasoning_effort: "none"`).
+- [x] Generate at `standard`: same, with a draft in the panel.
+- [x] On an endpoint that rejects `reasoning_effort` with HTTP 400, generation still succeeds via the budget-only retry (provider request log shows 2–3 calls).
+- [x] Force both attempts to fail (e.g. `shiplogue.provider.maxOutputTokens: 64`): the error names `finish_reason` and a reasoning-token count, and never echoes the key.
+- [x] The panel badge still shows `via <Provider> · <model>`.
+- [x] With `shiplogue.model.backend: ollama`, the same project still generates through Ollama (no provider calls).
 
 ## 9. Launch
 
