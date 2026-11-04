@@ -15,6 +15,10 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
   `settings.json`, activity logs, output channels, or error messages. Use
   **Shiplogue: Clear API Key** to delete one; uninstalling the extension may leave
   the keychain entry behind.
+- **The optional Shiplogue connector key** is stored with VS Code SecretStorage,
+  never in `settings.json` or logs. **Shiplogue: Disconnect Cloud** deletes it.
+  The key is only sent to the cloud origin configured in `shiplogue.cloud.url`
+  (default `https://shiplogue.dev`) as an `Authorization` header.
 
 ## What is never read
 
@@ -50,8 +54,16 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 - Model listing and **Shiplogue: Test Provider** also contact the configured
   provider; they send no activity, only the request needed to list models or ask
   for a one-word reply.
+- **Optional cloud sync.** If you connect a connector key and leave
+  `shiplogue.cloud.enabled` on, the finished stand-up draft (Markdown), its date,
+  title, the model label, and the configured time-saved estimate are sent to the
+  Shiplogue API at `shiplogue.cloud.url` (default `https://shiplogue.dev`) so it
+  can appear on your private dashboard. Raw activity, prompts, file contents, and
+  activity events are **not** uploaded by this build. Disconnect the connector or
+  turn off `shiplogue.cloud.enabled` to keep drafts entirely local.
 - This build does **not** post anywhere. The final draft leaves your machine only
-  when you copy it yourself.
+  when you copy it yourself, or when optional cloud sync stores it as a draft on
+  your dashboard.
 - GitHub API calls go only to `api.github.com`, only when GitHub collection is
   possible (token present).
 

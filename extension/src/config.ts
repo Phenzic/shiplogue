@@ -56,5 +56,10 @@ export function cfg() {
     generateTimeoutSeconds: c.get<number>("generate.timeoutSeconds", 180),
     // 0 keeps activity logs forever.
     storeRetentionDays: c.get<number>("store.retentionDays", 14),
+    cloudUrl: c.get<string>("cloud.url", "https://shiplogue.dev").trim(),
+    cloudEnabled: c.get<boolean>("cloud.enabled", true),
+    cloudEstimatedMinutesSaved: c.get<number>("cloud.estimatedMinutesSaved", 10),
+    // Extension-side update notifications (see src/versionCheck.ts).
+    updateEnabled: c.get<boolean>("update.enabled", true),
   };
 }
