@@ -1,6 +1,12 @@
 # Changelog
 
-## [Unreleased]
+All notable changes to this project will be documented here. Format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [0.1.8] — 2026-11-05
+
+Optional cloud sync, reliable update notices, stronger grounding, and a context
+preflight.
 
 ### Added
 
@@ -9,6 +15,14 @@
   sync to the private dashboard after generation, with a configurable estimated
   time saved. **Cloud Status** and **Disconnect Cloud** are included. Local
   generation still works with no account, and raw activity is not uploaded.
+- Extension-side update check: on activation the extension compares the running
+  version against the latest **Marketplace and Open VSX** listing (the source of
+  truth for installs) and notifies once per version when a newer build exists.
+  The notice offers **Update now**, **Open listing** and **Enable auto-update**;
+  **Shiplogue: Check for Update** runs the check on demand. Network or parse
+  failures are swallowed so the check never breaks activation.
+- New setting `shiplogue.update.enabled` (boolean, default `true`) to opt out of
+  update notifications.
 - Grounding v2: structured claim checks for paths, numbers, URLs, completion,
   people and dates. Unsupported claims trigger one repair call, then set
   `needsReview` with a panel warning; invented URLs are removed deterministically.
@@ -20,40 +34,21 @@
 - A small provenance note under **Copy** shows the model used, e.g.
   "done with OpenAI BYOK" or "done with Ollama".
 
-### Documentation
+### Changed
 
-- Trimmed the README to what a user needs: what it does, features,
-  compatibility, install, quick start, model/privacy choices, common settings and
-  troubleshooting.
+- Trimmed the README to what a user needs: what it does, features, compatibility,
+  install, quick start, model/privacy choices, common settings and troubleshooting.
 - Added `shiplogue.dev`, Marketplace and Open VSX links; shortened the package
   description and pointed `homepage` at the domain. The docs site lives in the
   cloud repo (Fumadocs) and will be served at `docs.shiplogue.dev`.
-
-
-All notable changes to this project will be documented here. Format follows
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
-## [0.1.8] — 2026-11-04
-
-Auto-update infrastructure.
-
-### Added
-
-- Extension-side update check: on activation the extension compares the running
-  version against the latest **Marketplace and Open VSX** listing (the source of
-  truth for installs) and notifies once per version when a newer build exists.
-  The notice offers **Update now**, **Open listing** and **Enable auto-update**;
-  **Shiplogue: Check for Update** runs the check on demand. Network or parse
-  failures are swallowed so the check never breaks activation.
-- New setting `shiplogue.update.enabled` (boolean, default `true`) to opt out of
-  update notifications.
 
 ### Notes
 
 - Marketplace/Open VSX installs keep the editor's built-in auto-update; the
   extension cannot force the editor-wide setting, so the notice links to it.
   The notice is what covers manual VSIX installs, which have no update channel.
-- Version bumped to `0.1.8` for this feature.
+- No posting in this build; drafts are copied, not sent.
+- No model is bundled. Use Ollama or your own API key.
 
 ## [0.1.7] — 2026-11-03
 

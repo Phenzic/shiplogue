@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     defaults:
@@ -50,10 +50,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="$(jq -r .version extension/package.json)"
+          VERSION="$(jq -r .version package.json)"
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" shiplogue.vsix --clobber
           else
-            gh release create "$TAG" shiplogue.vsix --title "Release v${VERSION}" --notes-file RELEASE_NOTES_0.1.8.md
+            gh release create "$TAG" shiplogue.vsix --title "Release v${VERSION}" --notes-file "../RELEASE_NOTES_${VERSION}.md"
           fi
