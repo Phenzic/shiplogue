@@ -327,6 +327,11 @@
           "maximum": 120,
           "markdownDescription": "Conservative estimate recorded with each synced stand-up for the dashboard's time-reclaimed metric. Set `0` to report none."
         },
+        "shiplogue.telemetry.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Share opt-in, anonymous usage metadata with Shiplogue Cloud so the admin dashboard can measure adoption and engagement. Requires a connected connector key. Never includes stand-up text, prompts, file paths, repository names, or error messages."
+        },
         "shiplogue.update.enabled": {
           "type": "boolean",
           "default": true,

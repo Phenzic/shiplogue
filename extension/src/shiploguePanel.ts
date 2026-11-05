@@ -22,10 +22,16 @@ export class ShiploguePanel {
   private panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
 
-  static show(onRegenerate: () => void, state: State, onCancel?: () => void): ShiploguePanel {
+  static show(
+    onRegenerate: () => void,
+    state: State,
+    onCancel?: () => void,
+    onCopy?: (format: "markdown" | "plain") => void,
+  ): ShiploguePanel {
     if (ShiploguePanel.current) {
       ShiploguePanel.current.onRegenerate = onRegenerate;
       ShiploguePanel.current.onCancel = onCancel;
+      ShiploguePanel.current.onCopy = onCopy;
       ShiploguePanel.current.state = state;
       ShiploguePanel.current.syncDetail();
       ShiploguePanel.current.panel.reveal();
@@ -37,7 +43,7 @@ export class ShiploguePanel {
       vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: true },
     );
-    ShiploguePanel.current = new ShiploguePanel(panel, onRegenerate, state, onCancel);
+    ShiploguePanel.current = new ShiploguePanel(panel, onRegenerate, state, onCancel, onCopy);
     return ShiploguePanel.current;
   }
 
@@ -46,6 +52,7 @@ export class ShiploguePanel {
     private onRegenerate: () => void,
     private state: State,
     private onCancel?: () => void,
+    private onCopy?: (format: "markdown" | "plain") => void,
   ) {
     this.panel = panel;
     this.panel.webview.html = this.html();
@@ -90,6 +97,7 @@ export class ShiploguePanel {
       case "copy":
         await vscode.env.clipboard.writeText(msg.text ?? "");
         vscode.window.showInformationMessage(`Copied ${msg.label ?? "text"} to clipboard.`);
+        this.onCopy?.(msg.label === "plain text" ? "plain" : "markdown");
         break;
       case "regenerate":
         this.onRegenerate();

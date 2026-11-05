@@ -10,6 +10,12 @@ preflight.
 
 ### Added
 
+- Opt-in, cloud-only product telemetry for the Shiplogue admin dashboard:
+  installation ID, extension/editor/provider metadata, generated/copied/
+  regenerated events, generation failures, connector lifecycle, and sync
+  success/failure. Telemetry is off by default and never includes stand-up text,
+  prompts, paths, repository names, or error messages. Setting:
+  `shiplogue.telemetry.enabled`.
 - Optional cloud connector: **Shiplogue: Connect Cloud** validates a connector key
   against the Shiplogue API and stores it in SecretStorage. Generated stand-ups
   sync to the private dashboard after generation, with a configurable estimated

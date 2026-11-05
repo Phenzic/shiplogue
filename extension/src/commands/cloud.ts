@@ -1,7 +1,10 @@
 import * as vscode from "vscode";
 import { CloudClient } from "../cloud";
+import { getAnalytics } from "../analytics";
+import { cfg } from "../config";
 
 let client: CloudClient | undefined;
+let telemetryPrompted = false;
 
 export function initCloud(context: vscode.ExtensionContext): CloudClient {
   client = new CloudClient(context);
@@ -14,6 +17,21 @@ export function getCloudClient(): CloudClient | undefined {
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+async function maybePromptTelemetry(): Promise<void> {
+  if (cfg().telemetryEnabled || telemetryPrompted) return;
+  telemetryPrompted = true;
+  const choice = await vscode.window.showInformationMessage(
+    "Share anonymous usage metadata with Shiplogue? It helps measure adoption and prioritize integrations. No stand-up text, prompts, file paths, repository names, or error messages are sent.",
+    "Enable anonymous usage",
+    "Not now",
+  );
+  if (choice === "Enable anonymous usage") {
+    await vscode.workspace
+      .getConfiguration("shiplogue")
+      .update("telemetry.enabled", true, vscode.ConfigurationTarget.Global);
+  }
 }
 
 export async function connectCloud(): Promise<void> {
@@ -30,6 +48,8 @@ export async function connectCloud(): Promise<void> {
 
   try {
     const me = await client.connect(key);
+    await maybePromptTelemetry();
+    void getAnalytics()?.track("connector.connected", { plan: me.workspace.plan });
     await vscode.window.showInformationMessage(
       `Connected to ${me.workspace.name}. Generated stand-ups will sync to Shiplogue.`,
     );
@@ -44,6 +64,9 @@ export async function disconnectCloud(): Promise<void> {
     await vscode.window.showInformationMessage("Shiplogue Cloud is already disconnected.");
     return;
   }
+  const analytics = getAnalytics();
+  void analytics?.track("connector.disconnected", {});
+  await analytics?.flush();
   await client.disconnect();
   await vscode.window.showInformationMessage(
     "Shiplogue Cloud disconnected. The connector key was removed; local generation still works.",
