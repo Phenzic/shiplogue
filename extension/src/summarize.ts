@@ -2,6 +2,7 @@ import { cfg } from "./config";
 import { StandupContext } from "./types";
 import { contextToText } from "./gather";
 import { enforceSublists } from "./format";
+import { getFormatSections, type SectionKey } from "./formatProfile";
 import { verifyClaims, Verification } from "./grounding";
 import { BudgetReport, ContextBudgetError, trimForBudget } from "./model/budget";
 import { resolveBackend } from "./model/registry";
@@ -52,40 +53,50 @@ const TONES: Record<string, string> = {
   senior: "- Voice: write as a senior engineer — lead with impact and decisions; be terse, no fluff.",
 };
 
-// The one, fixed output format. A structural template (not an example with
-// fake content) so nothing anchors length and no facts can bleed in.
+// The fixed structure. Labels/order may come from a paid cloud profile; the
+// content instructions for each semantic section stay ours.
+function sectionInstruction(key: SectionKey): string[] {
+  switch (key) {
+    case "yesterday":
+      return [
+        "- <one accomplishment per bullet: WHAT changed and WHY, past tense, plain English>",
+      ];
+    case "today":
+      return [
+        "- <one accomplishment per bullet: WHAT changed and WHY, past tense, plain English>",
+        "- <when a bullet covers 3 or more files/pages, do NOT run them inline in the sentence — state the change on the bullet line ending with a colon, then list each file as an indented sub-bullet:>",
+        "  - <path/one.md>",
+        "  - <path/two.md>",
+        "  - <path/three.md>",
+      ];
+    case "next":
+      return ["- <1-3 bullets: what I'll do next>"];
+    case "blockers":
+      return ["- <blockers, or exactly: None>"];
+  }
+}
+
 function baseTemplate(): string {
-  const yesterday = cfg().format === "yesterday-today-blockers";
-  const done = yesterday ? "Yesterday" : "Done";
-  const next = yesterday ? "Today" : "Next";
-  return [
-    "Hey team, here's what I worked on today:",
-    "",
-    `**${done}**`,
-    "- <one accomplishment per bullet: WHAT changed and WHY, past tense, plain English>",
-    "- <when a bullet covers 3 or more files/pages, do NOT run them inline in the sentence — state the change on the bullet line ending with a colon, then list each file as an indented sub-bullet:>",
-    "  - <path/one.md>",
-    "  - <path/two.md>",
-    "  - <path/three.md>",
-    "",
-    `**${next}**`,
-    "- <1-3 bullets: what I'll do next>",
-    "",
-    "**Blockers**",
-    "- <blockers, or exactly: None>",
-  ].join("\n");
+  const sections: string[] = ["Hey team, here's what I worked on today:", ""];
+  for (const section of getFormatSections()) {
+    sections.push(`**${section.label}**`, ...sectionInstruction(section.key), "");
+  }
+  return sections.join("\n").trimEnd();
 }
 
 function buildPrompt(ctx: StandupContext): string {
   const level = DETAIL_LEVELS[cfg().detail] ?? DETAIL_LEVELS.concise;
   const toneRule = TONES[cfg().tone];
+  const sections = getFormatSections();
+  const primary = sections.find((section) => section.key === "today")?.label ?? "Today";
+  const yesterday = sections.find((section) => section.key === "yesterday")?.label ?? "Yesterday";
+  const rules = level.rules.map((rule) => rule.replace(/\bDone\b/g, primary));
   return [
     "You are writing YOUR OWN developer daily stand-up update, in first person.",
     "",
     "OUTPUT FORMAT — follow this template exactly. Text in <angle brackets> describes what goes there; everything else is literal:",
-    "--- TEMPLATE ---",
+    "",
     baseTemplate(),
-    "--- END TEMPLATE ---",
     "",
     "Rules:",
     "- Write in natural, plain English. Clean, clear, easy to pick up and understand.",
@@ -100,32 +111,42 @@ function buildPrompt(ctx: StandupContext): string {
     "- Anything marked 'merged PR' or 'closed issue' is ALREADY FINISHED — report it as done, never as a next step.",
     "- Commits and closed issues/PRs are proof of COMPLETED work — prioritize them. The 'AI prompts' are what I was trying to do; use them to add context or to infer in-progress work and a sensible 'Next', but don't report a prompt as finished work unless a commit/PR backs it.",
     "- If there is no clear 'Next', infer one from in-progress (uncommitted) files, or write a brief honest placeholder. Start every inferred Next bullet with '(inferred)'.",
+    `- If a saved ${yesterday} stand-up is provided below, use it for the ${yesterday} section and do NOT repeat those items under ${primary}.`,
     ...(toneRule ? [toneRule] : []),
     "- Do NOT add a references or links section — that is appended separately.",
+    ...(ctx.previousStandup
+      ? [
+          "",
+          `${yesterday.toUpperCase()}'S SAVED STAND-UP (authoritative for the ${yesterday} section; not activity data):`,
+          ctx.previousStandup.markdown,
+        ]
+      : []),
     "",
     "ACTIVITY:",
     contextToText(ctx),
     "",
     "HARD REQUIREMENTS for this stand-up (these override everything above):",
-    ...level.rules,
+    ...rules,
     "",
     "Output only the stand-up, nothing else.",
   ].join("\n");
 }
 
-function countDoneBullets(text: string): number {
+function countPrimaryBullets(text: string, label: string): number {
+  const target = label.trim().toLowerCase();
   const lines = text.split("\n");
-  let inDone = false;
+  let inPrimary = false;
   let count = 0;
   for (const line of lines) {
-    if (/^\*\*/.test(line.trim())) {
-      if (inDone) {
-        break;
+    const heading = line.trim().match(/^\*\*(.+?)\*\*$/);
+    if (heading) {
+      if (inPrimary) break;
+      if (heading[1].trim().toLowerCase() === target) {
+        inPrimary = true;
       }
-      inDone = true;
       continue;
     }
-    if (inDone && /^- /.test(line)) {
+    if (inPrimary && /^- /.test(line)) {
       count++;
     }
   }
@@ -172,17 +193,20 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
   // what the rules say. Only retry when the activity actually has enough
   // distinct items to honestly support the minimum — never force padding.
   const min = MIN_BULLETS[c.detail] ?? 0;
+  const primaryLabel =
+    getFormatSections().find((section) => section.key === "today")?.label ?? "Today";
   const distinctItems =
     ctx.commits.length + ctx.github.length + (ctx.touches.length > 0 ? 1 : 0);
-  if (min > 0 && countDoneBullets(text) < min && distinctItems >= min) {
+  const bullets = countPrimaryBullets(text, primaryLabel);
+  if (min > 0 && bullets < min && distinctItems >= min) {
     const repair = [
       prompt,
       "",
       "Your previous draft:",
       text,
       "",
-      `That draft has only ${countDoneBullets(text)} bullets in the first section; the requirement is at least ${min}.`,
-      `Rewrite the stand-up, splitting themes apart (per file-group, per fix, per branch, per page-set) until the first section has at least ${min} bullets.`,
+      `That draft has only ${bullets} bullets in the ${primaryLabel} section; the requirement is at least ${min}.`,
+      `Rewrite the stand-up, splitting themes apart (per file-group, per fix, per branch, per page-set) until the ${primaryLabel} section has at least ${min} bullets.`,
       "Do NOT invent work — split real work instead. Keep the same template.",
       "Output only the stand-up, nothing else.",
     ].join("\n");

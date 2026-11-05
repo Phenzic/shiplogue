@@ -51,12 +51,16 @@ async function gh(path: string, token: string, signal?: AbortSignal): Promise<an
   return res.json();
 }
 
-async function resolveRepos(configured: string[], signal?: AbortSignal): Promise<string[]> {
+async function resolveRepos(
+  configured: string[],
+  signal?: AbortSignal,
+  workspaceFolders?: readonly vscode.WorkspaceFolder[],
+): Promise<string[]> {
   if (configured.length > 0) {
     return configured;
   }
   const slugs = new Set<string>();
-  for (const folder of vscode.workspace.workspaceFolders ?? []) {
+  for (const folder of workspaceFolders ?? vscode.workspace.workspaceFolders ?? []) {
     const slug = await repoSlug(folder.uri.fsPath, signal);
     if (slug) {
       slugs.add(slug);
@@ -72,6 +76,7 @@ export async function collectGitHub(
   configuredRepos: string[],
   since: Date,
   signal?: AbortSignal,
+  workspaceFolders?: readonly vscode.WorkspaceFolder[],
 ): Promise<GitHubItem[]> {
   if (!token) {
     return [];
@@ -79,7 +84,7 @@ export async function collectGitHub(
   try {
     const me = await gh("/user", token, signal);
     const login: string = me.login;
-    const repos = await resolveRepos(configuredRepos, signal);
+    const repos = await resolveRepos(configuredRepos, signal, workspaceFolders);
     if (repos.length === 0) {
       return [];
     }

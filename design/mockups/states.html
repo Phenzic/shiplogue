@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Shiplogue panel — needs review state</title>
+<link rel="stylesheet" href="panel.css" />
+<script>
+  const t = new URLSearchParams(location.search).get("theme");
+  document.documentElement.dataset.theme = t === "light" ? "light" : "dark";
+</script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/><path d="M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+</svg>
+
+<div class="page" style="justify-content:center">
+  <div class="stack">
+    <div class="panel">
+      <div class="titlebar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="name">Shiplogue — Daily stand-up</span>
+        <span class="spacer"></span><span class="x">✕</span>
+      </div>
+
+      <div class="head">
+        <div class="h-left">
+          <h1>Daily stand-up</h1>
+          <div class="meta">
+            <span>3 commits</span><span class="sep">·</span>
+            <span>5 files</span><span class="sep">·</span>
+            <span>2 GitHub items</span><span class="sep">·</span>
+            <span class="verdict bad"><svg><use href="#i-warn"/></svg>Needs review</span>
+          </div>
+        </div>
+        <div class="h-right">
+          <span class="model-chip"><span class="led"></span>Ollama · gpt-oss:20b</span>
+          <button class="icon-btn"><svg><use href="#i-clock"/></svg></button>
+          <button class="icon-btn"><svg><use href="#i-gear"/></svg></button>
+        </div>
+      </div>
+
+      <div class="tabs-row">
+        <div class="tabs">
+          <button class="tab active"><svg><use href="#i-doc"/></svg>Draft</button>
+          <button class="tab"><svg><use href="#i-clock"/></svg>History</button>
+        </div>
+        <span class="spacer"></span>
+        <div class="seg"><button>Markdown</button><button class="on">Preview</button><button>Plain</button></div>
+      </div>
+
+      <div class="body">
+        <div class="verify-strip bad">
+          <span class="warn-ic"><svg><use href="#i-warn"/></svg><span class="count">2 unverified claims</span></span>
+          <span>left after a repair pass</span>
+          <span class="spacer"></span>
+          <a class="cta" href="#">Review details</a>
+        </div>
+
+        <div class="draft">
+          <p>Hey team, here's what I worked on today:</p>
+          <div class="section">Done</div>
+          <ul>
+            <li>Shipped multi-target posting with per-target failure isolation.</li>
+            <li>Fixed the portal crash in <mark class="unverified">src/invented.ts</mark><span class="badge-unverified">unverified</span></li>
+            <li>Closed out <mark class="unverified">#999</mark> after the remediation<span class="badge-unverified">unverified</span></li>
+          </ul>
+          <div class="section">Next</div>
+          <ul><li><span class="tag-inferred">(inferred)</span> Continue the panel refactor.</li></ul>
+          <div class="section">Blockers</div>
+          <ul><li>None</li></ul>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary"><svg><use href="#i-refresh"/></svg>Regenerate with stricter grounding</button>
+        <button class="btn secondary"><svg><use href="#i-copy"/></svg>Copy anyway</button>
+        <span class="spacer"></span>
+        <span class="select">Detail <select><option>Concise</option><option selected>Standard</option><option>Elaborate</option></select></span>
+        <span class="select">Tone <select><option selected>Neutral</option><option>Junior</option><option>Mid</option><option>Senior</option></select></span>
+      </div>
+
+      <div class="statusbar">
+        <span>⚠ 2 claims could not be verified against your activity — review highlighted lines before sending</span>
+        <span class="spacer"></span>
+        <span class="thumbs"><button class="thumb">👍</button><button class="thumb">👎</button></span>
+      </div>
+    </div>
+    <div class="caption"><span>Planned · Needs-review state</span><span>unverified claims highlighted inline, send de-emphasised</span></div>
+  </div>
+</div>
+</body>
+</html>

@@ -34,8 +34,13 @@ export async function repoSlug(cwd: string, signal?: AbortSignal): Promise<strin
 
 // Commits authored by the local git user across all workspace git repos,
 // within [since, until].
-export async function collectCommits(since: Date, until: Date, signal?: AbortSignal): Promise<Commit[]> {
-  const folders = vscode.workspace.workspaceFolders ?? [];
+export async function collectCommits(
+  since: Date,
+  until: Date,
+  signal?: AbortSignal,
+  workspaceFolders?: readonly vscode.WorkspaceFolder[],
+): Promise<Commit[]> {
+  const folders = workspaceFolders ?? vscode.workspace.workspaceFolders ?? [];
   const RS = "\x1e"; // record start
   const US = "\x1f"; // field sep
   const GS = "\x1d"; // header/files sep

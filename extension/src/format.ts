@@ -21,41 +21,87 @@ export function buildReferences(ctx: StandupContext): string {
   return lines.join("\n");
 }
 
-// Deterministic formatting the model half-obeys when asked: any top-level
-// bullet ending in an inline run of 3+ file paths ("...: a.md, b.md, c.md")
-// is rewritten with the paths as indented sub-bullets, one per line.
+// Deterministic formatting the model half-obeys when asked:
+// - strips accidental "--- TEMPLATE ---" / code-fence wrappers;
+// - turns inline runs of 3+ file paths into indented sub-bullets;
+// - turns a bullet ending in ":" plus following file-only bullets (the common
+//   model output) into a real sub-list instead of sibling bullets.
+// Bullets may arrive as "-", "*" or "•"; output is always Markdown "-".
 export function enforceSublists(md: string): string {
-  return md
-    .split("\n")
-    .map((line) => {
-      // "(inferred)" markers (required from the model for guessed Next items)
-      // become italics so users can see what the model inferred vs. knows.
-      const inferred = line.match(/^(\s*- )\(inferred\)\s+(.*)$/i);
-      if (inferred) {
-        return `${inferred[1]}*(inferred)* ${inferred[2]}`;
+  const cleaned = md
+    .replace(/^\s*---\s*(?:BEGIN\s+)?TEMPLATE\s*---\s*$/gim, "")
+    .replace(/^\s*---\s*END\s+TEMPLATE\s*---\s*$/gim, "")
+    .replace(/^\s*```[a-zA-Z]*\s*$/gim, "");
+
+  const isFilePathOnly = (text: string): boolean => {
+    const value = text.replace(/[.,;:\s]+$/g, "").trim();
+    return (
+      value.length > 0 &&
+      !/\s/.test(value) &&
+      PATHISH.test(value) &&
+      !/^https?:\/\//i.test(value)
+    );
+  };
+
+  const out: string[] = [];
+  let pendingHeader = false;
+
+  for (const raw of cleaned.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    const inferred = line.match(/^(\s*)[-*•]\s+\(inferred\)\s+(.*)$/i);
+    if (inferred) {
+      out.push(`${inferred[1]}- *(inferred)* ${inferred[2]}`);
+      continue;
+    }
+
+    const bullet = line.match(/^(\s*)[-*•]\s+(.*)$/);
+    if (!bullet) {
+      // Prose ends a header's file list; blank lines do not.
+      if (line.trim()) pendingHeader = false;
+      out.push(line);
+      continue;
+    }
+
+    const indent = bullet[1];
+    const text = bullet[2].trim();
+
+    if (indent.length > 0) {
+      out.push(`${indent}- ${text}`);
+      continue;
+    }
+
+    if (pendingHeader && isFilePathOnly(text)) {
+      out.push(`  - ${text.replace(/[.,;:\s]+$/g, "")}`);
+      continue;
+    }
+
+    const inline = text.match(/^(.*?):\s*(.+?)\.?$/);
+    if (inline) {
+      const parts = inline[2].split(/,\s*(?:and\s+)?/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length >= 3 && parts.every((p) => PATHISH.test(p) && !p.includes(" "))) {
+        out.push(`- ${inline[1]}:`, ...parts.map((p) => `  - ${p}`));
+        pendingHeader = false;
+        continue;
       }
-      const m = line.match(/^- (.+?):\s*(.+?)\.?\s*$/);
-      if (!m) {
-        return line;
-      }
-      const parts = m[2].split(/,\s*(?:and\s+)?/).map((p) => p.trim()).filter(Boolean);
-      if (parts.length < 3 || !parts.every((p) => PATHISH.test(p) && !p.includes(" "))) {
-        return line;
-      }
-      return [`- ${m[1]}:`, ...parts.map((p) => `  - ${p}`)].join("\n");
-    })
-    .join("\n");
+    }
+
+    out.push(`- ${text}`);
+    pendingHeader = /:\s*$/.test(text);
+  }
+
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 // Convert a markdown stand-up into readable plain text: unwrap links to
 // "text (url)", drop bold/italic markers and heading hashes, normalize bullets.
+// Indentation is preserved so sub-bullets stay sub-bullets.
 export function toPlainText(md: string): string {
   return md
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)") // [text](url) -> text (url)
     .replace(/\*\*([^*]+)\*\*/g, "$1") // **bold** -> bold
     .replace(/\*([^*\n]+)\*/g, "$1") // *italic* -> italic
     .replace(/^\s{0,3}#{1,6}\s+/gm, "") // # heading -> heading
-    .replace(/^\s*[-*]\s+/gm, "• ") // - item / * item -> • item
+    .replace(/^(\s*)[-*•]\s+/gm, "$1• ") // "- item" -> "• item", keep indent
     .trim();
 }
 

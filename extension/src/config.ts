@@ -31,7 +31,6 @@ export function cfg() {
     githubToken: c.get<string>("github.token", "").trim(),
     githubUseBuiltInAuth: c.get<boolean>("github.useBuiltInAuth", true),
     githubRepos: c.get<string[]>("github.repos", []),
-    format: c.get<"done-next-blockers" | "yesterday-today-blockers">("format", "done-next-blockers"),
     trackEnabled: c.get<boolean>("track.enabled", true),
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),
@@ -60,6 +59,16 @@ export function cfg() {
     cloudEnabled: c.get<boolean>("cloud.enabled", true),
     cloudEstimatedMinutesSaved: c.get<number>("cloud.estimatedMinutesSaved", 10),
     telemetryEnabled: c.get<boolean>("telemetry.enabled", false),
+    // Feedback loop: local counters only; prompts open a form in the browser.
+    feedbackEnabled: c.get<boolean>("feedback.enabled", true),
+    feedbackPromptAfter: c.get<number>("feedback.promptAfter", 3),
+    // Per-draft history shown in the panel's History tab. The free tier keeps
+    // drafts locally for a week; Pro keeps everything in the cloud.
+    historyRetentionDays: c.get<number>("history.retentionDays", 7),
+    historyMaxEntries: c.get<number>("history.maxEntries", 50),
+    weeklyRecapEnabled: c.get<boolean>("weeklyRecap.enabled", true),
+    weeklyRecapDay: c.get<string>("weeklyRecap.day", "friday"),
+    weeklyRecapTime: c.get<string>("weeklyRecap.time", "18:00"),
     // Extension-side update notifications (see src/versionCheck.ts).
     updateEnabled: c.get<boolean>("update.enabled", true),
   };

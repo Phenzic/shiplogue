@@ -3,6 +3,82 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.10] — 2026-11-05
+
+### Added
+
+- **Queued cloud delivery:** Send now handles the cloud's `202` response, polls
+  `/api/v1/deliveries/:id`, and marks a draft Sent only after a target succeeds.
+  Server-side `402` responses map to the Pro upgrade path. Sends use a stable
+  content/day idempotency key so double-clicks do not post twice.
+- **Cloud history paging:** Pro history loads from `/api/v1/standups` with cursor
+  paging and shows cloud-side sent/scheduled metadata, source tags, and project
+  names. Free users keep the local history window.
+- **Automatic weekly recap:** every Friday at 18:00 local by default, Shiplogue
+  compiles the stored daily drafts into one weekly recap, adds it to draft
+  history, and shows a "weekly recap is ready" prompt. The day and time are
+  configurable with `shiplogue.weeklyRecap.*`. It does not scan commits, files,
+  prompts, or the network; stored daily drafts are the source of truth.
+- **Source tags on summaries:** each synced stand-up records the IDE or agent
+  that produced it, and multi-source summaries keep every tag. The dashboard
+  renders the matching VS Code / Cursor / Claude Code / other badges.
+- **Send via Shiplogue Cloud (Pro):** the panel and history now post a stand-up by
+  asking Shiplogue Cloud to deliver it to the workspace's Slack/Discord/Teams
+  targets — the extension never calls webhooks directly. Scheduled posting is
+  configured in the dashboard and also runs cloud-side. Free workspaces see an
+  upgrade prompt instead.
+- **Feedback & rating prompts:** a one-time-per-version question after a few
+  successful drafts (Share feedback / Star on GitHub / Not now / Don't ask
+  again), a 👍-triggered star nudge, and new commands **Shiplogue: Share
+  Feedback**, **Star on GitHub**, **Rate on the Marketplace**. Settings:
+  `shiplogue.feedback.enabled`, `shiplogue.feedback.promptAfter`.
+
+### Changed
+
+- **Redesigned panel**: rendered Markdown preview by default (with raw Markdown
+  and Plain-text modes), a verification strip ("N claims verified · M removed ·
+  K inferred") with a details list, unverified claims highlighted inline in
+  needs-review drafts, a model/backend chip, generation stats in the status bar,
+  and inline Detail/Tone controls.
+- **Draft history tab**: searchable, day-grouped list of every draft with its
+  model, detail/tone and send status; preview, copy or restore a draft. Stored
+  locally under `shiplogue.history.retentionDays` (7 by default) and
+  `shiplogue.history.maxEntries`; the cloud remains the long-term store for Pro.
+- The panel UI now lives in `media/` (HTML/CSS/JS) with a strict CSP and
+  `asWebviewUri` assets instead of a TypeScript template string.
+
+## [0.1.9] — 2026-11-05
+
+Local project workspaces, weekly recaps, and safer cloud grouping.
+
+### Added
+
+- Local project workspaces: generation now follows the active project folder, and
+  synced stand-ups carry a stable local workspace ID and project name, so two
+  projects no longer merge into one daily summary.
+- **Shiplogue: Generate Weekly Recap**: a local, copyable seven-day recap built
+  from stored daily drafts. (0.1.10 makes this automatic and configurable.)
+- Local stand-up history: generated drafts are saved atomically per local day and
+  kept for 7 days; copied/reviewed drafts replace the generated text. **Shiplogue:
+  Open Stand-up History** opens the last week, and yesterday's saved stand-up is
+  fed to the model for the Yesterday section instead of being re-inferred.
+- Reviewed copies are upserted to the cloud for the same workspace/date, so the
+  dashboard keeps the final text rather than only the first generated draft.
+- Property allowlisting for telemetry events; unknown metadata is rejected by
+  the cloud endpoint.
+
+### Changed
+
+- One built-in stand-up format: **Yesterday / Today / Next / Blockers** (`Done`
+  becomes `Today`), fixed and not user-configurable. Template markers are
+  stripped, referenced files are rendered as indented sub-bullets instead of
+  sibling bullets, and plain text keeps the sub-bullet indentation.
+- Paid workspaces can relabel/reorder those four sections from a cloud profile;
+  free plans always fall back to the built-in labels/order. There is no local
+  custom-format setting.
+- Cloud sync titles include the local project name.
+- Sending the same day's stand-up for two different local projects is supported.
+
 ## [0.1.8] — 2026-11-05
 
 Optional cloud sync, reliable update notices, stronger grounding, and a context

@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
+import * as crypto from "crypto";
 import { Store } from "./store";
+import { StandupStore } from "./standupStore";
 import { Tracker } from "./tracker";
 import { State } from "./state";
 import { Reminder } from "./reminder";
@@ -9,6 +11,11 @@ import { generateStandup } from "./summarize";
 import { githubToken } from "./github";
 import { buildReferences } from "./format";
 import { ShiploguePanel } from "./shiploguePanel";
+import { DraftEntry, DraftHistory } from "./draftHistory";
+import { CloudDraftSync, getDraftSync, setDraftSync } from "./draftHistorySync";
+import { Feedback, openFeedback, openRate, openStar } from "./feedback";
+import { refreshDelivery } from "./delivery";
+import { toPanelVerification } from "./panelVerification";
 import {
   AUTO_UPDATE_SETTINGS_QUERY,
   EXTENSION_ID,
@@ -22,18 +29,26 @@ import { BackendMeta } from "./model/types";
 import { clearProviderKey, setProviderKey, testProvider } from "./commands/providerKeys";
 import { configureShortcut } from "./commands/shortcuts";
 import { cloudStatus, connectCloud, disconnectCloud, initCloud } from "./commands/cloud";
-import type { CloudClient } from "./cloud";
+import { localDateKey, type CloudClient } from "./cloud";
 import { Analytics, initAnalytics } from "./analytics";
+import { activeWorkspace } from "./workspaces";
+import { WeeklyRecapScheduler } from "./weeklyRecap";
+import { sourcesForContext } from "./sources";
 import { PromptWatcher } from "./promptWatcher";
 import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
+let history: StandupStore;
+let draftHistory: DraftHistory;
 let state: State;
 let tracker: Tracker | undefined;
 let promptWatcher: PromptWatcher | undefined;
 let reminder: Reminder | undefined;
 let cloud: CloudClient | undefined;
 let analytics: Analytics | undefined;
+let weeklyRecap: WeeklyRecapScheduler | undefined;
+const cloudHistoryCache = new Map<string, DraftEntry>();
+let feedback: Feedback;
 
 // Generation runs are serialized by a monotonic epoch: a new run (Regenerate,
 // Detail change) aborts and supersedes the previous one, whose late results
@@ -47,8 +62,22 @@ export let healthCheckDone: Promise<void> | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
+  history = new StandupStore(context);
+  draftHistory = new DraftHistory(context);
+  draftHistory.prune();
+  ShiploguePanel.init(context);
   state = new State(context);
   cloud = initCloud(context);
+  void refreshDelivery(cloud).then((d) => ShiploguePanel.updateDelivery(d));
+  feedback = new Feedback(state, context.extension?.packageJSON?.version ?? "0.0.0");
+  // Refresh a cached paid format profile in the background; offline/expired
+  // keys simply keep the last validated profile (or the built-in format).
+  void cloud
+    .me()
+    .then((me) => {
+      if (cloud && me.workspace.features?.history) setDraftSync(new CloudDraftSync(cloud));
+    })
+    .catch(() => {});
   analytics = initAnalytics(context, cloud);
   cloudWarningShown = false;
   void analytics.track("extension.activated");
@@ -85,6 +114,16 @@ export function activate(context: vscode.ExtensionContext) {
   reminder = new Reminder(state, () => void runGenerate("reminder"));
   void reminder.ensureSetup().then(() => reminder?.start());
 
+  weeklyRecap = new WeeklyRecapScheduler(context, history, draftHistory, async () => {
+    const action = await vscode.window.showInformationMessage(
+      "Your weekly recap is ready.",
+      "View recap",
+      "Dismiss",
+    );
+    if (action === "View recap") await showHistory();
+  });
+  weeklyRecap.start();
+
   // Fire-and-forget first-run check: surface Ollama problems at startup with a
   // fix path, instead of letting the first Generate fail. Never blocks
   // activation and never throws.
@@ -99,6 +138,16 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("shiplogue.generate", () => runGenerate("manual")),
+    vscode.commands.registerCommand("shiplogue.generateWeeklyRecap", async () => {
+      const entry = await weeklyRecap?.generateNow();
+      if (!entry) {
+        await vscode.window.showInformationMessage(
+          "No daily drafts from the last seven days yet. Generate a stand-up first.",
+        );
+        return;
+      }
+      await showHistory();
+    }),
     vscode.commands.registerCommand("shiplogue.showActivity", () => runShowActivity()),
     vscode.commands.registerCommand("shiplogue.setProviderKey", () => setProviderKey()),
     vscode.commands.registerCommand("shiplogue.clearProviderKey", () => clearProviderKey()),
@@ -111,6 +160,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("shiplogue.disconnectCloud", () => disconnectCloud()),
     vscode.commands.registerCommand("shiplogue.cloudStatus", () => cloudStatus()),
     vscode.commands.registerCommand("shiplogue.checkUpdate", () => void runUpdateCheck(context, true)),
+    vscode.commands.registerCommand("shiplogue.feedback", () => openFeedback()),
+    vscode.commands.registerCommand("shiplogue.star", () => openStar()),
+    vscode.commands.registerCommand("shiplogue.rate", () => openRate()),
+    vscode.commands.registerCommand("shiplogue.showHistory", () => void showHistory()),
     vscode.commands.registerCommand("shiplogue.connectGitHub", async () => {
       const token = await githubToken(true);
       vscode.window.showInformationMessage(
@@ -123,14 +176,8 @@ export function activate(context: vscode.ExtensionContext) {
 async function runGenerate(
   reason: "manual" | "regenerate" | "reminder" = "manual",
 ): Promise<void> {
-  const panel = ShiploguePanel.show(
-    () => void runGenerate("regenerate"),
-    state,
-    () => inFlight?.abort(),
-    (format) => {
-      void analytics?.track("standup.copied", { format });
-    },
-  );
+  const local = cfg().scope === "workspace" ? activeWorkspace() : undefined;
+  const panel = openPanel(local);
   // A new run supersedes and aborts any in-flight run.
   inFlight?.abort();
   const epoch = ++generationEpoch;
@@ -164,7 +211,19 @@ async function runGenerate(
   };
 
   try {
-    const ctx = await gatherContext(store, { signal: controller.signal, onPhase: setPhase });
+    const ctx = await gatherContext(store, {
+      signal: controller.signal,
+      onPhase: setPhase,
+      ...(local ? { folder: local.folder } : {}),
+    });
+    const previous = history?.getYesterday(local?.id);
+    if (previous) {
+      ctx.previousStandup = {
+        date: previous.date,
+        markdown: previous.markdown,
+        ...(previous.projectName ? { projectName: previous.projectName } : {}),
+      };
+    }
     if (!ctx.commits.length && !ctx.github.length && !ctx.touches.length && !ctx.cursorPrompts.length) {
       if (epoch === generationEpoch) {
         panel.setError(
@@ -174,10 +233,14 @@ async function runGenerate(
       return;
     }
     setPhase("Writing your stand-up…");
-    const { text: draft, warnings, backend } = await generateStandup(ctx, controller.signal);
+    const { text: draft, warnings, backend, verification } = await generateStandup(
+      ctx,
+      controller.signal,
+    );
     if (controller.signal.aborted) {
       throw new DOMException("Generation aborted", "AbortError");
     }
+    const sources = sourcesForContext(ctx.cursorPrompts);
     const markdown = draft + buildReferences(ctx);
     // Surface input caps / scope fallbacks next to the activity counts, so a
     // busy day never looks silently incomplete.
@@ -197,6 +260,46 @@ async function runGenerate(
       notes.push(`showing ${ctx.github.length} of ${ctx.truncated.github} GitHub items (most recent)`);
     }
     if (epoch === generationEpoch) {
+      const modelLabel = backend ? backendLabel(backend) : undefined;
+      const generatedAt = new Date().toISOString();
+      const panelVerification = verification ? toPanelVerification(verification) : undefined;
+      let draftEntry;
+      try {
+        draftEntry = draftHistory?.add({
+          ts: generatedAt,
+          markdown,
+          detail: cfg().detail,
+          tone: cfg().tone,
+          ...(local?.name ? { projectName: local.name } : {}),
+          ...(modelLabel ? { modelLabel } : {}),
+          ...(sources.length ? { sources } : {}),
+          ...(panelVerification ? { verification: panelVerification } : {}),
+          summary: {
+            commits: ctx.commits.length,
+            files: ctx.touches.length,
+            github: ctx.github.length,
+            ...(notes.length ? { notes } : {}),
+          },
+          stats: {
+            durationMs: Date.now() - started,
+            ...(backend?.inputTokens ? { inputTokens: backend.inputTokens } : {}),
+            ...(backend?.outputTokens ? { outputTokens: backend.outputTokens } : {}),
+          },
+        });
+      } catch {
+        /* the history log must never block the draft */
+      }
+      let record;
+      try {
+        record = history?.saveGenerated(markdown, {
+          ...(local?.id ? { workspaceId: local.id } : {}),
+          ...(local?.name ? { projectName: local.name } : {}),
+          ...(modelLabel ? { modelLabel } : {}),
+          ...(sources.length ? { sources } : {}),
+        });
+      } catch {
+        /* local history must never block the draft */
+      }
       panel.setDraft({
         markdown,
         summary: {
@@ -206,8 +309,18 @@ async function runGenerate(
           ...(notes.length ? { notes } : {}),
         },
         ...(warnings.length ? { warnings } : {}),
-        ...(backend ? { modelLabel: backendLabel(backend), modelNote: backendNote(backend) } : {}),
+        ...(modelLabel && backend ? { modelLabel, modelNote: backendNote(backend) } : {}),
+        ...(local ? { projectName: local.name } : {}),
+        ...(panelVerification ? { verification: panelVerification } : {}),
+        ...(draftEntry ? { draftId: draftEntry.id } : {}),
+        generatedAt,
+        stats: {
+          durationMs: Date.now() - started,
+          ...(backend?.inputTokens ? { inputTokens: backend.inputTokens } : {}),
+          ...(backend?.outputTokens ? { outputTokens: backend.outputTokens } : {}),
+        },
       });
+      void feedback.recordSuccess(modelLabel ?? "unknown");
       void analytics?.track("standup.generated", {
         trigger: reason,
         durationMs: Date.now() - started,
@@ -222,7 +335,12 @@ async function runGenerate(
       if (reason === "regenerate") {
         void analytics?.track("standup.regenerated", { trigger: "panel" });
       }
-      void syncDraftToCloud(markdown, backend ? backendLabel(backend) : undefined);
+      void syncDraftToCloud(
+        record?.markdown ?? markdown,
+        record?.modelLabel ?? modelLabel,
+        local,
+        sources,
+      );
     }
   } catch (e: any) {
     if (controller.signal.aborted) {
@@ -264,13 +382,281 @@ async function runGenerate(
   }
 }
 
+// One place that builds the panel callbacks, shared by generate, weekly recap
+// and the history command.
+function openPanel(local: { id: string; name: string } | undefined): ShiploguePanel {
+  let panel!: ShiploguePanel;
+  panel = ShiploguePanel.show(
+    {
+      onRegenerate: () => void runGenerate("regenerate"),
+      onCancel: () => inFlight?.abort(),
+      onCopy: (format, text, draftId) => {
+        void analytics?.track("standup.copied", { format });
+        if (!text.trim()) return;
+        if (draftId) {
+          try {
+            draftHistory?.markCopied(draftId);
+          } catch {
+            /* history bookkeeping must never block copying */
+          }
+        }
+        try {
+          const record = history?.markReviewed(text, {
+            ...(local?.id ? { workspaceId: local.id } : {}),
+            ...(local?.name ? { projectName: local.name } : {}),
+          });
+          if (record) {
+            void syncDraftToCloud(record.markdown, record.modelLabel, local, record.sources);
+          }
+        } catch {
+          /* local history must never block copying */
+        }
+      },
+      onHistoryRequest: (opts) => {
+        const sync = getDraftSync();
+        if (sync.isEnabled()) {
+          void sync
+            .fetchPage({ cursor: opts.cursor, limit: 20 })
+            .then((page) => {
+              page.entries.forEach((entry) => cloudHistoryCache.set(entry.id, entry));
+              panel.setHistoryPage({
+                entries: page.entries,
+                cursor: page.cursor,
+                append: Boolean(opts.cursor),
+              });
+            })
+            .catch(() => {
+              try {
+                const page = draftHistory.list({ ...opts, limit: 20 });
+                panel.setHistoryPage({
+                  entries: page.entries,
+                  cursor: page.cursor,
+                  append: Boolean(opts.cursor),
+                });
+              } catch {
+                panel.setNote("Could not load draft history.");
+              }
+            });
+          return;
+        }
+        try {
+          const page = draftHistory.list({ ...opts, limit: 20 });
+          panel.setHistoryPage({
+            entries: page.entries,
+            cursor: page.cursor,
+            append: Boolean(opts.cursor),
+          });
+        } catch {
+          panel.setNote("Could not load draft history.");
+        }
+      },
+      onRestore: (id) => {
+        const entry = draftHistory.get(id) ?? cloudHistoryCache.get(id);
+        if (!entry) {
+          panel.setNote("That draft is no longer available on this device.");
+          return;
+        }
+        panel.setDraft({
+          markdown: entry.markdown,
+          summary: entry.summary ?? { commits: 0, files: 0, github: 0 },
+          ...(entry.verification ? { verification: entry.verification } : {}),
+          ...(entry.modelLabel ? { modelLabel: entry.modelLabel } : {}),
+          ...(entry.projectName ? { projectName: entry.projectName } : {}),
+          draftId: entry.id,
+          generatedAt: entry.ts,
+          ...(entry.stats ? { stats: entry.stats } : {}),
+        });
+        panel.setNote("Restored from history — review before copying.");
+      },
+      onSendStored: (id) => {
+        const entry = draftHistory.get(id) ?? cloudHistoryCache.get(id);
+        if (!entry) {
+          panel.setNote("That draft is no longer available on this device.");
+          return;
+        }
+        void sendViaCloud(panel, entry.id, entry.markdown, local, entry);
+      },
+      onSend: (draftId, markdown) => {
+        void sendViaCloud(panel, draftId, markdown, local);
+      },
+      onFeedback: (value, backend) => {
+        void feedback.recordThumbs(value, backend);
+        panel.setNote(value === "up" ? "Thanks! Glad it helped." : "Thanks — the feedback form is open.");
+      },
+    },
+    state,
+    local?.name,
+  );
+  return panel;
+}
+
+// Push a fresh history page into the panel (used after restores/sends too).
+function pushHistoryPage(panel: ShiploguePanel, opts: { query?: string; cursor?: string } = {}): void {
+  try {
+    const page = draftHistory.list({ ...opts, limit: 20 });
+    panel.setHistoryPage({ entries: page.entries, cursor: page.cursor, append: Boolean(opts.cursor) });
+  } catch {
+    panel.setNote("Could not load draft history.");
+  }
+}
+
+// Send = ask Shiplogue Cloud to post the stand-up (Pro, cloud-side). The
+// extension never contacts Slack/Discord/Teams directly.
+async function sendViaCloud(
+  panel: ShiploguePanel,
+  draftId: string | undefined,
+  markdown: string,
+  local: { id: string; name: string } | undefined,
+  cachedEntry?: DraftEntry,
+): Promise<void> {
+  if (!cloud) return;
+  if (!(await cloud.hasKey())) {
+    const pick = await vscode.window.showInformationMessage(
+      "Posting is a Pro feature handled by Shiplogue Cloud. Connect a connector key to send.",
+      "Connect Cloud",
+    );
+    if (pick === "Connect Cloud") await connectCloud();
+    return;
+  }
+
+  const entry = cachedEntry ?? (draftId ? draftHistory.get(draftId) : undefined);
+  panel.setNote("Sending via Shiplogue Cloud…");
+  const synced = await cloud.syncStandup({
+    markdown,
+    ...(entry?.modelLabel ? { modelLabel: entry.modelLabel } : {}),
+    ...(entry?.sources?.length ? { sources: entry.sources } : {}),
+    localWorkspaceId: local?.id,
+    localWorkspaceName: local?.name,
+    ...(local ? { title: `Standup for ${localDateKey()} — ${local.name}` } : {}),
+  });
+  if (synced.status !== "synced") {
+    panel.setNote(
+      synced.status === "failed"
+        ? `Shiplogue Cloud: ${synced.error}`
+        : "Shiplogue Cloud sync is unavailable. Enable it in settings first.",
+    );
+    return;
+  }
+
+  const idempotencyKey = crypto
+    .createHash("sha256")
+    .update(`${synced.standupId}|${markdown}|${localDateKey()}`)
+    .digest("hex");
+  const sent = await cloud.sendStandup(synced.standupId, idempotencyKey);
+  if (sent.status === "queued") {
+    panel.setNote("Sending via Shiplogue Cloud…");
+    let final;
+    try {
+      final = sent.deliveryId ? await cloud.waitForDelivery(sent.deliveryId) : undefined;
+    } catch {
+      final = undefined;
+    }
+    if (!final) {
+      panel.setNote("Queued — Shiplogue Cloud will finish sending in the background.");
+      vscode.window.showInformationMessage(
+        "Stand-up queued for delivery. It will appear as Sent when the cloud finishes.",
+      );
+      return;
+    }
+    if (final.status === "failed") {
+      const failed = final.targets.find((target) => target.status === "failed");
+      panel.setNote(`Shiplogue Cloud could not send${failed ? ` to ${failed.target}` : ""}. Check the delivery target.`);
+      return;
+    }
+    const targets = final.targets
+      .filter((target) => target.status === "sent")
+      .map((target) => target.target);
+    const where = targets.length ? ` to ${targets.join(", ")}` : "";
+    panel.setNote(`Posted${where} via Shiplogue Cloud.`);
+    vscode.window.showInformationMessage(`Stand-up posted${where} via Shiplogue Cloud.`);
+    if (draftId) {
+      try {
+        draftHistory.markSent(draftId, targets);
+      } catch {
+        /* history bookkeeping never blocks sending */
+      }
+    }
+    try {
+      history.markReviewed(markdown, {
+        ...(local?.id ? { workspaceId: local.id } : {}),
+        ...(local?.name ? { projectName: local.name } : {}),
+        ...(entry?.sources?.length ? { sources: entry.sources } : {}),
+      });
+    } catch {
+      /* ignore */
+    }
+    pushHistoryPage(panel, {});
+    return;
+  }
+  if (sent.status === "sent") {
+    const where = sent.targets && sent.targets.length ? ` to ${sent.targets.join(", ")}` : "";
+    panel.setNote(`Posted${where} via Shiplogue Cloud.`);
+    vscode.window.showInformationMessage(`Stand-up posted${where} via Shiplogue Cloud.`);
+    if (draftId) {
+      try {
+        draftHistory.markSent(draftId, sent.targets ?? []);
+      } catch {
+        /* history bookkeeping never blocks sending */
+      }
+    }
+    try {
+      history.markReviewed(markdown, {
+        ...(local?.id ? { workspaceId: local.id } : {}),
+        ...(local?.name ? { projectName: local.name } : {}),
+        ...(entry?.sources?.length ? { sources: entry.sources } : {}),
+      });
+    } catch {
+      /* ignore */
+    }
+    pushHistoryPage(panel, {});
+    return;
+  }
+  if (sent.status === "skipped" && sent.reason === "not-pro") {
+    const pick = await vscode.window.showInformationMessage(
+      "Sending is a Pro feature. Upgrade your Shiplogue workspace to post to Slack, Discord or Teams.",
+      "Open dashboard",
+    );
+    if (pick === "Open dashboard") {
+      await vscode.env.openExternal(vscode.Uri.parse(`${cloud.baseUrl}/dashboard`));
+    }
+    panel.setNote("Sending requires a Pro workspace.");
+    return;
+  }
+  panel.setNote(
+    sent.status === "failed" ? `Send failed: ${sent.error}` : "Sending is unavailable right now.",
+  );
+}
+
 let cloudWarningShown = false;
 
-async function syncDraftToCloud(markdown: string, modelLabel?: string): Promise<void> {
+async function syncDraftToCloud(
+  markdown: string,
+  modelLabel?: string,
+  local?: { id: string; name: string },
+  sources?: string[],
+): Promise<void> {
   if (!cloud) return;
-  const result = await cloud.syncStandup({ markdown, modelLabel });
+  const result = await cloud.syncStandup({
+    markdown,
+    modelLabel,
+    ...(local ? { localWorkspaceId: local.id, localWorkspaceName: local.name } : {}),
+    ...(sources && sources.length ? { sources } : {}),
+    ...(local ? { title: `Standup for ${localDateKey()} — ${local.name}` } : {}),
+  });
   if (result.status === "synced") {
     void analytics?.track("sync.succeeded", {});
+    if (result.standupId) {
+      void cloud
+        .createRevision({
+          standupId: result.standupId,
+          bodyMarkdown: markdown,
+          ...(modelLabel ? { model: modelLabel } : {}),
+          ...(sources?.length ? { sources } : {}),
+        })
+        .catch(() => {
+          /* revisions are a Pro extra; the canonical draft is already synced */
+        });
+    }
     return;
   }
   if (result.status !== "failed") return;
@@ -435,7 +821,14 @@ async function runUpdateCheck(context: vscode.ExtensionContext, force = false): 
   }
 }
 
-async function runShowActivity(): Promise<void> {  const ctx = await gatherContext(store);
+async function showHistory(): Promise<void> {
+  const local = cfg().scope === "workspace" ? activeWorkspace() : undefined;
+  const panel = openPanel(local);
+  panel.showHistoryView();
+}
+
+async function runShowActivity(): Promise<void> {
+  const ctx = await gatherContext(store);
   const doc = await vscode.workspace.openTextDocument({
     content:
       `# Shiplogue activity (last ${cfg().lookbackHours}h)\n` +
@@ -450,6 +843,8 @@ export function deactivate() {
   tracker?.dispose();
   promptWatcher?.dispose();
   reminder?.dispose();
+  weeklyRecap?.dispose();
+  weeklyRecap = undefined;
   void analytics?.dispose();
   analytics = undefined;
   store?.flush();

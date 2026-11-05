@@ -6,6 +6,7 @@ const { installVscodeStub, startServer } = require("./helpers");
 const { stub } = installVscodeStub();
 const { generateStandup, OllamaError } = require("../out/summarize");
 const { setDetailGetter, setToneGetter } = require("../out/config");
+const { setFormatSections, resetFormatSections } = require("../out/formatProfile");
 const { estimateTokens } = require("../out/model/budget");
 
 function baseCtx(overrides = {}) {
@@ -79,15 +80,77 @@ test("sends the activity to Ollama with the model and options from settings", as
   );
 });
 
+test("default prompt uses Yesterday / Today / Next / Blockers without template markers", async () => {
+  await withOllama(
+    () => validDraft(1),
+    async (server) => {
+      await generateStandup(baseCtx());
+      const p = server.requests[0].body.prompt;
+      assert.match(p, /\*\*Yesterday\*\*/);
+      assert.match(p, /\*\*Today\*\*/);
+      assert.match(p, /\*\*Next\*\*/);
+      assert.match(p, /\*\*Blockers\*\*/);
+      assert.doesNotMatch(p, /--- TEMPLATE ---/);
+      assert.doesNotMatch(p, /--- END TEMPLATE ---/);
+    },
+  );
+});
+
+test("paid custom labels and order replace the built-in template", async () => {
+  setFormatSections([
+    { key: "blockers", label: "Blocked by" },
+    { key: "today", label: "Accomplishments" },
+    { key: "yesterday", label: "Since last time" },
+    { key: "next", label: "Up next" },
+  ]);
+  try {
+    await withOllama(
+      () => validDraft(1),
+      async (server) => {
+        await generateStandup(baseCtx());
+        const p = server.requests[0].body.prompt;
+        const blocked = p.indexOf("**Blocked by**");
+        const accomplishments = p.indexOf("**Accomplishments**");
+        const since = p.indexOf("**Since last time**");
+        const next = p.indexOf("**Up next**");
+        assert.ok(blocked >= 0 && accomplishments > blocked);
+        assert.ok(since > accomplishments && next > since);
+        assert.doesNotMatch(p, /\*\*Today\*\*/);
+      },
+    );
+  } finally {
+    resetFormatSections();
+  }
+});
+
+test("prompt includes yesterday's saved stand-up when available", async () => {
+  await withOllama(
+    () => validDraft(1),
+    async (server) => {
+      await generateStandup(
+        baseCtx({
+          previousStandup: {
+            date: "2026-11-04",
+            markdown: "**Today**\n- Shipped the saved history",
+          },
+        }),
+      );
+      const p = server.requests[0].body.prompt;
+      assert.match(p, /YESTERDAY'S SAVED STAND-UP/);
+      assert.match(p, /Shipped the saved history/);
+    },
+  );
+});
+
 test("concise prompt enforces 3-4 short bullets and no file lists", async () => {
   await withOllama(
     () => validDraft(1),
     async (server) => {
       await generateStandup(baseCtx());
       const p = server.requests[0].body.prompt;
-      assert.match(p, /3-4 Done bullets MAXIMUM/);
+      assert.match(p, /3-4 Today bullets MAXIMUM/);
       assert.match(p, /NO sub-bullet file lists/);
-      assert.doesNotMatch(p, /6-9 Done bullets/);
+      assert.doesNotMatch(p, /6-9 Today bullets/);
     },
   );
 });
@@ -99,7 +162,7 @@ test("standard prompt asks for 5-7 bullets and names specifics", async () => {
     async (server) => {
       await generateStandup(baseCtx());
       const p = server.requests[0].body.prompt;
-      assert.match(p, /5-7 Done bullets/);
+      assert.match(p, /5-7 Today bullets/);
       assert.equal(server.requests[0].body.options.num_predict, 900);
     },
   );
@@ -112,7 +175,7 @@ test("elaborate prompt demands every file by name and 6-9 bullets", async () => 
     async (server) => {
       await generateStandup(baseCtx());
       const p = server.requests[0].body.prompt;
-      assert.match(p, /6-9 Done bullets/);
+      assert.match(p, /6-9 Today bullets/);
       assert.match(p, /EVERY file listed/);
       assert.equal(server.requests[0].body.options.num_predict, 1600);
     },
@@ -256,20 +319,6 @@ test("a server error is reported with its status", async () => {
   } finally {
     await server.close();
   }
-});
-
-test("yesterday/today format switches the template headings in the prompt", async () => {
-  stub.setConfig({ "shiplogue.format": "yesterday-today-blockers" });
-  await withOllama(
-    () => "**Yesterday**\n- a\n\n**Today**\n- b\n\n**Blockers**\n- None",
-    async (server) => {
-      await generateStandup(baseCtx());
-      const p = server.requests[0].body.prompt;
-      assert.match(p, /\*\*Yesterday\*\*/);
-      assert.match(p, /\*\*Today\*\*/);
-      assert.doesNotMatch(p, /\*\*Done\*\*/);
-    },
-  );
 });
 
 test("thinking-model: empty response with populated `thinking` retries once with a raised budget", async () => {

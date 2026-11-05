@@ -14,8 +14,8 @@ you choose a cloud model.
 
 ## What it does
 
-- **Writes the first draft for you.** Done / Next / Blockers, in plain English,
-  grouped from the work you actually did.
+- **Writes the first draft for you.** Yesterday / Today / Next / Blockers, in
+  plain English, grouped from the work you actually did.
 - **Uses your evidence.** Git commits and changed files, saved files, merged PRs,
   closed issues, and AI prompts from Cursor, Copilot or Antigravity where available.
 - **Keeps you in control.** Review, edit and copy the draft. Nothing is posted.
@@ -27,14 +27,20 @@ you choose a cloud model.
 | Feature | What you get |
 | --- | --- |
 | **Real activity** | Commits, file saves, PRs/issues and AI prompts, scoped to the open workspace. |
-| **Useful format** | Done / Next / Blockers or Yesterday / Today / Blockers; 3+ files become sub-bullets. |
+| **Useful format** | Fixed Yesterday / Today / Next / Blockers; 3+ files become sub-bullets. Paid workspaces can relabel/reorder the sections. |
 | **Three detail levels** | Concise (3–4 points), Standard (5–7), Elaborate (6–9). |
 | **Four tones** | Neutral, Junior, Mid, Senior. |
 | **Two model options** | Local Ollama, or BYOK for Anthropic, OpenAI, Google or any OpenAI-compatible endpoint. |
-| **Review panel** | Markdown and Plain-text tabs, Copy, Regenerate, Cancel; Detail/Tone switches. |
+| **Review panel** | Rendered preview (or raw Markdown / Plain text), a verification strip (claims checked, removed, inferred, needs-review highlights), one-click Copy, Regenerate, Cancel, and inline Detail/Tone. |
+| **Draft history** | A searchable History tab in the panel: every draft with its model, detail/tone, verification state and send status; preview, copy or restore any of them. |
+| **Local history** | Every draft is kept on-device for 7 days; **Shiplogue: Open Stand-up History** shows the last week, and yesterday's reviewed copy feeds the next Yesterday section. |
 | **Daily reminder** | A local-time nudge, with Generate now / Snooze 1h. |
 | **Shortcut** | `Cmd+Shift+'` (macOS) / `Ctrl+Shift+'` (Windows/Linux). Rebind from the Command Palette. |
-| **Cloud sync (optional)** | Connect a connector key to sync generated stand-ups to your private Shiplogue dashboard. |
+| **Cloud sync (optional)** | Connect a connector key to sync generated stand-ups to your private Shiplogue dashboard; copying a reviewed draft upserts the final text. |
+| **Send via Shiplogue Cloud (Pro)** | From the panel or history, ask Shiplogue Cloud to post your stand-up to the targets you configured in the dashboard (Slack/Discord/Teams). Scheduled auto-posting also runs cloud-side. The extension never talks to a webhook directly. |
+| **Feedback & rating** | One question per version after a few drafts, a 👍-triggered GitHub star nudge, and Share Feedback / Star / Rate commands. |
+
+The built-in format is fixed. Custom section labels/order are a paid-plan option delivered from the cloud; free plans always get Yesterday / Today / Next / Blockers.
 
 ## Compatibility
 
@@ -77,6 +83,14 @@ working without an account.
    copy it (it is shown once).
 2. In VS Code, run **Shiplogue: Connect Cloud** and paste the key.
 3. Generate a stand-up as usual. The draft is synced with the current date.
+
+Each open project is a separate local workspace. Generation scopes to the active
+project, and synced drafts keep the project name plus their IDE/agent source tags
+so the dashboard can group and label them. Every Friday evening (18:00 local by
+default) Shiplogue compiles the stored daily drafts into a weekly recap, adds it
+to draft history, and prompts you to view it. Change the day/time with
+`shiplogue.weeklyRecap.day` and `shiplogue.weeklyRecap.time`; run
+**Shiplogue: Generate Weekly Recap Now** to do it immediately.
 
 The key lives in the OS keychain (VS Code SecretStorage), never in settings. Raw
 activity and prompts are not uploaded; the extension sends the finished draft and
@@ -124,6 +138,10 @@ Full details: [PRIVACY.md](https://github.com/Phenzic/shiplogue/blob/main/extens
 | `shiplogue.model.backend` | `auto` | `auto` / `provider` / `ollama` |
 | `shiplogue.ollama.model` | `llama3.2` | Local model name |
 | `shiplogue.reminder.time` | `16:00` | Daily reminder, local `HH:MM` |
+| `shiplogue.history.retentionDays` | `7` | Days of draft history kept locally (`0` = forever); Pro cloud sync keeps all drafts |
+| `shiplogue.history.maxEntries` | `50` | Max drafts in the local history log |
+| `shiplogue.feedback.enabled` | `true` | Allow the once-per-version feedback/star prompt |
+| `shiplogue.feedback.promptAfter` | `3` | Successful drafts before the feedback prompt |
 
 All settings are in the editor's Settings UI under **Shiplogue**.
 

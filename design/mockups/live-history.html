@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="panel.css" />
+<title>Shiplogue</title>
+<script>
+  window.acquireVsCodeApi = () => ({ postMessage: (m) => {} });
+</script>
+</head>
+<body>
+
+<svg class="sprite" width="0" height="0" aria-hidden="true">
+  <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/><path d="M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+</svg>
+
+<div class="panel">
+
+  <!-- header -->
+  <div class="head">
+    <div class="h-left">
+      <h1 id="title">Daily stand-up</h1>
+      <div class="meta">
+        <span id="metaCounts"></span>
+        <span class="sep hidden" id="metaSep">·</span>
+        <span class="verdict hidden" id="verdict" title="Grounding verification">
+          <svg><use href="#i-shield"/></svg><span id="verdictLabel">Verified</span>
+          <a class="link" id="verdictLink" href="#" role="button">details</a>
+        </span>
+      </div>
+    </div>
+    <div class="h-right">
+      <span class="model-chip hidden" id="modelChip"><span class="led"></span><span id="modelLabel"></span></span>
+      <button class="icon-btn" id="historyBtn" title="Draft history"><svg><use href="#i-clock"/></svg></button>
+      <button class="icon-btn" id="settingsBtn" title="Settings"><svg><use href="#i-gear"/></svg></button>
+    </div>
+  </div>
+
+  <!-- views -->
+  <div id="viewDraft">
+    <div class="tabs-row">
+      <div class="tabs">
+        <button class="tab active" id="tabDraft"><svg><use href="#i-doc"/></svg>Draft</button>
+        <button class="tab" id="tabHistory"><svg><use href="#i-clock"/></svg>History</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="seg" id="segModes">
+        <button id="segMarkdown">Markdown</button>
+        <button id="segPreview" class="on">Preview</button>
+        <button id="segPlain">Plain</button>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="verify-strip hidden" id="verifyStrip">
+        <span class="ok" id="verifyMain">
+          <svg id="verifyIconOk"><use href="#i-check"/></svg>
+          <svg id="verifyIconWarn" class="hidden"><use href="#i-warn"/></svg>
+          <span id="verifyText"></span>
+        </span>
+        <span id="verifyRemovals"></span>
+        <span class="spacer"></span>
+        <a href="#" id="verifyLink">What was checked?</a>
+      </div>
+      <div class="verify-details hidden" id="verifyDetails"></div>
+
+      <div class="pane on" id="panePreview"><div class="draft" id="preview"></div></div>
+      <div class="pane" id="paneMd"><textarea id="md" spellcheck="false" placeholder="Generating…"></textarea></div>
+      <div class="pane" id="paneTxt"><textarea id="txt" spellcheck="false" placeholder="Plain text appears here."></textarea></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary hidden" id="sendBtn"><svg><use href="#i-send"/></svg><span id="sendLabel">Send</span></button>
+      <button class="btn secondary" id="copyBtn"><svg><use href="#i-copy"/></svg>Copy</button>
+      <button class="btn secondary" id="regenBtn"><svg><use href="#i-refresh"/></svg>Regenerate</button>
+      <button class="btn secondary hidden" id="cancelBtn">Cancel</button>
+      <span class="spacer"></span>
+      <span class="select">Detail
+        <select id="detail">
+          <option value="concise">Concise</option>
+          <option value="standard">Standard</option>
+          <option value="elaborate">Elaborate</option>
+        </select>
+      </span>
+      <span class="select">Tone
+        <select id="tone">
+          <option value="neutral">Neutral</option>
+          <option value="junior">Junior</option>
+          <option value="mid">Mid</option>
+          <option value="senior">Senior</option>
+        </select>
+      </span>
+    </div>
+
+    <div class="statusbar">
+      <span class="txt" id="statusText">Ready</span>
+      <span class="spacer"></span>
+      <span class="thumbs hidden" id="thumbs">
+        <button class="thumb" id="thumbUp" title="This draft was good">👍</button>
+        <button class="thumb" id="thumbDown" title="Something was off — open the feedback form">👎</button>
+      </span>
+    </div>
+  </div>
+
+  <div id="viewHistory" class="hidden">
+    <div class="tabs-row">
+      <div class="tabs">
+        <button class="tab" id="tabDraft2"><svg><use href="#i-doc"/></svg>Draft</button>
+        <button class="tab active" id="tabHistory2"><svg><use href="#i-clock"/></svg>History</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="seg" id="histFilters">
+        <button id="filterAll" class="on">All</button>
+        <button id="filterSent">Sent</button>
+        <button id="filterCopied">Copied</button>
+      </div>
+    </div>
+
+    <div class="hist">
+      <aside class="hist-side">
+        <div class="search"><svg><use href="#i-search"/></svg><input id="histSearch" placeholder="Search drafts…" /></div>
+        <div id="histList"></div>
+        <button class="hist-more hidden" id="histMore">Load more</button>
+        <div class="hist-empty hidden" id="histEmpty">No drafts yet. Generate one and it shows up here — drafts are stored locally and kept for a few days (longer once cloud sync is on).</div>
+      </aside>
+
+      <main class="hist-main">
+        <div class="hist-head">
+          <div>
+            <h2 id="histTitle">Select a draft</h2>
+            <div class="sub" id="histSub"></div>
+          </div>
+        </div>
+        <div class="hist-draft" id="histDraft"><div class="placeholder">Pick a draft on the left to preview it.</div></div>
+        <div class="hist-foot hidden" id="histFoot">
+          <span class="sent" id="histSent"></span>
+          <span class="spacer"></span>
+          <button class="btn secondary" id="histCopy"><svg><use href="#i-copy"/></svg>Copy</button>
+          <button class="btn secondary" id="histRestore"><svg><use href="#i-refresh"/></svg>Restore</button>
+          <button class="btn primary hidden" id="histSend"><svg><use href="#i-send"/></svg>Send again</button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+</div>
+
+<script nonce="{{nonce}}" src="panel.js"></script>
+
+<script>
+  const now = Date.now();
+  const entries = [
+    { id: "a", ts: new Date(now - 120000).toISOString(), markdown: "**Done**\n- Shipped multi-target posting for Slack, Discord and Teams, with per-target failure isolation.\n- Added scheduled auto-posting with a review-first mode and a 60-second undo window.\n- Hardened grounding so invented filenames and PR numbers never reach a draft.\n- Wired the feedback loop into the panel status line.\n\n**Next**\n- *(inferred)* Wire the agent watcher into the panel.\n\n**Blockers**\n- None", detail: "standard", tone: "senior", modelLabel: "Ollama · gpt-oss:20b", sentTo: ["Slack", "Discord"], needsReview: false, copied: false, verification: { checkedClaims: 18, removed: 0, inferred: 1, violations: [], needsReview: false } },
+    { id: "b", ts: new Date(now - 4 * 3600e3).toISOString(), markdown: "**Done**\n- Refactored the panel client.\n\n**Next**\n- More.\n\n**Blockers**\n- None", detail: "concise", tone: "neutral", sentTo: [], needsReview: false, copied: true },
+    { id: "c", ts: new Date(now - 26 * 3600e3).toISOString(), markdown: "**Done**\n- Fixed the portal crash in src/invented.ts\n\n**Next**\n- Review.\n\n**Blockers**\n- None", detail: "standard", tone: "neutral", sentTo: [], needsReview: true, copied: false, verification: { checkedClaims: 12, removed: 1, inferred: 0, violations: ["path: src/invented.ts"], needsReview: true } },
+    { id: "d", ts: new Date(now - 30 * 3600e3).toISOString(), markdown: "**Done**\n- Weekly recap draft.\n\n**Next**\n- Plan.\n\n**Blockers**\n- None", detail: "elaborate", tone: "senior", sentTo: ["Teams"], needsReview: false, copied: false }
+  ];
+  window.addEventListener("load", () => {
+    window.postMessage({ kind: "openHistory" }, "*");
+    setTimeout(() => window.postMessage({ kind: "historyPage", entries, cursor: "d", canSend: false }, "*"), 50);
+  });
+</script>
+</body>
+</html>

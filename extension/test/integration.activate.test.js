@@ -15,7 +15,10 @@ const { ShiploguePanel } = require("../out/shiploguePanel");
 const DRAFT = [
   "Hey team, here's what I worked on today:",
   "",
-  "**Done**",
+  "**Yesterday**",
+  "- Wrapped up the previous investigation.",
+  "",
+  "**Today**",
   "- Shipped the health endpoint and updated its docs.",
   "",
   "**Next**",
@@ -48,7 +51,6 @@ function baseConfig(overrides) {
     "shiplogue.reminder.time": "23:59",
     "shiplogue.track.enabled": true,
     "shiplogue.scope": "workspace",
-    "shiplogue.format": "done-next-blockers",
     "shiplogue.detail": "concise",
     "shiplogue.update.enabled": false,
     ...overrides,
@@ -129,10 +131,15 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
       "shiplogue.connectCloud",
       "shiplogue.connectGitHub",
       "shiplogue.disconnectCloud",
+      "shiplogue.feedback",
       "shiplogue.generate",
+      "shiplogue.generateWeeklyRecap",
+      "shiplogue.rate",
       "shiplogue.setProviderKey",
       "shiplogue.setReminderTime",
       "shiplogue.showActivity",
+      "shiplogue.showHistory",
+      "shiplogue.star",
       "shiplogue.testProvider",
     ],
   );
@@ -152,7 +159,8 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
 
   const draft = panel.messages.find((m) => m.kind === "draft");
   assert.ok(draft, `expected a draft, got: ${JSON.stringify(panel.messages)}`);
-  assert.match(draft.markdown, /\*\*Done\*\*/);
+  assert.match(draft.markdown, /\*\*Yesterday\*\*/);
+  assert.match(draft.markdown, /\*\*Today\*\*/);
   assert.match(draft.markdown, /\*\*Next\*\*/);
   assert.match(draft.markdown, /\*\*Blockers\*\*/);
   assert.match(draft.markdown, /Merged PR \[#12\]\(https:\/\/github\.com\/acme\/demo\/pull\/12\)/);
@@ -352,9 +360,11 @@ test("cloud sync: a connected key posts the generated stand-up", async (t) => {
   assert.equal(rec.headers.authorization, `Bearer ${key}`);
   assert.equal(rec.body.timeSavedMinutes, 12);
   assert.equal(rec.body.status, "draft");
-  assert.match(rec.body.bodyMarkdown, /\*\*Done\*\*/);
+  assert.match(rec.body.bodyMarkdown, /\*\*Today\*\*/);
   assert.match(rec.body.standupDate, /^\d{4}-\d{2}-\d{2}$/);
-  assert.equal(rec.body.title, `Standup for ${rec.body.standupDate}`);
+  assert.equal(rec.body.title, `Standup for ${rec.body.standupDate} — demo`);
+  assert.equal(rec.body.localWorkspaceName, "demo");
+  assert.match(rec.body.localWorkspaceId, /^[a-f0-9]{20}$/);
 });
 
 test("health check: a missing model offers 'Pull now' in a terminal", async (t) => {

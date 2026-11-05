@@ -155,7 +155,6 @@ test("yesterday/today format switches the section headings", { skip: !E2E }, asy
   stub.setConfig({
     "shiplogue.ollama.url": OLLAMA,
     "shiplogue.ollama.model": model,
-    "shiplogue.format": "yesterday-today-blockers",
   });
   setDetailGetter(() => "concise");
   const { text: out } = await generateStandup(ctx());

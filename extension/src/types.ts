@@ -59,4 +59,11 @@ export interface StandupContext {
   // True when scope is "workspace" but no folder is open: gather behaved as
   // "all" and the panel should say so.
   noFolder?: boolean;
+  // Yesterday's saved stand-up, read from local history. Used to fill the
+  // Yesterday section without re-deriving it from activity.
+  previousStandup?: {
+    date: string;
+    markdown: string;
+    projectName?: string;
+  };
 }

@@ -50,4 +50,42 @@ export class State {
   setUpdatePromptedVersion(version: string): Thenable<void> {
     return this.ctx.globalState.update("updatePromptedVersion", version);
   }
+
+  // --- Feedback loop: local counters/flags only; nothing is transmitted. ---
+  getSuccessfulDrafts(): number {
+    return this.ctx.globalState.get<number>("successfulDrafts", 0);
+  }
+  setSuccessfulDrafts(n: number): Thenable<void> {
+    return this.ctx.globalState.update("successfulDrafts", n);
+  }
+  getFeedbackPromptedVersion(): string {
+    return this.ctx.globalState.get<string>("feedbackPromptedVersion", "");
+  }
+  setFeedbackPromptedVersion(v: string): Thenable<void> {
+    return this.ctx.globalState.update("feedbackPromptedVersion", v);
+  }
+  getFeedbackSnoozedUntil(): number {
+    return this.ctx.globalState.get<number>("feedbackSnoozedUntil", 0);
+  }
+  setFeedbackSnoozedUntil(ms: number): Thenable<void> {
+    return this.ctx.globalState.update("feedbackSnoozedUntil", ms);
+  }
+  getFeedbackOptOut(): boolean {
+    return this.ctx.globalState.get<boolean>("feedbackOptOut", false);
+  }
+  setFeedbackOptOut(v: boolean): Thenable<void> {
+    return this.ctx.globalState.update("feedbackOptOut", v);
+  }
+  getThumbsUp(): number {
+    return this.ctx.globalState.get<number>("thumbsUp", 0);
+  }
+  setThumbsUp(n: number): Thenable<void> {
+    return this.ctx.globalState.update("thumbsUp", n);
+  }
+  getStarPromptedVersion(): string {
+    return this.ctx.globalState.get<string>("starPromptedVersion", "");
+  }
+  setStarPromptedVersion(v: string): Thenable<void> {
+    return this.ctx.globalState.update("starPromptedVersion", v);
+  }
 }

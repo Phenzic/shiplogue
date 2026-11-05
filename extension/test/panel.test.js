@@ -1,346 +1,460 @@
 "use strict";
+// The panel webview (media/panel.js) and its message protocol.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const vm = require("vm");
-const { installVscodeStub, tmpDir, makeContext, startServer } = require("./helpers");
+const { installVscodeStub, tmpDir, makeContext } = require("./helpers");
+const { bootWebview } = require("./webview-harness");
 
 const { stub } = installVscodeStub();
 const { ShiploguePanel } = require("../out/shiploguePanel");
 const { State } = require("../out/state");
 const { setDetailGetter, setToneGetter } = require("../out/config");
 const { toPlainText } = require("../out/format");
+const { setDeliveryState } = require("../out/delivery");
 
-function freshPanel(detail = "concise") {
+function freshPanel(detail = "concise", callbacks = {}) {
   if (ShiploguePanel.current) ShiploguePanel.current.dispose();
   stub.reset();
   setDetailGetter(() => detail);
   setToneGetter(() => "neutral");
-  stub.setConfig({ "shiplogue.webhook.type": "none", "shiplogue.webhook.url": "" });
+  stub.setConfig({ "shiplogue.detail": detail, "shiplogue.tone": "neutral" });
   const state = new State(makeContext(tmpDir()));
-  let regenerated = 0;
-  const panel = ShiploguePanel.show(() => regenerated++, state);
+  const panel = ShiploguePanel.show(
+    {
+      onRegenerate: callbacks.onRegenerate || (() => {}),
+      onCancel: callbacks.onCancel,
+      onCopy: callbacks.onCopy,
+      onHistoryRequest: callbacks.onHistoryRequest,
+      onRestore: callbacks.onRestore,
+      onSendStored: callbacks.onSendStored,
+      onSend: callbacks.onSend,
+      onFeedback: callbacks.onFeedback,
+    },
+    state,
+  );
   const webview = stub.panels.at(-1);
-  return { panel, state, webview, regenerated: () => regenerated };
-}
-
-function makeEl(id, dataset = {}) {
-  const classes = new Set();
-  return {
-    id,
-    dataset,
-    value: "",
-    placeholder: "",
-    textContent: "",
-    className: "",
-    style: {},
-    onclick: null,
-    listeners: {},
-    classList: {
-      add: (c) => classes.add(c),
-      remove: (c) => classes.delete(c),
-      contains: (c) => classes.has(c),
-    },
-    addEventListener(ev, fn) {
-      this.listeners[ev] = fn;
-    },
-  };
-}
-
-// Execute the panel's inline <script> against a tiny DOM so UI logic is tested.
-function bootWebview(html) {
-  const els = {
-    md: makeEl("md"),
-    txt: makeEl("txt"),
-    status: makeEl("status"),
-    meta: makeEl("meta"),
-    modelNote: makeEl("modelNote"),
-      regen: makeEl("regen"),
-    cancel: makeEl("cancel"),
-    copy: makeEl("copy"),
-    detail: makeEl("detail"),
-    tone: makeEl("tone"),
-    "pane-md": makeEl("pane-md"),
-    "pane-txt": makeEl("pane-txt"),
-  };
-  const tabs = [makeEl("tab-md", { pane: "md" }), makeEl("tab-txt", { pane: "txt" })];
-  tabs[0].classList.add("active");
-  els["pane-md"].classList.add("active");
-
-  const posted = [];
-  let windowListener;
-  const document = {
-    getElementById: (id) => els[id],
-    querySelectorAll: (sel) => (sel === ".tab" ? tabs : sel === ".pane" ? [els["pane-md"], els["pane-txt"]] : []),
-  };
-  const sandbox = {
-    document,
-    acquireVsCodeApi: () => ({ postMessage: (m) => posted.push(m) }),
-    window: {
-      addEventListener: (ev, fn) => {
-        windowListener = fn;
+  // Boot the client with webview→extension messages routed back into the panel.
+  const boot = () =>
+    bootWebview(webview.webview.html, {
+      onPost: (m) => {
+        void webview.messageHandler?.(m);
       },
-    },
-    console,
-  };
-  const context = vm.createContext(sandbox);
-  const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-  vm.runInContext(script, context, { filename: "standup-webview.js" });
-  return {
-    els,
-    tabs,
-    posted,
-    context,
-    sendMessage: (data) => windowListener({ data }),
-    toPlain: (s) => vm.runInContext(`toPlainText(${JSON.stringify(s)})`, context),
-  };
+    });
+  return { panel, state, webview, boot };
 }
 
-test("panel renders markdown/plain tabs, detail picker and actions", () => {
-  const { webview } = freshPanel("standard");
+const DRAFT = [
+  "Hey team, here's what I worked on today:",
+  "",
+  "**Done**",
+  "- Shipped multi-target posting with per-target failure isolation.",
+  "- Fixed the portal crash in src/invented.ts",
+  "",
+  "**Next**",
+  "- *(inferred)* Wire the agent watcher into the panel.",
+  "",
+  "**Blockers**",
+  "- None",
+].join("\n");
+
+const VERIFIED = {
+  checkedClaims: 18,
+  removed: 0,
+  inferred: 1,
+  violations: [],
+  needsReview: false,
+};
+
+const REVIEW = {
+  checkedClaims: 18,
+  removed: 1,
+  inferred: 0,
+  violations: ["path: src/invented.ts", "number: #999"],
+  needsReview: true,
+};
+
+test("panel loads media assets with a strict CSP and references them by uri", () => {
+  const { webview, boot } = freshPanel();
   const html = webview.webview.html;
-  assert.match(html, /id="md"/);
-  assert.match(html, /id="txt"/);
-  assert.match(html, /Markdown/);
-  assert.match(html, /Plain text/);
-  assert.match(html, /value="concise"/);
-  assert.match(html, /value="standard" selected/);
-  assert.match(html, /value="elaborate"/);
-  assert.match(html, /id="copy"/);
-  assert.match(html, /id="regen"/);
-  // The inline script must at least parse as JavaScript.
-  assert.doesNotThrow(() => new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]));
+  assert.match(html, /Content-Security-Policy/);
+  assert.match(html, /script-src 'nonce-[^']+'/);
+  assert.match(html, /href="file:\/\/.*panel\.css"/);
+  assert.match(html, /src="file:\/\/.*panel\.js"/);
+  assert.equal(webview.options.localResourceRoots.length, 1);
 });
 
 test("the webview's plain-text mirror matches format.ts exactly", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
+  const { webview, boot } = freshPanel();
+  const ui = boot();
   const samples = [
     "**Done**\n- Fixed the [login flow](https://github.com/acme/demo/pull/12)",
     "## Heading\n* star bullet\n- [x](https://a.b/c?d=1)",
     toPlainText("**Next**\n- Nothing\n"),
-    "plain text, no markdown at all",
+    "- sub\n  - nested item",
   ];
   for (const s of samples) {
-    assert.equal(ui.toPlain(s), toPlainText(s), `mismatch for ${JSON.stringify(s)}`);
+    assert.equal(ui.hooks.toPlainText(s), toPlainText(s), `mismatch for: ${JSON.stringify(s)}`);
   }
 });
 
-test("loading, draft and error messages drive the UI", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
-
-  ui.sendMessage({ kind: "loading", label: "Writing your stand-up…" });
-  assert.equal(ui.els.md.value, "");
-  assert.equal(ui.els.md.placeholder, "Writing your stand-up…");
-  assert.equal(ui.els.status.textContent, "Writing your stand-up…");
-
-  const markdown = "**Done**\n- Shipped it";
+test("a draft renders the preview, counts, verdict and status line", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
   ui.sendMessage({
     kind: "draft",
-    markdown,
-    summary: { commits: 2, files: 3, github: 1 },
+    markdown: DRAFT,
+    summary: { commits: 3, files: 5, github: 2 },
+    modelLabel: "Ollama · gpt-oss:20b",
+    verification: VERIFIED,
+    generatedAt: new Date(Date.now() - 120000).toISOString(),
+    stats: { durationMs: 12000, outputTokens: 1240 },
     detail: "standard",
+    tone: "senior",
+    target: "",
   });
-  assert.equal(ui.els.md.value, markdown);
-  assert.equal(ui.els.txt.value, toPlainText(markdown));
-  assert.equal(ui.els.meta.textContent, "2 commits · 3 files · 1 GitHub items");
-  assert.equal(ui.els.status.textContent, "Review and edit, then copy.");
+
+  assert.match(ui.text("metaCounts"), /3 commits · 5 files · 2 GitHub items/);
+  assert.match(ui.text("modelLabel"), /Ollama · gpt-oss:20b/);
+  assert.equal(ui.visible("verdict"), true);
+  assert.match(ui.text("verdictLabel"), /Verified/);
+
+  // Preview renders structure (not the raw textarea).
+  const preview = ui.text("preview");
+  assert.match(preview, /Shipped multi-target posting/);
+  assert.match(preview, /\(inferred\)/);
+  assert.match(preview, /Blockers/);
+
+  // Verification strip.
+  assert.equal(ui.visible("verifyStrip"), true);
+  assert.match(ui.text("verifyText"), /18 claims verified/);
+  assert.match(ui.text("verifyRemovals"), /1 inferred/);
+
+  // Status bar + selects + hidden Send (no delivery in this build).
+  assert.match(ui.text("statusText"), /Ready · generated 2m ago · 12s · 1,240 tokens/);
   assert.equal(ui.els.detail.value, "standard");
-
-  ui.sendMessage({ kind: "draft", markdown, summary: {}, detail: "concise" });
-
-  ui.sendMessage({ kind: "error", message: "Couldn't reach Ollama" });
-  assert.equal(ui.els.status.textContent, "Couldn't reach Ollama");
-  assert.equal(ui.els.status.className, "err");
+  assert.equal(ui.els.tone.value, "senior");
+  assert.equal(ui.visible("sendBtn"), false);
 });
 
-test("model provenance note is shown under the copy button", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
+test("needs-review drafts are flagged and unverified claims are highlighted inline", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
   ui.sendMessage({
     kind: "draft",
-    markdown: "**Done**\n- Worked on it",
-    summary: {},
-    detail: "concise",
-    modelNote: "OpenAI BYOK",
+    markdown: DRAFT,
+    summary: { commits: 1, files: 1, github: 0 },
+    verification: REVIEW,
+    target: "",
   });
-  assert.equal(ui.els.modelNote.textContent, "done with OpenAI BYOK");
+  assert.equal(ui.els.verdict.classList.contains("bad"), true);
+  assert.match(ui.text("verdictLabel"), /Needs review/);
+  assert.equal(ui.els.verifyStrip.classList.contains("bad"), true);
+  assert.match(ui.text("verifyText"), /2 unverified claims/);
+  const marks = [];
+  (function walk(node) {
+    if (node.className === "unverified") marks.push(node.textContent);
+    (node.children || []).forEach(walk);
+  })(ui.els.preview);
+  assert.ok(marks.includes("src/invented.ts"), `expected an inline mark, got ${JSON.stringify(marks)}`);
 });
 
-test("needs-review verification is surfaced in the status line", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
+test("busy state: loading disables controls, hides thumbs, and draft resets", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
+
+  ui.sendMessage({ kind: "loading", label: "Gathering commits…" });
+  assert.equal(ui.els.regenBtn.disabled, true);
+  assert.equal(ui.els.detail.disabled, true);
+  assert.equal(ui.els.tone.disabled, true);
+  assert.equal(ui.visible("cancelBtn"), true);
+  assert.equal(ui.visible("thumbs"), false);
+  assert.match(ui.text("statusText"), /Gathering commits/);
+
+  ui.sendMessage({ kind: "draft", markdown: DRAFT, summary: {}, detail: "concise", tone: "neutral" });
+  assert.equal(ui.els.regenBtn.disabled, false);
+  assert.equal(ui.visible("cancelBtn"), false);
+  assert.equal(ui.visible("thumbs"), true);
+});
+
+test("tabs and modes switch views", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
+  assert.equal(ui.visible("viewDraft"), true);
+  assert.equal(ui.visible("viewHistory"), false);
+
+  ui.click("tabHistory");
+  assert.equal(ui.visible("viewHistory"), true);
+  assert.equal(ui.visible("viewDraft"), false);
+
+  ui.click("tabDraft");
+  assert.equal(ui.visible("viewDraft"), true);
+
+  ui.click("segMarkdown");
+  assert.equal(ui.visible("paneMd"), true);
+  assert.equal(ui.visible("panePreview"), false);
+  ui.click("segPlain");
+  assert.equal(ui.visible("paneTxt"), true);
+  ui.click("segPreview");
+  assert.equal(ui.visible("panePreview"), true);
+});
+
+test("opening history asks the extension for a page; a page renders grouped rows", () => {
+  const asked = [];
+  const { webview, boot } = freshPanel("concise", {
+    onHistoryRequest: (opts) => asked.push(opts),
+  });
+  const ui = boot();
+  ui.click("tabHistory");
+  assert.deepEqual(asked, [{}]);
+
+  const now = Date.now();
+  ui.sendMessage({
+    kind: "historyPage",
+    entries: [
+      {
+        id: "a",
+        ts: new Date(now - 60000).toISOString(),
+        markdown: "**Done**\n- Shipped the thing",
+        detail: "standard",
+        tone: "senior",
+        modelLabel: "Ollama · gpt-oss:20b",
+        sentTo: ["slack"],
+        needsReview: false,
+        copied: false,
+        verification: VERIFIED,
+      },
+      {
+        id: "b",
+        ts: new Date(now - 86400000).toISOString(),
+        markdown: "**Done**\n- Older draft",
+        detail: "concise",
+        tone: "neutral",
+        sentTo: [],
+        needsReview: true,
+        copied: false,
+      },
+    ],
+    cursor: "b",
+  });
+
+  assert.match(ui.text("histList"), /Today/);
+  assert.match(ui.text("histList"), /Yesterday/);
+  assert.match(ui.text("histList"), /Sent/);
+  assert.match(ui.text("histList"), /Needs review/);
+  assert.equal(ui.visible("histMore"), true);
+  assert.match(ui.text("histTitle"), /·/);
+  assert.match(ui.text("histDraft"), /Shipped the thing/);
+  assert.match(ui.text("histSent"), /Sent to slack/);
+});
+
+test("history actions route to the extension (restore / send again / more / search)", async () => {
+  const events = [];
+  const { webview, boot } = freshPanel("concise", {
+    onHistoryRequest: (opts) => events.push(["history", opts]),
+    onRestore: (id) => events.push(["restore", id]),
+    onSendStored: (id) => events.push(["sendStored", id]),
+  });
+  const ui = boot();
+  ui.click("tabHistory");
+  ui.sendMessage({
+    kind: "historyPage",
+    entries: [
+      {
+        id: "a",
+        ts: new Date().toISOString(),
+        markdown: "**Done**\n- x",
+        detail: "concise",
+        tone: "neutral",
+        sentTo: [],
+        needsReview: false,
+        copied: false,
+      },
+    ],
+  });
+  ui.click("histRestore");
+  ui.click("histSend");
+  ui.input("histSearch", "deploy");
+  await new Promise((r) => setTimeout(r, 300));
+  ui.click("histMore");
+  assert.deepEqual(events[0], ["history", {}]); // opening the tab asks for page 1
+  assert.deepEqual(events[1], ["restore", "a"]);
+  assert.deepEqual(events[2], ["sendStored", "a"]);
+  assert.deepEqual(events[3], ["history", { query: "deploy" }]);
+  assert.deepEqual(events[4], ["history", {}]); // "load more" with no cursor → page 1
+});
+
+test("copy reports the format and the draft id it came from", async () => {
+  const copied = [];
+  const { webview, boot } = freshPanel("concise", {
+    onCopy: (format, text, id) => copied.push([format, text, id]),
+  });
+  const ui = boot();
   ui.sendMessage({
     kind: "draft",
-    markdown: "**Done**\n- Shipped it",
+    markdown: DRAFT,
     summary: {},
+    draftId: "draft-123",
     detail: "concise",
-    verification: {
-      cleanDraft: "**Done**\n- Shipped it",
-      removed: [],
-      violations: [{ kind: "completion", text: "Shipped" }],
-      checkedClaims: 1,
-      needsReview: true,
-    },
+    tone: "neutral",
+    target: "",
   });
-  assert.match(ui.els.status.textContent, /Needs review/);
-  assert.equal(ui.els.status.className, "err");
+  ui.click("copyBtn");
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(copied.length, 1);
+  assert.equal(copied[0][0], "markdown");
+  assert.equal(copied[0][1], DRAFT);
+  assert.equal(copied[0][2], "draft-123");
+
+  ui.click("segPlain");
+  ui.click("copyBtn");
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(copied[1][0], "plain");
+  assert.match(copied[1][1], /• Shipped multi-target posting/);
 });
 
-test("copying respects the active tab; editing plain text survives markdown sync", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
-  const markdown = "**Done**\n- Shipped it";
-  ui.sendMessage({ kind: "draft", markdown, summary: {}, detail: "concise", target: "" });
+test("panel messages: regenerate, cancel, detail, tone, settings and feedback", async () => {
+  const calls = { regen: 0, cancel: 0, feedback: [] };
+  const { webview, boot } = freshPanel("concise", {
+    onRegenerate: () => calls.regen++,
+    onCancel: () => calls.cancel++,
+    onFeedback: (value, backend) => calls.feedback.push([value, backend]),
+  });
+  const ui = boot();
+  ui.click("regenBtn");
+  ui.click("cancelBtn");
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(calls.regen, 1);
+  assert.equal(calls.cancel, 1);
 
-  ui.els.copy.onclick();
-  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "copy", text: markdown, label: "markdown" });
-
-  ui.tabs[1].onclick();
-  assert.equal(ui.els["pane-txt"].classList.contains("active"), true);
-  assert.equal(ui.els["pane-md"].classList.contains("active"), false);
-
-  ui.els.txt.value = "my hand-edited update";
-  ui.els.txt.listeners.input();
-  ui.els.md.value = "**Done**\n- changed later";
-  ui.els.md.listeners.input();
-  assert.equal(ui.els.txt.value, "my hand-edited update", "manual plain-text edits are not clobbered");
-
-  ui.els.copy.onclick();
-  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "copy", text: "my hand-edited update", label: "plain text" });
-
-  ui.els.regen.onclick();
-  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "regenerate" });
-
-  ui.els.detail.value = "elaborate";
-  ui.els.detail.onchange({ target: { value: "elaborate" } });
-  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "setDetail", detail: "elaborate" });
-});
-
-test("panel messages: copy writes the clipboard and notifies", async () => {
-  const { webview } = freshPanel();
-  await webview.messageHandler({ kind: "copy", text: "hello", label: "markdown" });
-  assert.equal(stub.clipboard, "hello");
-  assert.match(stub.notifications.at(-1).message, /Copied markdown/);
-});
-
-test("panel messages: setDetail persists globally and regenerates", async () => {
-  const { webview, state, regenerated } = freshPanel();
   await webview.messageHandler({ kind: "setDetail", detail: "elaborate" });
-  assert.equal(state.getDetail(), "elaborate");
-  assert.deepEqual(stub.configUpdates.at(-1), {
-    key: "shiplogue.detail",
-    value: "elaborate",
-    target: 1,
+  await webview.messageHandler({ kind: "setTone", tone: "senior" });
+  const upd = stub.configUpdates.filter(
+    (u) => u.key === "shiplogue.detail" || u.key === "shiplogue.tone",
+  );
+  assert.deepEqual(upd.map((u) => u.value), ["elaborate", "senior"]);
+
+  await webview.messageHandler({ kind: "feedback", value: "down", backend: "Ollama" });
+  assert.deepEqual(calls.feedback, [["down", "Ollama"]]);
+
+  await webview.messageHandler({ kind: "openSettings" });
+  assert.deepEqual(stub.executedCommands.at(-1), {
+    id: "workbench.action.openSettings",
+    args: "shiplogue",
   });
-  assert.equal(regenerated(), 1);
+});
+
+test("thumbs are hidden until a draft exists and post the backend label", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
+  assert.equal(ui.visible("thumbs"), false);
+  ui.sendMessage({ kind: "draft", markdown: DRAFT, summary: {}, modelLabel: "Ollama · m", target: "" });
+  assert.equal(ui.visible("thumbs"), true);
+  ui.click("thumbUp");
+  assert.deepEqual(ui.posted.at(-1), { kind: "feedback", value: "up", backend: "Ollama · m" });
 });
 
 test("showing the panel twice reuses the same webview", () => {
   const { panel } = freshPanel();
   const state = new State(makeContext(tmpDir()));
-  const again = ShiploguePanel.show(() => {}, state);
+  const again = ShiploguePanel.show({ onRegenerate: () => {} }, state);
   assert.equal(again, panel);
   assert.equal(stub.panels.length, 1);
   assert.equal(stub.panels[0].visible, true);
 });
 
-test("a draft with grounding warnings shows them in the status line", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
+test("showHistoryView before the webview is ready flushes once it reports ready", async () => {
+  const { panel, webview } = freshPanel();
+  panel.showHistoryView();
+  assert.equal(webview.messages.filter((m) => m.kind === "openHistory").length, 0);
+
+  await webview.messageHandler({ kind: "ready" });
+  assert.equal(webview.messages.filter((m) => m.kind === "openHistory").length, 1);
+  // init is re-sent on ready so the selects match settings.
+  assert.ok(webview.messages.some((m) => m.kind === "init"));
+});
+
+test("Send again is only offered when delivery exists", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
+  ui.click("tabHistory");
+  ui.sendMessage({
+    kind: "historyPage",
+    canSend: false,
+    entries: [
+      {
+        id: "a",
+        ts: new Date().toISOString(),
+        markdown: "**Done**\n- x",
+        detail: "concise",
+        tone: "neutral",
+        sentTo: ["slack"],
+        needsReview: false,
+        copied: false,
+      },
+    ],
+  });
+  assert.equal(ui.visible("histSend"), false, "posting is not part of this build");
+  ui.sendMessage({
+    kind: "historyPage",
+    canSend: true,
+    entries: [
+      {
+        id: "b",
+        ts: new Date().toISOString(),
+        markdown: "**Done**\n- y",
+        detail: "concise",
+        tone: "neutral",
+        sentTo: [],
+        needsReview: false,
+        copied: false,
+      },
+    ],
+  });
+  assert.equal(ui.visible("histSend"), true, "shown when a delivery target exists");
+});
+
+test("Send is shown only with cloud delivery and routes to the extension", () => {
+  const sent = [];
+  setDeliveryState({ available: true, label: "Send via Shiplogue Cloud" });
+  try {
+    const { webview, boot } = freshPanel("concise", {
+      onSend: (id, markdown) => sent.push([id, markdown]),
+    });
+    const ui = boot();
+    ui.sendMessage({
+      kind: "draft",
+      markdown: DRAFT,
+      summary: {},
+      draftId: "d1",
+      sendLabel: "Send via Shiplogue Cloud",
+      detail: "concise",
+      tone: "neutral",
+      target: "targets",
+    });
+    assert.equal(ui.visible("sendBtn"), true);
+    assert.equal(ui.text("sendLabel"), "Send via Shiplogue Cloud");
+    ui.click("sendBtn");
+    return new Promise((r) => setTimeout(r, 0)).then(() => {
+      assert.deepEqual(sent, [["d1", DRAFT]]);
+    });
+  } finally {
+    setDeliveryState({ available: false, label: "" });
+  }
+});
+
+test("a delivery update appears live in an open panel", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
   ui.sendMessage({
     kind: "draft",
-    markdown: "**Done**\n- Shipped it",
-    summary: { commits: 1, files: 0, github: 0 },
-    warnings: ["⚠ Removed 2 unverifiable mention(s): src/invented.ts, #999"],
+    markdown: DRAFT,
+    summary: {},
     detail: "concise",
+    tone: "neutral",
     target: "",
   });
-  assert.match(ui.els.status.textContent, /Removed 2 unverifiable mention\(s\)/);
-  assert.match(ui.els.status.textContent, /src\/invented\.ts/);
-});
-
-test("summary notes render in the meta line", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
-  ui.sendMessage({
-    kind: "draft",
-    markdown: "**Done**\n- Shipped it",
-    summary: { commits: 25, files: 3, github: 0, notes: ["showing 25 of 40 commits (most recent)"] },
-    detail: "concise",
-    target: "",
-  });
-  assert.match(ui.els.meta.textContent, /25 commits · 3 files/);
-  assert.match(ui.els.meta.textContent, /showing 25 of 40 commits \(most recent\)/);
-});
-
-test("busy state: loading disables Regenerate/Detail and shows Cancel; draft/error/cancelled reset", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
-
-  ui.sendMessage({ kind: "loading", label: "Writing your stand-up…" });
-  assert.equal(ui.els.regen.disabled, true);
-  assert.equal(ui.els.detail.disabled, true);
-  assert.equal(ui.els.tone.disabled, true);
-  assert.equal(ui.els.cancel.style.display, "inline-block");
-
-  ui.els.cancel.onclick();
-  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "cancel" });
-
-  ui.sendMessage({ kind: "draft", markdown: "**Done**\n- x", summary: {}, detail: "concise", target: "" });
-  assert.equal(ui.els.regen.disabled, false);
-  assert.equal(ui.els.detail.disabled, false);
-  assert.equal(ui.els.tone.disabled, false);
-  assert.equal(ui.els.cancel.style.display, "none");
-
-  ui.sendMessage({ kind: "loading", label: "again" });
-  ui.sendMessage({ kind: "cancelled", message: "Cancelled." });
-  assert.equal(ui.els.regen.disabled, false);
-  assert.equal(ui.els.cancel.style.display, "none");
-  assert.equal(ui.els.status.textContent, "Cancelled.");
-
-  ui.sendMessage({ kind: "loading", label: "again" });
-  ui.sendMessage({ kind: "error", message: "boom" });
-  assert.equal(ui.els.regen.disabled, false);
-  assert.equal(ui.els.cancel.style.display, "none");
-});
-
-test("panel messages: cancel invokes the onCancel callback", async () => {
-  if (ShiploguePanel.current) ShiploguePanel.current.dispose();
-  stub.reset();
-  setDetailGetter(() => "concise");
-  stub.setConfig({ "shiplogue.webhook.type": "none" });
-  const state = new State(makeContext(tmpDir()));
-  let cancelled = 0;
-  ShiploguePanel.show(() => {}, state, () => cancelled++);
-  await stub.panels.at(-1).messageHandler({ kind: "cancel" });
-  assert.equal(cancelled, 1);
-});
-
-test("panel messages: setTone persists globally and regenerates", async () => {
-  const { webview, state, regenerated } = freshPanel();
-  await webview.messageHandler({ kind: "setTone", tone: "senior" });
-  assert.equal(state.getTone(), "senior");
-  assert.deepEqual(stub.configUpdates.at(-1), {
-    key: "shiplogue.tone",
-    value: "senior",
-    target: 1,
-  });
-  assert.equal(regenerated(), 1);
-});
-
-test("the tone select renders, syncs from init/draft and posts setTone", () => {
-  const { webview } = freshPanel();
-  const ui = bootWebview(webview.webview.html);
-  assert.match(webview.webview.html, /id="tone"/);
-  assert.match(webview.webview.html, /value="senior"/);
-
-  ui.sendMessage({ kind: "init", detail: "concise", tone: "mid" });
-  assert.equal(ui.els.tone.value, "mid");
-  ui.sendMessage({ kind: "draft", markdown: "**Done**\n- x", summary: {}, detail: "concise", tone: "senior", target: "" });
-  assert.equal(ui.els.tone.value, "senior");
-
-  ui.els.tone.value = "junior";
-  ui.els.tone.onchange({ target: { value: "junior" } });
-  assert.deepEqual(JSON.parse(JSON.stringify(ui.posted.at(-1))), { kind: "setTone", tone: "junior" });
+  assert.equal(ui.visible("sendBtn"), false);
+  ui.sendMessage({ kind: "delivery", available: true, label: "Send via Shiplogue Cloud" });
+  assert.equal(ui.visible("sendBtn"), true);
+  assert.equal(ui.text("sendLabel"), "Send via Shiplogue Cloud");
 });

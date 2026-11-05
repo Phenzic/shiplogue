@@ -39,6 +39,53 @@ test("enforceSublists leaves a normal single bullet alone", () => {
   assert.equal(enforceSublists("- Shipped the login flow"), "- Shipped the login flow");
 });
 
+test("enforceSublists turns file-only bullets after a colon into a sub-list", () => {
+  const input = [
+    "--- TEMPLATE ---",
+    "Hey team, here's what I worked on today:",
+    "",
+    "**Today**",
+    "- Updated the analytics page to include a new data source:",
+    "- app/admin/analytics/page.tsx",
+    "- app/api/v1/analytics/events/route.ts",
+    "• app/docs/privacy.mdx",
+    "- Fixed extension integration:",
+    "• app/docs/extension.mdx",
+    "• components/mdx.tsx",
+    "",
+    "**Next**",
+    "- (inferred) Finish the worker setup",
+    "--- END TEMPLATE ---",
+  ].join("\n");
+
+  assert.equal(
+    enforceSublists(input),
+    [
+      "Hey team, here's what I worked on today:",
+      "",
+      "**Today**",
+      "- Updated the analytics page to include a new data source:",
+      "  - app/admin/analytics/page.tsx",
+      "  - app/api/v1/analytics/events/route.ts",
+      "  - app/docs/privacy.mdx",
+      "- Fixed extension integration:",
+      "  - app/docs/extension.mdx",
+      "  - components/mdx.tsx",
+      "",
+      "**Next**",
+      "- *(inferred)* Finish the worker setup",
+    ].join("\n"),
+  );
+});
+
+test("toPlainText preserves sub-bullet indentation", () => {
+  const md = ["**Today**", "- Theme:", "  - app/a.ts", "  - app/b.ts"].join("\n");
+  assert.equal(
+    toPlainText(md),
+    ["Today", "• Theme:", "  • app/a.ts", "  • app/b.ts"].join("\n"),
+  );
+});
+
 test("toPlainText unwraps links, bold, headings and bullets", () => {
   const md = [
     "Hey team, here's what I worked on today:",

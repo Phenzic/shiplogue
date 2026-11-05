@@ -1,7 +1,10 @@
 import * as vscode from "vscode";
 import { CloudClient } from "../cloud";
 import { getAnalytics } from "../analytics";
+import { CloudDraftSync, LocalOnlySync, setDraftSync } from "../draftHistorySync";
 import { cfg } from "../config";
+import { refreshDelivery } from "../delivery";
+import { ShiploguePanel } from "../shiploguePanel";
 
 let client: CloudClient | undefined;
 let telemetryPrompted = false;
@@ -48,8 +51,13 @@ export async function connectCloud(): Promise<void> {
 
   try {
     const me = await client.connect(key);
+    if (me.workspace.features?.history) {
+      setDraftSync(new CloudDraftSync(client));
+    }
     await maybePromptTelemetry();
     void getAnalytics()?.track("connector.connected", { plan: me.workspace.plan });
+    const delivery = await refreshDelivery(client);
+    ShiploguePanel.updateDelivery(delivery);
     await vscode.window.showInformationMessage(
       `Connected to ${me.workspace.name}. Generated stand-ups will sync to Shiplogue.`,
     );
@@ -68,6 +76,8 @@ export async function disconnectCloud(): Promise<void> {
   void analytics?.track("connector.disconnected", {});
   await analytics?.flush();
   await client.disconnect();
+  const delivery = await refreshDelivery(client);
+  ShiploguePanel.updateDelivery(delivery);
   await vscode.window.showInformationMessage(
     "Shiplogue Cloud disconnected. The connector key was removed; local generation still works.",
   );

@@ -2,7 +2,7 @@
   "name": "shiplogue",
   "displayName": "Shiplogue",
   "description": "Turn your git, IDE and GitHub activity into a review-ready daily stand-up with Ollama or your own API key.",
-  "version": "0.1.8",
+  "version": "0.1.10",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -59,6 +59,10 @@
         "title": "Shiplogue: Generate Today's Update"
       },
       {
+        "command": "shiplogue.generateWeeklyRecap",
+        "title": "Shiplogue: Generate Weekly Recap Now"
+      },
+      {
         "command": "shiplogue.showActivity",
         "title": "Shiplogue: Show Tracked Activity (debug)"
       },
@@ -83,6 +87,18 @@
         "title": "Shiplogue: Connect GitHub"
       },
       {
+        "command": "shiplogue.feedback",
+        "title": "Shiplogue: Share Feedback"
+      },
+      {
+        "command": "shiplogue.star",
+        "title": "Shiplogue: Star on GitHub"
+      },
+      {
+        "command": "shiplogue.rate",
+        "title": "Shiplogue: Rate on the Marketplace"
+      },
+      {
         "command": "shiplogue.configureShortcut",
         "title": "Shiplogue: Configure Keyboard Shortcut",
         "category": "Shiplogue"
@@ -105,6 +121,11 @@
       {
         "command": "shiplogue.checkUpdate",
         "title": "Shiplogue: Check for Update",
+        "category": "Shiplogue"
+      },
+      {
+        "command": "shiplogue.showHistory",
+        "title": "Shiplogue: Open Stand-up History",
         "category": "Shiplogue"
       }
     ],
@@ -220,15 +241,6 @@
           "default": [],
           "markdownDescription": "Repos to check, as `owner/name`. If empty, Shiplogue auto-detects from the current workspace's git `origin` remote."
         },
-        "shiplogue.format": {
-          "type": "string",
-          "enum": [
-            "done-next-blockers",
-            "yesterday-today-blockers"
-          ],
-          "default": "done-next-blockers",
-          "description": "Stand-up format to generate."
-        },
         "shiplogue.scope": {
           "type": "string",
           "enum": [
@@ -283,6 +295,42 @@
           "type": "number",
           "default": 180,
           "markdownDescription": "Abort stand-up generation after this many seconds (a Cancel button is always available too). `0` disables the timeout."
+        },
+        "shiplogue.feedback.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Allow the occasional (once per version) feedback and star prompt after a few successful drafts. Panel thumbs and the feedback commands always work regardless."
+        },
+        "shiplogue.feedback.promptAfter": {
+          "type": "number",
+          "default": 3,
+          "description": "How many successful drafts trigger the one-time-per-version feedback prompt."
+        },
+        "shiplogue.history.retentionDays": {
+          "type": "number",
+          "default": 7,
+          "markdownDescription": "Days of draft history kept locally on this device. Pro cloud sync keeps every draft (not yet available). `0` keeps local drafts forever."
+        },
+        "shiplogue.history.maxEntries": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of drafts kept in the local history log."
+        },
+        "shiplogue.weeklyRecap.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically compile a weekly recap from stored daily drafts on the scheduled day."
+        },
+        "shiplogue.weeklyRecap.day": {
+          "type": "string",
+          "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          "default": "friday",
+          "description": "Day of the week for the automatic weekly recap."
+        },
+        "shiplogue.weeklyRecap.time": {
+          "type": "string",
+          "default": "18:00",
+          "markdownDescription": "Local time for the automatic weekly recap, in 24h `HH:MM`."
         },
         "shiplogue.store.retentionDays": {
           "type": "number",

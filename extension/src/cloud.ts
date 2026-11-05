@@ -1,15 +1,24 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
+import {
+  isPaidPlan,
+  normalizeFormatSections,
+  resetFormatSections,
+  setFormatSections,
+} from "./formatProfile";
 
 export const CLOUD_SECRET_KEY = "shiplogue.cloud.connectorKey";
+export const CLOUD_PROFILE_KEY = "shiplogue.cloud.formatProfile";
 export const DEFAULT_CLOUD_URL = "https://shiplogue.dev";
 
 export class CloudError extends Error {
   readonly userFacing = true;
+  readonly status?: number;
 
-  constructor(message: string) {
+  constructor(message: string, status?: number) {
     super(message);
     this.name = "CloudError";
+    this.status = status;
   }
 }
 
@@ -19,6 +28,12 @@ export type CloudMe = {
     name: string;
     plan: string;
     syncActivity: boolean;
+    format?: { sections?: unknown };
+    features?: {
+      posting?: boolean;
+      scheduledPosting?: boolean;
+      history?: boolean;
+    };
   };
   connector: {
     id: string;
@@ -31,6 +46,47 @@ export type CloudSyncResult =
   | { status: "synced"; standupId: string }
   | { status: "skipped"; reason: "no-key" | "disabled" }
   | { status: "failed"; error: string };
+
+// Posting is a Pro feature executed by Shiplogue Cloud: the extension asks the
+// cloud to post a synced stand-up to the workspace's configured platforms.
+export type CloudSendResult =
+  | { status: "sent"; standupId: string; targets?: string[] }
+  | {
+      status: "queued";
+      standupId: string;
+      deliveryId: string;
+      targets?: string[];
+    }
+  | { status: "skipped"; reason: "no-key" | "disabled" | "not-pro" }
+  | { status: "failed"; error: string };
+
+export type CloudDelivery = {
+  id: string;
+  status: "queued" | "sending" | "sent" | "partial" | "failed" | string;
+  targets: { target: string; status: string }[];
+  sentAt: string | null;
+};
+
+export type CloudHistoryEntry = {
+  id: string;
+  standupDate: string;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
+  bodyMarkdown: string;
+  model: string | null;
+  status: string;
+  localWorkspace?: { id?: string | null; name?: string | null };
+  sources?: string[];
+  sent?: { targets: string[]; at: string; status?: string } | null;
+  scheduled?: { at: string; targets: string[]; status: string } | null;
+};
+
+export type CloudHistoryPage = {
+  entries: CloudHistoryEntry[];
+  cursor?: string;
+  total?: number;
+};
 
 export function normalizeCloudUrl(raw: string): string {
   const value = (raw || "").trim() || DEFAULT_CLOUD_URL;
@@ -60,7 +116,33 @@ export function localDateKey(date = new Date()): string {
  * and is never written to settings, globalState, logs, or error messages.
  */
 export class CloudClient {
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {
+    this.restoreProfile();
+  }
+
+  /** Use the last paid profile while offline; free/unknown always built-in. */
+  private restoreProfile(): void {
+    const cached = this.context.globalState.get<{ plan?: string; sections?: unknown }>(
+      CLOUD_PROFILE_KEY,
+    );
+    if (cached && isPaidPlan(cached.plan)) {
+      setFormatSections(cached.sections);
+    } else {
+      resetFormatSections();
+    }
+  }
+
+  /** Paid cloud profiles may customise section labels/order. Free is ignored. */
+  private applyProfile(me: CloudMe): void {
+    const sections = isPaidPlan(me.workspace.plan)
+      ? normalizeFormatSections(me.workspace.format?.sections)
+      : undefined;
+    setFormatSections(sections);
+    void this.context.globalState.update(CLOUD_PROFILE_KEY, {
+      plan: me.workspace.plan,
+      sections,
+    });
+  }
 
   get baseUrl(): string {
     return normalizeCloudUrl(cfg().cloudUrl);
@@ -88,18 +170,31 @@ export class CloudClient {
     }
     const me = await this.meWithKey(key);
     await this.context.secrets.store(CLOUD_SECRET_KEY, key);
+    this.applyProfile(me);
     return me;
   }
 
   async disconnect(): Promise<void> {
     await this.context.secrets?.delete(CLOUD_SECRET_KEY);
+    resetFormatSections();
+    await this.context.globalState.update(CLOUD_PROFILE_KEY, undefined);
   }
 
   async me(): Promise<CloudMe> {
-    return this.meWithKey(await this.requireKey());
+    const me = await this.meWithKey(await this.requireKey());
+    this.applyProfile(me);
+    return me;
   }
 
-  async syncStandup(input: { markdown: string; modelLabel?: string }): Promise<CloudSyncResult> {
+  async syncStandup(input: {
+    markdown: string;
+    modelLabel?: string;
+    localWorkspaceId?: string;
+    localWorkspaceName?: string;
+    sources?: string[];
+    standupDate?: string;
+    title?: string;
+  }): Promise<CloudSyncResult> {
     const c = cfg();
     if (!c.cloudEnabled) return { status: "skipped", reason: "disabled" };
 
@@ -107,7 +202,7 @@ export class CloudClient {
     if (!key) return { status: "skipped", reason: "no-key" };
 
     try {
-      const standupDate = localDateKey();
+      const standupDate = input.standupDate ?? localDateKey();
       const minutes = Math.max(
         0,
         Math.min(1440, Math.round(Number(c.cloudEstimatedMinutesSaved) || 0)),
@@ -116,8 +211,11 @@ export class CloudClient {
         method: "POST",
         body: JSON.stringify({
           standupDate,
-          title: `Standup for ${standupDate}`,
+          title: input.title ?? `Standup for ${standupDate}`,
           bodyMarkdown: input.markdown,
+          localWorkspaceId: input.localWorkspaceId,
+          localWorkspaceName: input.localWorkspaceName,
+          sources: input.sources,
           timeSavedMinutes: minutes,
           status: "draft",
           model: input.modelLabel,
@@ -127,6 +225,108 @@ export class CloudClient {
     } catch (error) {
       return { status: "failed", error: error instanceof Error ? error.message : String(error) };
     }
+  }
+
+  /** Ask Shiplogue Cloud to post a synced stand-up to the workspace targets. */
+  async sendStandup(
+    standupId: string,
+    idempotencyKey: string = crypto.randomUUID(),
+  ): Promise<CloudSendResult> {
+    const c = cfg();
+    if (!c.cloudEnabled) return { status: "skipped", reason: "disabled" };
+
+    const key = await this.getKey();
+    if (!key) return { status: "skipped", reason: "no-key" };
+
+    try {
+      const me = await this.meWithKey(key);
+      const posting = me.workspace.features?.posting ?? isPaidPlan(me.workspace.plan);
+      if (!posting) return { status: "skipped", reason: "not-pro" };
+
+      const { data, status } = await this.requestWithStatus<{
+        standup?: { id?: string };
+        sent?: { targets?: string[] };
+        delivery?: CloudDelivery;
+      }>(key, `/api/v1/standups/${encodeURIComponent(standupId)}/send`, {
+        method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey },
+        body: JSON.stringify({}),
+      });
+
+      if (status === 202 || (data.delivery && data.delivery.status !== "sent" && data.delivery.status !== "partial")) {
+        const delivery = data.delivery;
+        return {
+          status: "queued",
+          standupId: data.standup?.id ?? standupId,
+          deliveryId: delivery?.id ?? "",
+          ...(delivery?.targets?.length
+            ? { targets: delivery.targets.map((target) => target.target) }
+            : {}),
+        };
+      }
+
+      return {
+        status: "sent",
+        standupId: data?.standup?.id ?? standupId,
+        ...(data?.sent?.targets ? { targets: data.sent.targets } : {}),
+      };
+    } catch (error) {
+      if (error instanceof CloudError && error.status === 402) {
+        return { status: "skipped", reason: "not-pro" };
+      }
+      return { status: "failed", error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  async getDelivery(deliveryId: string): Promise<CloudDelivery | undefined> {
+    const key = await this.getKey();
+    if (!key) return undefined;
+    const data = await this.request<{ delivery?: CloudDelivery }>(
+      key,
+      `/api/v1/deliveries/${encodeURIComponent(deliveryId)}`,
+    );
+    return data.delivery;
+  }
+
+  /** Poll briefly after a queued send; return undefined when still queued. */
+  async waitForDelivery(deliveryId: string, timeoutMs = 10_000): Promise<CloudDelivery | undefined> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const delivery = await this.getDelivery(deliveryId);
+      if (!delivery) return undefined;
+      if (delivery.status === "sent" || delivery.status === "partial" || delivery.status === "failed") {
+        return delivery;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    return undefined;
+  }
+
+  async listHistory(input: { before?: string; limit?: number } = {}): Promise<CloudHistoryPage> {
+    const key = await this.requireKey();
+    const params = new URLSearchParams();
+    if (input.before) params.set("before", input.before);
+    params.set("limit", String(Math.min(50, Math.max(1, input.limit ?? 20))));
+    return this.request<CloudHistoryPage>(key, `/api/v1/standups?${params.toString()}`);
+  }
+
+  async createRevision(input: {
+    standupId: string;
+    bodyMarkdown: string;
+    model?: string;
+    sources?: string[];
+    createdAt?: string;
+  }): Promise<void> {
+    const key = await this.requireKey();
+    await this.request(key, `/api/v1/standups/${encodeURIComponent(input.standupId)}/revisions`, {
+      method: "POST",
+      body: JSON.stringify({
+        bodyMarkdown: input.bodyMarkdown,
+        model: input.model,
+        sources: input.sources,
+        createdAt: input.createdAt,
+      }),
+    });
   }
 
   private async requireKey(): Promise<string> {
@@ -144,6 +344,14 @@ export class CloudClient {
   }
 
   private async request<T>(key: string, path: string, init: RequestInit = {}): Promise<T> {
+    return (await this.requestWithStatus<T>(key, path, init)).data;
+  }
+
+  private async requestWithStatus<T>(
+    key: string,
+    path: string,
+    init: RequestInit = {},
+  ): Promise<{ data: T; status: number }> {
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${key}`);
     if (init.body) headers.set("Content-Type", "application/json");
@@ -166,8 +374,8 @@ export class CloudClient {
         payload && typeof payload === "object" && typeof payload.error === "string"
           ? payload.error
           : `Cloud request failed (HTTP ${response.status}).`;
-      throw new CloudError(detail);
+      throw new CloudError(detail, response.status);
     }
-    return payload as T;
+    return { data: payload as T, status: response.status };
   }
 }

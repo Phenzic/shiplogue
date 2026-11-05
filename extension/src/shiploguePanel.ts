@@ -1,61 +1,99 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
 import { DetailLevel, State, Tone } from "./state";
-import type { Verification } from "./grounding";
+import type { PanelVerification } from "./panelVerification";
+import type { DraftEntry } from "./draftHistory";
+import { mediaRoot, panelHtml } from "./webview";
+import { getDeliveryState, hasDeliveryTarget } from "./delivery";
+
+// The stand-up panel. The UI itself lives in media/ (panel.html/css/js) and is
+// loaded with a strict CSP; this class owns the message protocol and the
+// extension-host side effects.
 
 export interface DraftPayload {
   markdown: string;
   summary: { commits: number; files: number; github: number; notes?: string[] };
-  // Non-modal caveats shown in the status line (e.g. grounding removals).
+  // Non-modal caveats (e.g. grounding removals) shown in the status line.
   warnings?: string[];
   // Which engine wrote the draft, e.g. "Ollama · llama3.2".
   modelLabel?: string;
-  // Short provenance under the Copy button, e.g. "OpenAI BYOK".
+  // Short provenance under the model chip, e.g. "OpenAI BYOK".
   modelNote?: string;
-  verification?: Verification;
+  verification?: PanelVerification;
+  projectName?: string;
+  // Per-draft history id (DraftHistory entry).
+  draftId?: string;
+  stats?: { durationMs?: number; inputTokens?: number; outputTokens?: number };
+  generatedAt?: string;
 }
 
-// Singleton webview: shows the draft in Markdown + Plain-text tabs, an activity
-// summary, and a collapsible style editor.
+export interface HistoryPagePayload {
+  entries: DraftEntry[];
+  cursor?: string;
+  append?: boolean;
+}
+
+export interface PanelCallbacks {
+  onRegenerate: () => void;
+  onCancel?: () => void;
+  onCopy?: (format: "markdown" | "plain", text: string, draftId?: string) => void;
+  // Fired after a successful send from the draft view (when delivery exists).
+  onSent?: (draftId: string | undefined, targets: string[]) => void;
+  // The History tab asks for a page; respond with panel.setHistoryPage().
+  onHistoryRequest?: (opts: { query?: string; cursor?: string }) => void;
+  onRestore?: (id: string) => void;
+  onSendStored?: (id: string) => void;
+  // Delivery is executed by Shiplogue Cloud (Pro); the panel only asks.
+  onSend?: (draftId: string | undefined, markdown: string) => void;
+  onFeedback?: (value: "up" | "down", backend: string) => void;
+}
+
+let extensionUri: vscode.Uri | undefined;
+
 export class ShiploguePanel {
   private static current: ShiploguePanel | undefined;
   private panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
+  private ready = false;
+  private pendingHistory = false;
 
-  static show(
-    onRegenerate: () => void,
-    state: State,
-    onCancel?: () => void,
-    onCopy?: (format: "markdown" | "plain") => void,
-  ): ShiploguePanel {
+  static init(context: { extensionUri: vscode.Uri }): void {
+    extensionUri = context.extensionUri;
+  }
+
+  static show(callbacks: PanelCallbacks, state: State, projectName?: string): ShiploguePanel {
     if (ShiploguePanel.current) {
-      ShiploguePanel.current.onRegenerate = onRegenerate;
-      ShiploguePanel.current.onCancel = onCancel;
-      ShiploguePanel.current.onCopy = onCopy;
+      ShiploguePanel.current.callbacks = callbacks;
+      ShiploguePanel.current.projectName = projectName;
       ShiploguePanel.current.state = state;
       ShiploguePanel.current.syncDetail();
       ShiploguePanel.current.panel.reveal();
       return ShiploguePanel.current;
     }
+    const uri = extensionUri ?? vscode.Uri.joinPath(vscode.Uri.file(__dirname), "..");
     const panel = vscode.window.createWebviewPanel(
       "shiplogue",
       "Shiplogue",
       vscode.ViewColumn.Active,
-      { enableScripts: true, retainContextWhenHidden: true },
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [mediaRoot(uri)],
+      },
     );
-    ShiploguePanel.current = new ShiploguePanel(panel, onRegenerate, state, onCancel, onCopy);
+    ShiploguePanel.current = new ShiploguePanel(panel, callbacks, state, projectName, uri);
     return ShiploguePanel.current;
   }
 
   private constructor(
     panel: vscode.WebviewPanel,
-    private onRegenerate: () => void,
+    private callbacks: PanelCallbacks,
     private state: State,
-    private onCancel?: () => void,
-    private onCopy?: (format: "markdown" | "plain") => void,
+    private projectName: string | undefined,
+    private uri: vscode.Uri,
   ) {
     this.panel = panel;
-    this.panel.webview.html = this.html();
+    this.panel.webview.html = panelHtml(panel.webview, uri);
     this.syncDetail();
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
     this.panel.webview.onDidReceiveMessage((msg) => this.handle(msg), null, this.disposables);
@@ -75,8 +113,24 @@ export class ShiploguePanel {
       modelLabel: p.modelLabel,
       modelNote: p.modelNote,
       verification: p.verification,
+      projectName: p.projectName ?? this.projectName,
+      draftId: p.draftId,
+      stats: p.stats,
+      generatedAt: p.generatedAt,
+      // Send is shown only when the connected workspace can post via Shiplogue
+      // Cloud (Pro); the label names the route.
+      sendLabel: getDeliveryState().label,
+      target: hasDeliveryTarget() ? "targets" : "",
       detail: c.detail,
       tone: c.tone,
+    });
+  }
+
+  setHistoryPage(page: HistoryPagePayload): void {
+    this.panel.webview.postMessage({
+      kind: "historyPage",
+      ...page,
+      canSend: hasDeliveryTarget(),
     });
   }
 
@@ -88,6 +142,26 @@ export class ShiploguePanel {
     this.panel.webview.postMessage({ kind: "cancelled", message });
   }
 
+  setNote(message: string): void {
+    this.panel.webview.postMessage({ kind: "note", message });
+  }
+
+  // Push a delivery-availability change (e.g. after connecting the cloud) into
+  // an already-open panel so Send appears without regenerating.
+  static updateDelivery(state: { available: boolean; label: string }): void {
+    ShiploguePanel.current?.panel.webview.postMessage({ kind: "delivery", ...state });
+  }
+
+  showHistoryView(): void {
+    if (this.ready) {
+      this.panel.webview.postMessage({ kind: "openHistory" });
+    } else {
+      // The webview may not have booted yet (commands can fire immediately
+      // after activation); flush on its "ready" message.
+      this.pendingHistory = true;
+    }
+  }
+
   private syncDetail(): void {
     this.panel.webview.postMessage({ kind: "init", detail: cfg().detail, tone: cfg().tone });
   }
@@ -97,13 +171,17 @@ export class ShiploguePanel {
       case "copy":
         await vscode.env.clipboard.writeText(msg.text ?? "");
         vscode.window.showInformationMessage(`Copied ${msg.label ?? "text"} to clipboard.`);
-        this.onCopy?.(msg.label === "plain text" ? "plain" : "markdown");
+        this.callbacks.onCopy?.(
+          msg.label === "plain text" ? "plain" : "markdown",
+          msg.text ?? "",
+          typeof msg.draftId === "string" ? msg.draftId : undefined,
+        );
         break;
       case "regenerate":
-        this.onRegenerate();
+        this.callbacks.onRegenerate();
         break;
       case "cancel":
-        this.onCancel?.();
+        this.callbacks.onCancel?.();
         break;
       case "setDetail": {
         const detail = msg.detail as DetailLevel;
@@ -111,7 +189,7 @@ export class ShiploguePanel {
         await vscode.workspace
           .getConfiguration("shiplogue")
           .update("detail", detail, vscode.ConfigurationTarget.Global);
-        this.onRegenerate();
+        this.callbacks.onRegenerate();
         break;
       }
       case "setTone": {
@@ -120,9 +198,55 @@ export class ShiploguePanel {
         await vscode.workspace
           .getConfiguration("shiplogue")
           .update("tone", tone, vscode.ConfigurationTarget.Global);
-        this.onRegenerate();
+        this.callbacks.onRegenerate();
         break;
       }
+      case "ready":
+        this.ready = true;
+        this.syncDetail();
+        if (this.pendingHistory) {
+          this.pendingHistory = false;
+          this.panel.webview.postMessage({ kind: "openHistory" });
+        }
+        break;
+      case "historyOpen":
+      case "historyQuery":
+        this.callbacks.onHistoryRequest?.(
+          typeof msg.query === "string" && msg.query ? { query: msg.query } : {},
+        );
+        break;
+      case "historyMore":
+        this.callbacks.onHistoryRequest?.(
+          typeof msg.cursor === "string" ? { cursor: msg.cursor } : {},
+        );
+        break;
+      case "restore":
+        if (typeof msg.id === "string") {
+          this.callbacks.onRestore?.(msg.id);
+        }
+        break;
+      case "sendStored":
+        if (typeof msg.id === "string") {
+          this.callbacks.onSendStored?.(msg.id);
+        }
+        break;
+      case "feedback":
+        if (msg.value === "up" || msg.value === "down") {
+          this.callbacks.onFeedback?.(
+            msg.value,
+            typeof msg.backend === "string" ? msg.backend : "",
+          );
+        }
+        break;
+      case "send":
+        this.callbacks.onSend?.(
+          typeof msg.draftId === "string" ? msg.draftId : undefined,
+          typeof msg.markdown === "string" ? msg.markdown : String(msg.text ?? ""),
+        );
+        break;
+      case "openSettings":
+        await vscode.commands.executeCommand("workbench.action.openSettings", "shiplogue");
+        break;
     }
   }
 
@@ -130,193 +254,5 @@ export class ShiploguePanel {
     ShiploguePanel.current = undefined;
     this.panel.dispose();
     this.disposables.forEach((d) => d.dispose());
-  }
-
-  private html(): string {
-    const detail = cfg().detail;
-    const tone = cfg().tone;
-    const sel = (v: string) => (detail === v ? " selected" : "");
-    const selT = (v: string) => (tone === v ? " selected" : "");
-    return /* html */ `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<style>
-  :root { --gap: 12px; }
-  body { font-family: var(--vscode-font-family); padding: 16px; color: var(--vscode-foreground); }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  h1 { font-size: 15px; margin: 0; font-weight: 600; }
-  #meta { font-size: 12px; opacity: 0.7; }
-  .tabs { display: flex; gap: 4px; margin: var(--gap) 0 8px; border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,.3)); }
-  .tab {
-    background: none; border: none; border-bottom: 2px solid transparent; color: var(--vscode-foreground);
-    padding: 6px 12px; cursor: pointer; font-size: 13px; opacity: 0.7;
-  }
-  .tab.active { opacity: 1; border-bottom-color: var(--vscode-focusBorder, var(--vscode-button-background)); }
-  textarea {
-    width: 100%; box-sizing: border-box; min-height: 300px; resize: vertical;
-    font-family: var(--vscode-editor-font-family, monospace); font-size: 13px; line-height: 1.5;
-    color: var(--vscode-input-foreground); background: var(--vscode-input-background);
-    border: 1px solid var(--vscode-input-border, transparent); border-radius: 6px; padding: 12px;
-  }
-  .pane { display: none; }
-  .pane.active { display: block; }
-  .row { margin-top: var(--gap); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  button.action {
-    color: var(--vscode-button-foreground); background: var(--vscode-button-background);
-    border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
-  }
-  button.secondary { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
-  button.action:hover { opacity: 0.9; }
-  #status { margin-top: 10px; min-height: 16px; font-size: 12px; opacity: 0.85; }
-  .copy-block { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; }
-  #modelNote { font-size: 10.5px; opacity: 0.55; line-height: 1.1; }
-  .err { color: var(--vscode-errorForeground); white-space: pre-wrap; }
-  .hint { font-size: 12px; opacity: 0.65; margin: 6px 0 0; }
-</style>
-</head>
-<body>
-  <header>
-    <h1>Daily stand-up</h1>
-    <span id="meta"></span>
-  </header>
-
-  <div class="tabs">
-    <button class="tab active" data-pane="md">Markdown</button>
-    <button class="tab" data-pane="txt">Plain text</button>
-  </div>
-
-  <div id="pane-md" class="pane active">
-    <textarea id="md" placeholder="Generating…"></textarea>
-  </div>
-  <div id="pane-txt" class="pane">
-    <textarea id="txt" placeholder="Plain-text version appears here."></textarea>
-    <p class="hint">Auto-derived from the Markdown tab. Edit here freely — copying this tab copies what you see.</p>
-  </div>
-
-  <div class="row">
-    <span class="copy-block">
-      <button class="action" id="copy">Copy</button>
-      <span id="modelNote"></span>
-    </span>
-    <button class="action secondary" id="regen">Regenerate</button>
-    <button class="action secondary" id="cancel" style="display:none">Cancel</button>
-    <label style="font-size:12px;opacity:.8;margin-left:auto">Detail
-      <select id="detail" style="margin-left:4px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,transparent);border-radius:4px;padding:4px 6px">
-        <option value="concise"${sel("concise")}>Concise · 3–4 points</option>
-        <option value="standard"${sel("standard")}>Standard · 5–7 points</option>
-        <option value="elaborate"${sel("elaborate")}>Elaborate · full work log</option>
-      </select>
-    </label>
-    <label style="font-size:12px;opacity:.8">Tone
-      <select id="tone" style="margin-left:4px;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,transparent);border-radius:4px;padding:4px 6px">
-        <option value="neutral"${selT("neutral")}>Neutral</option>
-        <option value="junior"${selT("junior")}>Junior</option>
-        <option value="mid"${selT("mid")}>Mid</option>
-        <option value="senior"${selT("senior")}>Senior</option>
-      </select>
-    </label>
-  </div>
-  <div id="status"></div>
-
-<script>
-  const vscode = acquireVsCodeApi();
-  const md = document.getElementById('md');
-  const txt = document.getElementById('txt');
-  const status = document.getElementById('status');
-  const meta = document.getElementById('meta');
-  const modelNote = document.getElementById('modelNote');
-  const cancelBtn = document.getElementById('cancel');
-  const regenBtn = document.getElementById('regen');
-  const detailSel = document.getElementById('detail');
-  const toneSel = document.getElementById('tone');
-  let activePane = 'md';
-  let txtEdited = false;
-
-  // While a generation runs, Regenerate/Detail are disabled and Cancel shows.
-  function setBusy(b) {
-    regenBtn.disabled = b;
-    detailSel.disabled = b;
-    toneSel.disabled = b;
-    cancelBtn.style.display = b ? 'inline-block' : 'none';
-  }
-
-  // Mirror of format.ts toPlainText — keep in sync.
-  function toPlainText(s) {
-    return s
-      .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '$1 ($2)')
-      .replace(/\\*\\*([^*]+)\\*\\*/g, '$1')
-      .replace(/\\*([^*\\n]+)\\*/g, '$1')
-      .replace(/^\\s{0,3}#{1,6}\\s+/gm, '')
-      .replace(/^\\s*[-*]\\s+/gm, '• ')
-      .trim();
-  }
-
-  function syncPlain() { if (!txtEdited) txt.value = toPlainText(md.value); }
-  md.addEventListener('input', syncPlain);
-  txt.addEventListener('input', () => { txtEdited = true; });
-
-  document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    document.querySelectorAll('.pane').forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    activePane = t.dataset.pane;
-    document.getElementById('pane-' + activePane).classList.add('active');
-  });
-
-  function activeText() { return activePane === 'txt' ? txt.value : md.value; }
-
-  document.getElementById('copy').onclick = () =>
-    vscode.postMessage({ kind: 'copy', text: activeText(), label: activePane === 'txt' ? 'plain text' : 'markdown' });
-  regenBtn.onclick = () => vscode.postMessage({ kind: 'regenerate' });
-  cancelBtn.onclick = () => vscode.postMessage({ kind: 'cancel' });
-  detailSel.onchange = (e) =>
-    vscode.postMessage({ kind: 'setDetail', detail: e.target.value });
-  toneSel.onchange = (e) =>
-    vscode.postMessage({ kind: 'setTone', tone: e.target.value });
-
-  window.addEventListener('message', (e) => {
-    const m = e.data;
-    if (m.kind === 'loading') {
-      setBusy(true);
-      md.value = ''; txt.value = ''; txtEdited = false;
-      md.placeholder = m.label; status.textContent = m.label; status.className = '';
-      modelNote.textContent = '';
-    } else if (m.kind === 'init' || m.kind === 'draft') {
-      if (m.kind === 'draft') {
-        setBusy(false);
-        txtEdited = false;
-        md.value = m.markdown; syncPlain();
-        const s = m.summary || {};
-        meta.textContent = [
-          s.commits ? s.commits + ' commits' : '',
-          s.files ? s.files + ' files' : '',
-          s.github ? s.github + ' GitHub items' : '',
-          m.modelLabel ? 'via ' + m.modelLabel : ''
-        ].filter(Boolean).join(' · ');
-        modelNote.textContent = m.modelNote ? 'done with ' + m.modelNote : '';
-        if (s.notes && s.notes.length) {
-          meta.textContent += (meta.textContent ? ' — ' : '') + s.notes.join('; ');
-        }
-        const unreviewed = m.verification && m.verification.needsReview;
-        status.textContent = unreviewed
-          ? 'Needs review: ' + m.verification.violations.length + ' unverified claim(s) — check before copying.'
-          : ((m.warnings && m.warnings.length) ? m.warnings.join(' ') : 'Review and edit, then copy.');
-        status.className = unreviewed ? 'err' : '';
-      }
-      if (m.detail) detailSel.value = m.detail;
-      if (m.tone) toneSel.value = m.tone;
-    } else if (m.kind === 'error') {
-      setBusy(false);
-      status.textContent = m.message; status.className = 'err';
-    } else if (m.kind === 'cancelled') {
-      setBusy(false);
-      status.textContent = m.message || 'Cancelled.'; status.className = '';
-    }
-  });
-</script>
-</body>
-</html>`;
   }
 }

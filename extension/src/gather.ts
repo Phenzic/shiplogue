@@ -86,6 +86,10 @@ export interface GatherOptions {
   signal?: AbortSignal;
   // Reports which source is being collected so the panel can show progress.
   onPhase?: (label: string) => void;
+  // Generate for one project instead of every folder open in the window.
+  folder?: vscode.WorkspaceFolder;
+  // Override the lookback window (weekly recap uses 168h).
+  lookbackHours?: number;
 }
 
 // Pull together everything for the stand-up window. With scope="workspace"
@@ -101,13 +105,15 @@ export async function gatherContext(store: Store, opts: GatherOptions = {}): Pro
   };
   const c = cfg();
   const until = new Date();
-  const since = new Date(until.getTime() - c.lookbackHours * 3600_000);
+  const since = new Date(
+    until.getTime() - (opts.lookbackHours ?? c.lookbackHours) * 3600_000,
+  );
 
-  const folders = vscode.workspace.workspaceFolders ?? [];
+  const folders = opts.folder ? [opts.folder] : vscode.workspace.workspaceFolders ?? [];
   // With no folder open, scoping to "this window" would match nothing — fall
   // back to the whole day and tell the user via the panel summary.
-  const noFolder = c.scope === "workspace" && folders.length === 0;
-  const scoped = c.scope === "workspace" && !noFolder;
+  const noFolder = c.scope === "workspace" && folders.length === 0 && !opts.folder;
+  const scoped = Boolean(opts.folder) || (c.scope === "workspace" && !noFolder);
   const folderPaths = scoped ? folders.map((f) => f.uri.fsPath) : null;
   const folderNames = new Set(folders.map((f) => f.name));
 
@@ -115,10 +121,10 @@ export async function gatherContext(store: Store, opts: GatherOptions = {}): Pro
   // Sequential phases (not Promise.all) so the progress label actually says
   // which source is slow.
   onPhase?.("Gathering commits…");
-  let commits = await collectCommits(since, until, signal);
+  let commits = await collectCommits(since, until, signal, folders);
   checkAborted();
   onPhase?.("Gathering GitHub activity…");
-  let github = await collectGitHub(token, c.githubRepos, since, signal);
+  let github = await collectGitHub(token, c.githubRepos, since, signal, folders);
   checkAborted();
   let cursorPrompts: Awaited<ReturnType<typeof collectAllPrompts>> = [];
   if (c.cursorEnabled) {

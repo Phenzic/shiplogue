@@ -30,6 +30,7 @@ const stub = {
   disposeCount: 0,
   secrets: {},
   commandRegistry: new Map(),
+  executedCommands: [],
 
   reset() {
     this.config = {};
@@ -56,6 +57,7 @@ const stub = {
     this.disposeCount = 0;
     this.secrets = {};
     this.commandRegistry.clear();
+    this.executedCommands = [];
   },
 
   // Merge settings, e.g. { "shiplogue.ollama.model": "test" }.
@@ -267,8 +269,13 @@ const commands = {
     return disposable(() => stub.commandRegistry.delete(id));
   },
   executeCommand(id, ...args) {
+    stub.executedCommands.push({ id, args: args.length === 1 ? args[0] : args });
     const fn = stub.commandRegistry.get(id);
-    if (!fn) return Promise.reject(new Error(`command not found: ${id}`));
+    if (!fn) {
+      // workbench.* commands are provided by the host; tests resolve them.
+      if (String(id).startsWith("workbench.")) return Promise.resolve(undefined);
+      return Promise.reject(new Error(`command not found: ${id}`));
+    }
     return Promise.resolve(fn(...args));
   },
 };
@@ -312,6 +319,10 @@ module.exports = {
     },
     parse(s) {
       return { scheme: s.split(":")[0], path: s, toString: () => s };
+    },
+    joinPath(base, ...parts) {
+      const p = path.join(base.fsPath, ...parts);
+      return { scheme: "file", fsPath: p, path: p, toString: () => `file://${p}` };
     },
   },
   ViewColumn: { Active: -1, Beside: -2, One: 1 },
