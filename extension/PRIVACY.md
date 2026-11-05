@@ -69,4 +69,18 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 
 ## Telemetry
 
-None. No analytics, no crash reporting, no third-party calls beyond the above.
+Optional and **off by default**. Cloud-connected users can opt in with
+`shiplogue.telemetry.enabled` or the connect prompt. When enabled, the extension
+sends anonymous product events to the Shiplogue API at `shiplogue.cloud.url`:
+
+- event name (for example `standup.generated`, `standup.copied`,
+  `sync.succeeded`, `generation.failed`)
+- a random installation ID stored locally
+- extension version, editor name, and provider type
+- coarse counts/durations such as commits, files, GitHub items, generation
+  duration, and success/failure category
+
+It never sends stand-up text, prompts, file paths, repository names, raw error
+messages, or activity contents. Telemetry requires a connector key and stops when
+cloud sync is disconnected. There is no crash reporting and no third-party
+analytics service.

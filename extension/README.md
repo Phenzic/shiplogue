@@ -81,13 +81,20 @@ working without an account.
 The key lives in the OS keychain (VS Code SecretStorage), never in settings. Raw
 activity and prompts are not uploaded; the extension sends the finished draft and
 an estimated time saved. Use **Shiplogue: Cloud Status** to verify the workspace
-and scopes, or **Shiplogue: Disconnect Cloud** to remove the key. Settings:
+and scopes, or **Shiplogue: Disconnect Cloud** to remove the key.
+
+When connecting, Shiplogue asks whether to share anonymous product metadata
+(events such as generated, copied, and sync success/failure, plus counts and
+durations). Choose **Enable anonymous usage**, or enable
+`shiplogue.telemetry.enabled` later. It sends only while a connector key exists
+and never includes stand-up content. Settings:
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `shiplogue.cloud.url` | `https://shiplogue.dev` | Cloud origin, or `http://localhost:3000` for local development. |
 | `shiplogue.cloud.enabled` | `true` | Set to `false` to keep drafts local even with a key connected. |
 | `shiplogue.cloud.estimatedMinutesSaved` | `10` | Estimate recorded with each synced draft; set `0` to report none. |
+| `shiplogue.telemetry.enabled` | `false` | Opt in to anonymous usage metadata for the admin dashboard. Never includes stand-up text, prompts, paths, repositories, or error messages. |
 
 ## Models and privacy
 
@@ -103,7 +110,7 @@ and scopes, or **Shiplogue: Disconnect Cloud** to remove the key. Settings:
   provider wins under `auto`; there is no silent fallback.
 - With BYOK, the assembled activity context is sent to that provider. Use Ollama
   if activity must stay on-device.
-- No telemetry. Cloud sync is optional and inactive until you connect a connector key; local generation works without an account. This build stores a draft, but does not post it anywhere.
+- No telemetry by default. Anonymous product metadata is opt-in, requires a connector key, and never includes stand-up text, prompts, paths, repositories, or errors. Cloud sync is optional and inactive until you connect a key; local generation works without an account. This build stores a draft, but does not post it anywhere.
 
 Full details: [PRIVACY.md](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md).
 

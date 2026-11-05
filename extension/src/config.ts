@@ -59,6 +59,7 @@ export function cfg() {
     cloudUrl: c.get<string>("cloud.url", "https://shiplogue.dev").trim(),
     cloudEnabled: c.get<boolean>("cloud.enabled", true),
     cloudEstimatedMinutesSaved: c.get<number>("cloud.estimatedMinutesSaved", 10),
+    telemetryEnabled: c.get<boolean>("telemetry.enabled", false),
     // Extension-side update notifications (see src/versionCheck.ts).
     updateEnabled: c.get<boolean>("update.enabled", true),
   };

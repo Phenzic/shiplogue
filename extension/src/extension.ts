@@ -23,6 +23,7 @@ import { clearProviderKey, setProviderKey, testProvider } from "./commands/provi
 import { configureShortcut } from "./commands/shortcuts";
 import { cloudStatus, connectCloud, disconnectCloud, initCloud } from "./commands/cloud";
 import type { CloudClient } from "./cloud";
+import { Analytics, initAnalytics } from "./analytics";
 import { PromptWatcher } from "./promptWatcher";
 import { ActiveProviderType } from "./core/providers";
 
@@ -32,6 +33,7 @@ let tracker: Tracker | undefined;
 let promptWatcher: PromptWatcher | undefined;
 let reminder: Reminder | undefined;
 let cloud: CloudClient | undefined;
+let analytics: Analytics | undefined;
 
 // Generation runs are serialized by a monotonic epoch: a new run (Regenerate,
 // Detail change) aborts and supersedes the previous one, whose late results
@@ -47,7 +49,9 @@ export function activate(context: vscode.ExtensionContext) {
   store = new Store(context);
   state = new State(context);
   cloud = initCloud(context);
+  analytics = initAnalytics(context, cloud);
   cloudWarningShown = false;
+  void analytics.track("extension.activated");
   // Provider keys live only in SecretStorage (OS keychain). Guard because a
   // few hosts (and the test stub) do not implement it.
   if (context.secrets) {
@@ -78,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
   promptWatcher = new PromptWatcher();
   promptWatcher.start();
 
-  reminder = new Reminder(state, () => void runGenerate());
+  reminder = new Reminder(state, () => void runGenerate("reminder"));
   void reminder.ensureSetup().then(() => reminder?.start());
 
   // Fire-and-forget first-run check: surface Ollama problems at startup with a
@@ -94,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
   void runUpdateCheck(context);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("shiplogue.generate", () => runGenerate()),
+    vscode.commands.registerCommand("shiplogue.generate", () => runGenerate("manual")),
     vscode.commands.registerCommand("shiplogue.showActivity", () => runShowActivity()),
     vscode.commands.registerCommand("shiplogue.setProviderKey", () => setProviderKey()),
     vscode.commands.registerCommand("shiplogue.clearProviderKey", () => clearProviderKey()),
@@ -116,11 +120,16 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-async function runGenerate(): Promise<void> {
+async function runGenerate(
+  reason: "manual" | "regenerate" | "reminder" = "manual",
+): Promise<void> {
   const panel = ShiploguePanel.show(
-    () => void runGenerate(),
+    () => void runGenerate("regenerate"),
     state,
     () => inFlight?.abort(),
+    (format) => {
+      void analytics?.track("standup.copied", { format });
+    },
   );
   // A new run supersedes and aborts any in-flight run.
   inFlight?.abort();
@@ -199,6 +208,20 @@ async function runGenerate(): Promise<void> {
         ...(warnings.length ? { warnings } : {}),
         ...(backend ? { modelLabel: backendLabel(backend), modelNote: backendNote(backend) } : {}),
       });
+      void analytics?.track("standup.generated", {
+        trigger: reason,
+        durationMs: Date.now() - started,
+        commits: ctx.commits.length,
+        files: ctx.touches.length,
+        github: ctx.github.length,
+        warnings: warnings.length,
+        backend: backend?.kind ?? "none",
+        detail: cfg().detail,
+        tone: cfg().tone,
+      });
+      if (reason === "regenerate") {
+        void analytics?.track("standup.regenerated", { trigger: "panel" });
+      }
       void syncDraftToCloud(markdown, backend ? backendLabel(backend) : undefined);
     }
   } catch (e: any) {
@@ -206,6 +229,13 @@ async function runGenerate(): Promise<void> {
       // Only the current run may announce its cancellation; superseded runs
       // stay silent because the newer run already owns the panel.
       if (epoch === generationEpoch) {
+        if (timedOut) {
+          void analytics?.track("generation.failed", {
+            category: "timeout",
+            durationMs: Date.now() - started,
+            phase,
+          });
+        }
         panel.setCancelled(
           timedOut
             ? `Generation timed out after ${timeoutSeconds}s. Increase shiplogue.generate.timeoutSeconds, or use a smaller/faster model.`
@@ -213,6 +243,11 @@ async function runGenerate(): Promise<void> {
         );
       }
     } else if (epoch === generationEpoch) {
+      void analytics?.track("generation.failed", {
+        category: e?.userFacing === true ? "backend" : "unexpected",
+        durationMs: Date.now() - started,
+        phase,
+      });
       // Adapter/backend errors are written for humans; anything else is
       // unexpected and gets a prefix so it isn't mistaken for advice.
       const msg = e?.userFacing === true ? e.message : `Something went wrong: ${e.message ?? e}`;
@@ -234,7 +269,12 @@ let cloudWarningShown = false;
 async function syncDraftToCloud(markdown: string, modelLabel?: string): Promise<void> {
   if (!cloud) return;
   const result = await cloud.syncStandup({ markdown, modelLabel });
+  if (result.status === "synced") {
+    void analytics?.track("sync.succeeded", {});
+    return;
+  }
   if (result.status !== "failed") return;
+  void analytics?.track("sync.failed", { category: "cloud" });
   console.warn(`[shiplogue] cloud sync failed: ${result.error}`);
   if (cloudWarningShown) return;
   cloudWarningShown = true;
@@ -410,5 +450,7 @@ export function deactivate() {
   tracker?.dispose();
   promptWatcher?.dispose();
   reminder?.dispose();
+  void analytics?.dispose();
+  analytics = undefined;
   store?.flush();
 }
