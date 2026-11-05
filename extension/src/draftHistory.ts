@@ -32,6 +32,7 @@ export interface DraftEntry {
   verification?: PanelVerification;
   summary?: { commits: number; files: number; github: number; notes?: string[] };
   stats?: { durationMs?: number; inputTokens?: number; outputTokens?: number };
+  windowHours?: number;
   sentTo: string[];
   scheduled?: { at: string; targets: string[]; status: string };
   copied?: boolean;

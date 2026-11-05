@@ -33,6 +33,13 @@ All notable changes to this project will be documented here. Format follows
   Feedback**, **Star on GitHub**, **Rate on the Marketplace**. Settings:
   `shiplogue.feedback.enabled`, `shiplogue.feedback.promptAfter`.
 
+### Fixed
+
+- Draft-mode switching now toggles the actual pane state, so Markdown and Plain
+  no longer open a blank pane after the preview.
+- The panel's file count now includes distinct files from commits as well as IDE
+  save/edit activity, and the meta line shows the collection window (`last Nh`).
+
 ### Changed
 
 - **Redesigned panel**: rendered Markdown preview by default (with raw Markdown

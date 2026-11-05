@@ -173,6 +173,15 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
+function changedFileCount(ctx: { commits: { files: string[] }[]; touches: { file: string }[] }): number {
+  const files = new Set<string>();
+  for (const commit of ctx.commits) {
+    for (const file of commit.files) files.add(file.replace(/^[/]/, ""));
+  }
+  for (const touch of ctx.touches) files.add(touch.file);
+  return files.size;
+}
+
 async function runGenerate(
   reason: "manual" | "regenerate" | "reminder" = "manual",
 ): Promise<void> {
@@ -274,9 +283,10 @@ async function runGenerate(
           ...(modelLabel ? { modelLabel } : {}),
           ...(sources.length ? { sources } : {}),
           ...(panelVerification ? { verification: panelVerification } : {}),
+          windowHours: cfg().lookbackHours,
           summary: {
             commits: ctx.commits.length,
-            files: ctx.touches.length,
+            files: changedFileCount(ctx),
             github: ctx.github.length,
             ...(notes.length ? { notes } : {}),
           },
@@ -304,7 +314,7 @@ async function runGenerate(
         markdown,
         summary: {
           commits: ctx.commits.length,
-          files: ctx.touches.length,
+          files: changedFileCount(ctx),
           github: ctx.github.length,
           ...(notes.length ? { notes } : {}),
         },
@@ -313,6 +323,7 @@ async function runGenerate(
         ...(local ? { projectName: local.name } : {}),
         ...(panelVerification ? { verification: panelVerification } : {}),
         ...(draftEntry ? { draftId: draftEntry.id } : {}),
+        windowHours: cfg().lookbackHours,
         generatedAt,
         stats: {
           durationMs: Date.now() - started,
@@ -325,7 +336,7 @@ async function runGenerate(
         trigger: reason,
         durationMs: Date.now() - started,
         commits: ctx.commits.length,
-        files: ctx.touches.length,
+        files: changedFileCount(ctx),
         github: ctx.github.length,
         warnings: warnings.length,
         backend: backend?.kind ?? "none",
@@ -464,6 +475,7 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
           ...(entry.projectName ? { projectName: entry.projectName } : {}),
           draftId: entry.id,
           generatedAt: entry.ts,
+          ...(entry.windowHours ? { windowHours: entry.windowHours } : {}),
           ...(entry.stats ? { stats: entry.stats } : {}),
         });
         panel.setNote("Restored from history — review before copying.");

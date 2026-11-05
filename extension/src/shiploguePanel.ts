@@ -25,6 +25,7 @@ export interface DraftPayload {
   draftId?: string;
   stats?: { durationMs?: number; inputTokens?: number; outputTokens?: number };
   generatedAt?: string;
+  windowHours?: number;
 }
 
 export interface HistoryPagePayload {
@@ -117,6 +118,7 @@ export class ShiploguePanel {
       draftId: p.draftId,
       stats: p.stats,
       generatedAt: p.generatedAt,
+      windowHours: p.windowHours,
       // Send is shown only when the connected workspace can post via Shiplogue
       // Cloud (Pro); the label names the route.
       sendLabel: getDeliveryState().label,

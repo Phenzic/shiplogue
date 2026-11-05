@@ -165,7 +165,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   assert.match(draft.markdown, /\*\*Blockers\*\*/);
   assert.match(draft.markdown, /Merged PR \[#12\]\(https:\/\/github\.com\/acme\/demo\/pull\/12\)/);
   assert.match(draft.markdown, /Closed issue \[#7\]\(https:\/\/github\.com\/acme\/demo\/issues\/7\)/);
-  assert.deepEqual(draft.summary, { commits: 2, files: 1, github: 2 });
+  assert.deepEqual(draft.summary, { commits: 2, files: 2, github: 2 });
   assert.equal(draft.detail, "concise");
   assert.equal(draft.modelLabel, "Ollama · test-model");
   assert.equal(draft.modelNote, "Ollama");

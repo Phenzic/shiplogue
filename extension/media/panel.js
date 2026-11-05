@@ -209,9 +209,17 @@
 
   function setMode(mode) {
     state.mode = mode;
-    show($("panePreview"), mode === "preview");
-    show($("paneMd"), mode === "markdown");
-    show($("paneTxt"), mode === "plain");
+    // The panes use `.pane.on`; `hidden` is a different utility. Mixing them
+    // left the editor body blank after switching modes.
+    for (const [id, visible] of [
+      ["panePreview", mode === "preview"],
+      ["paneMd", mode === "markdown"],
+      ["paneTxt", mode === "plain"],
+    ]) {
+      const pane = $(id);
+      pane.classList.toggle("on", visible);
+      pane.classList.toggle("hidden", !visible);
+    }
     $("segMarkdown").classList.toggle("on", mode === "markdown");
     $("segPreview").classList.toggle("on", mode === "preview");
     $("segPlain").classList.toggle("on", mode === "plain");
