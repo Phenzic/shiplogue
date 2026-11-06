@@ -34,6 +34,7 @@ you choose a cloud model.
 | **Review panel** | Rendered preview (or raw Markdown / Plain text), a verification strip (claims checked, removed, inferred, needs-review highlights), one-click Copy, Regenerate, Cancel, and inline Detail/Tone. |
 | **Draft history** | A searchable History tab in the panel: every draft with its model, detail/tone, verification state and send status; preview, copy or restore any of them. |
 | **Local history** | Every draft is kept on-device for 7 days; **Shiplogue: Open Stand-up History** shows the last week, and yesterday's reviewed copy feeds the next Yesterday section. |
+| **Weekly recap** | Compiles the week’s Today sections, details, coverage counts and open threads. |
 | **Daily reminder** | A local-time nudge, with Generate now / Snooze 1h. |
 | **Shortcut** | `Cmd+Shift+'` (macOS) / `Ctrl+Shift+'` (Windows/Linux). Rebind from the Command Palette. |
 | **Cloud sync (optional)** | Connect a connector key to sync generated stand-ups to your private Shiplogue dashboard; copying a reviewed draft upserts the final text. |

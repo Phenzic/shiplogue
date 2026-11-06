@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { installVscodeStub } = require("./helpers");
 
 installVscodeStub();
-const { enforceSublists, toPlainText, buildReferences, sanitizeUntrusted, verifyGrounding } = require("../out/format");
+const { enforceSublists, extractSection, limitSectionBullets, toPlainText, buildReferences, sanitizeUntrusted, verifyGrounding } = require("../out/format");
 
 test("enforceSublists turns 3+ inline paths into indented sub-bullets", () => {
   const out = enforceSublists("- Updated the docs: a.md, b.md, c.md");
@@ -76,6 +76,30 @@ test("enforceSublists turns file-only bullets after a colon into a sub-list", ()
       "- *(inferred)* Finish the worker setup",
     ].join("\n"),
   );
+});
+
+test("extractSection returns only yesterday's Today body", () => {
+  const md = [
+    "**Yesterday**",
+    "- old",
+    "",
+    "**Today**",
+    "- Shipped the API",
+    "  - src/api.ts",
+    "",
+    "**Next**",
+    "- Later",
+  ].join("\n");
+  assert.equal(extractSection(md, ["Today"]), "- Shipped the API\n  - src/api.ts");
+  assert.equal(extractSection(md, ["Blockers"]), undefined);
+});
+
+test("limitSectionBullets merges more than two Yesterday bullets", () => {
+  const md = ["**Today**", "- one", "**Yesterday**", "- a", "- b", "- c", "- d", "", "**Next**", "- n"].join("\n");
+  const out = limitSectionBullets(md, ["Yesterday"], 2);
+  assert.match(out, /\*\*Today\*\*\n- one/);
+  assert.match(out, /\*\*Yesterday\*\*\n- a; b\n- c; d/);
+  assert.match(out, /\*\*Next\*\*\n- n/);
 });
 
 test("toPlainText preserves sub-bullet indentation", () => {

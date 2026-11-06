@@ -26,7 +26,7 @@ function freshPanel(detail = "concise", callbacks = {}) {
       onCopy: callbacks.onCopy,
       onHistoryRequest: callbacks.onHistoryRequest,
       onRestore: callbacks.onRestore,
-      onSendStored: callbacks.onSendStored,
+      onSyncStored: callbacks.onSyncStored,
       onSend: callbacks.onSend,
       onFeedback: callbacks.onFeedback,
     },
@@ -210,6 +210,7 @@ test("opening history asks the extension for a page; a page renders grouped rows
   const now = Date.now();
   ui.sendMessage({
     kind: "historyPage",
+    canSend: true,
     entries: [
       {
         id: "a",
@@ -247,17 +248,18 @@ test("opening history asks the extension for a page; a page renders grouped rows
   assert.match(ui.text("histSent"), /Sent to slack/);
 });
 
-test("history actions route to the extension (restore / send again / more / search)", async () => {
+test("history actions route to the extension (restore / sync / more / search)", async () => {
   const events = [];
   const { webview, boot } = freshPanel("concise", {
     onHistoryRequest: (opts) => events.push(["history", opts]),
     onRestore: (id) => events.push(["restore", id]),
-    onSendStored: (id) => events.push(["sendStored", id]),
+    onSyncStored: (id) => events.push(["syncStored", id]),
   });
   const ui = boot();
   ui.click("tabHistory");
   ui.sendMessage({
     kind: "historyPage",
+    canSend: true,
     entries: [
       {
         id: "a",
@@ -278,7 +280,7 @@ test("history actions route to the extension (restore / send again / more / sear
   ui.click("histMore");
   assert.deepEqual(events[0], ["history", {}]); // opening the tab asks for page 1
   assert.deepEqual(events[1], ["restore", "a"]);
-  assert.deepEqual(events[2], ["sendStored", "a"]);
+  assert.deepEqual(events[2], ["syncStored", "a"]);
   assert.deepEqual(events[3], ["history", { query: "deploy" }]);
   assert.deepEqual(events[4], ["history", {}]); // "load more" with no cursor → page 1
 });
@@ -373,7 +375,7 @@ test("showHistoryView before the webview is ready flushes once it reports ready"
   assert.ok(webview.messages.some((m) => m.kind === "init"));
 });
 
-test("Send again is only offered when delivery exists", () => {
+test("Sync is only offered when cloud delivery exists", () => {
   const { webview, boot } = freshPanel();
   const ui = boot();
   ui.click("tabHistory");

@@ -3,6 +3,24 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.11] — 2026-11-06
+
+### Changed
+
+- The built-in format is now fixed: Yesterday / Today / Next / Blockers, with no
+  user-facing format setting. Paid workspaces can relabel/reorder the four
+  sections from a cloud profile; free plans always use the built-in format.
+- Yesterday is now a 1-2 bullet summary condensed from yesterday's Today
+  section. It no longer copies the whole daily draft or its file sub-bullets.
+- Stand-up history: drafts are stored atomically per local day, kept for 7 days,
+  and reviewed copies replace the draft text. **Shiplogue: Open Stand-up History**
+  shows the last week.
+- History **Send again** is now **Sync**: it pushes the stored draft to Shiplogue
+  Cloud without posting it. The draft's **Send via Shiplogue Cloud** button still
+  asks the cloud to deliver to connected Slack/Discord/Teams targets.
+- Weekly recap now reads each day's Today section, keeps its details, adds
+  week-level coverage counts, and lists work carried into next week.
+
 ## [0.1.10] — 2026-11-05
 
 ### Added

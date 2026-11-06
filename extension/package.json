@@ -2,7 +2,7 @@
   "name": "shiplogue",
   "displayName": "Shiplogue",
   "description": "Turn your git, IDE and GitHub activity into a review-ready daily stand-up with Ollama or your own API key.",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {
@@ -201,7 +201,7 @@
             "Anthropic (Claude)",
             "OpenAI",
             "Google Gemini",
-            "Any endpoint that speaks the OpenAI Chat Completions API \u2014 OpenRouter, Groq, Together, LM Studio, llama.cpp"
+            "Any endpoint that speaks the OpenAI Chat Completions API — OpenRouter, Groq, Together, LM Studio, llama.cpp"
           ],
           "default": "none",
           "description": "API provider used when shiplogue.model.backend is 'provider' or 'auto'."
@@ -225,7 +225,7 @@
         "shiplogue.github.useBuiltInAuth": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Use the editor's built-in GitHub sign-in instead of a manual token. No PAT needed \u2014 run 'Shiplogue: Connect GitHub' once. Ignored if `shiplogue.github.token` is set."
+          "markdownDescription": "Use the editor's built-in GitHub sign-in instead of a manual token. No PAT needed — run 'Shiplogue: Connect GitHub' once. Ignored if `shiplogue.github.token` is set."
         },
         "shiplogue.github.token": {
           "type": "string",
@@ -264,7 +264,7 @@
           "enumDescriptions": [
             "3-4 short points, outcomes only",
             "5-7 points with the key specifics (files, endpoints, issue numbers)",
-            "6-9 thorough points enumerating files, assets, fields and URLs \u2014 a full work log"
+            "6-9 thorough points enumerating files, assets, fields and URLs — a full work log"
           ],
           "default": "concise",
           "description": "How detailed the generated stand-up should be. Also switchable from the stand-up panel."
@@ -278,7 +278,7 @@
             "senior"
           ],
           "enumDescriptions": [
-            "Default voice \u2014 no styling added",
+            "Default voice — no styling added",
             "Mentions what you learned and where you asked for help",
             "Plain and factual, with brief reasoning",
             "Leads with impact and decisions; terse"
@@ -323,7 +323,15 @@
         },
         "shiplogue.weeklyRecap.day": {
           "type": "string",
-          "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          "enum": [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday"
+          ],
           "default": "friday",
           "description": "Day of the week for the automatic weekly recap."
         },

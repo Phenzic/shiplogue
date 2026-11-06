@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import type { StandupCoverage } from "./types";
 
 // Local, durable stand-up history. One JSON file per day under the extension's
 // global storage dir; each file holds at most one record per local workspace.
@@ -14,6 +15,8 @@ export type StandupRecord = {
   workspaceId?: string;
   projectName?: string;
   sources?: string[];
+  coverage?: StandupCoverage;
+  summary?: { commits: number; files: number; github: number; notes?: string[] };
   markdown: string;
   status: "generated" | "reviewed";
   modelLabel?: string;
@@ -27,6 +30,8 @@ export type HistoryOptions = {
   projectName?: string;
   modelLabel?: string;
   sources?: string[];
+  coverage?: StandupCoverage;
+  summary?: { commits: number; files: number; github: number; notes?: string[] };
 };
 
 export function localDateKey(date = new Date()): string {
@@ -120,6 +125,8 @@ export class StandupStore {
       ...(options.projectName ? { projectName: options.projectName } : {}),
       ...(options.modelLabel ? { modelLabel: options.modelLabel } : {}),
       ...(options.sources ? { sources: options.sources } : {}),
+      ...(options.coverage ? { coverage: options.coverage } : {}),
+      ...(options.summary ? { summary: options.summary } : {}),
       markdown,
       status: "generated",
       createdAt: existing?.createdAt ?? timestamp,
@@ -140,6 +147,8 @@ export class StandupStore {
       ...(options.projectName ? { projectName: options.projectName } : existing?.projectName ? { projectName: existing.projectName } : {}),
       ...(options.modelLabel ? { modelLabel: options.modelLabel } : existing?.modelLabel ? { modelLabel: existing.modelLabel } : {}),
       ...(options.sources ? { sources: options.sources } : existing?.sources ? { sources: existing.sources } : {}),
+      ...(options.coverage ? { coverage: options.coverage } : existing?.coverage ? { coverage: existing.coverage } : {}),
+      ...(options.summary ? { summary: options.summary } : existing?.summary ? { summary: existing.summary } : {}),
       markdown,
       status: "reviewed",
       createdAt: existing?.createdAt ?? timestamp,

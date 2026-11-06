@@ -45,7 +45,7 @@ export interface PanelCallbacks {
   // The History tab asks for a page; respond with panel.setHistoryPage().
   onHistoryRequest?: (opts: { query?: string; cursor?: string }) => void;
   onRestore?: (id: string) => void;
-  onSendStored?: (id: string) => void;
+  onSyncStored?: (id: string) => void;
   // Delivery is executed by Shiplogue Cloud (Pro); the panel only asks.
   onSend?: (draftId: string | undefined, markdown: string) => void;
   onFeedback?: (value: "up" | "down", backend: string) => void;
@@ -230,9 +230,9 @@ export class ShiploguePanel {
           this.callbacks.onRestore?.(msg.id);
         }
         break;
-      case "sendStored":
+      case "syncStored":
         if (typeof msg.id === "string") {
-          this.callbacks.onSendStored?.(msg.id);
+          this.callbacks.onSyncStored?.(msg.id);
         }
         break;
       case "feedback":

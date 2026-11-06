@@ -9,7 +9,8 @@ import { cfg, setDetailGetter, setToneGetter } from "./config";
 import { gatherContext, contextToText } from "./gather";
 import { generateStandup } from "./summarize";
 import { githubToken } from "./github";
-import { buildReferences } from "./format";
+import { buildReferences, extractSection } from "./format";
+import { getFormatSections } from "./formatProfile";
 import { ShiploguePanel } from "./shiploguePanel";
 import { DraftEntry, DraftHistory } from "./draftHistory";
 import { CloudDraftSync, getDraftSync, setDraftSync } from "./draftHistorySync";
@@ -269,9 +270,15 @@ async function runGenerate(
     });
     const previous = history?.getYesterday(local?.id);
     if (previous) {
+      const sections = getFormatSections();
+      const todayLabel = sections.find((section) => section.key === "today")?.label ?? "Today";
+      const previousToday =
+        extractSection(previous.markdown, [todayLabel, "Today", "Done"]) ?? previous.markdown;
       ctx.previousStandup = {
         date: previous.date,
-        markdown: previous.markdown,
+        // Feed only yesterday's main/Today section; the prompt condenses it to
+        // 1-2 bullets instead of copying a whole daily draft.
+        markdown: previousToday,
         ...(previous.projectName ? { projectName: previous.projectName } : {}),
       };
     }
@@ -356,6 +363,13 @@ async function runGenerate(
           ...(local?.name ? { projectName: local.name } : {}),
           ...(modelLabel ? { modelLabel } : {}),
           ...(sources.length ? { sources } : {}),
+          coverage,
+          summary: {
+            commits: ctx.commits.length,
+            files: changedFileCount(ctx),
+            github: ctx.github.length,
+            ...(notes.length ? { notes } : {}),
+          },
         });
       } catch {
         /* local history must never block the draft */
@@ -464,12 +478,14 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
           }
         }
         try {
+          const copiedEntry = draftId ? draftHistory.get(draftId) : undefined;
           const record = history?.markReviewed(text, {
             ...(local?.id ? { workspaceId: local.id } : {}),
             ...(local?.name ? { projectName: local.name } : {}),
+            ...(copiedEntry?.coverage ? { coverage: copiedEntry.coverage } : {}),
+            ...(copiedEntry?.summary ? { summary: copiedEntry.summary } : {}),
           });
           if (record) {
-            const copiedEntry = draftId ? draftHistory.get(draftId) : undefined;
             void syncDraftToCloud(
               record.markdown,
               record.modelLabel,
@@ -540,13 +556,13 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
         });
         panel.setNote("Restored from history — review before copying.");
       },
-      onSendStored: (id) => {
+      onSyncStored: (id) => {
         const entry = draftHistory.get(id) ?? cloudHistoryCache.get(id);
         if (!entry) {
           panel.setNote("That draft is no longer available on this device.");
           return;
         }
-        void sendViaCloud(panel, entry.id, entry.markdown, local, entry);
+        void syncStoredViaCloud(panel, entry, local);
       },
       onSend: (draftId, markdown) => {
         void sendViaCloud(panel, draftId, markdown, local);
@@ -570,6 +586,47 @@ function pushHistoryPage(panel: ShiploguePanel, opts: { query?: string; cursor?:
   } catch {
     panel.setNote("Could not load draft history.");
   }
+}
+
+// History "Sync" = push a stored draft to Shiplogue Cloud without posting it to
+// connected targets. The draft view's Send button is the one that asks the cloud
+// to deliver to Slack/Discord/Teams.
+async function syncStoredViaCloud(
+  panel: ShiploguePanel,
+  entry: DraftEntry,
+  local: { id: string; name: string } | undefined,
+): Promise<void> {
+  if (!cloud) return;
+  if (!(await cloud.hasKey())) {
+    const pick = await vscode.window.showInformationMessage(
+      "Sync needs a Shiplogue Cloud connector key. Connect one to store this draft online.",
+      "Connect Cloud",
+    );
+    if (pick === "Connect Cloud") await connectCloud();
+    return;
+  }
+
+  const standupDate = localDateKey(new Date(entry.ts));
+  panel.setNote("Syncing via Shiplogue Cloud…");
+  const result = await cloud.syncStandup({
+    markdown: entry.markdown,
+    standupDate,
+    title: entry.title ?? `Standup for ${standupDate}`,
+    ...(entry.modelLabel ? { modelLabel: entry.modelLabel } : {}),
+    ...(entry.sources?.length ? { sources: entry.sources } : {}),
+    ...(entry.coverage ? { coverage: entry.coverage } : {}),
+    ...(local ? { localWorkspaceId: local.id, localWorkspaceName: local.name } : {}),
+  });
+  if (result.status === "synced") {
+    panel.setNote("Synced to Shiplogue Cloud.");
+    vscode.window.showInformationMessage("Draft synced to Shiplogue Cloud.");
+    return;
+  }
+  panel.setNote(
+    result.status === "failed"
+      ? `Sync failed: ${result.error}`
+      : "Cloud sync is unavailable. Enable it in settings first.",
+  );
 }
 
 // Send = ask Shiplogue Cloud to post the stand-up (Pro, cloud-side). The
@@ -654,6 +711,8 @@ async function sendViaCloud(
         ...(local?.id ? { workspaceId: local.id } : {}),
         ...(local?.name ? { projectName: local.name } : {}),
         ...(entry?.sources?.length ? { sources: entry.sources } : {}),
+        ...(entry?.coverage ? { coverage: entry.coverage } : {}),
+        ...(entry?.summary ? { summary: entry.summary } : {}),
       });
     } catch {
       /* ignore */
@@ -677,6 +736,8 @@ async function sendViaCloud(
         ...(local?.id ? { workspaceId: local.id } : {}),
         ...(local?.name ? { projectName: local.name } : {}),
         ...(entry?.sources?.length ? { sources: entry.sources } : {}),
+        ...(entry?.coverage ? { coverage: entry.coverage } : {}),
+        ...(entry?.summary ? { summary: entry.summary } : {}),
       });
     } catch {
       /* ignore */

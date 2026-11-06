@@ -1,5 +1,6 @@
 import { StandupRecord, localDateKey } from "./standupStore";
 import { unionSources, type SourceId } from "./sources";
+import { getFormatSections } from "./formatProfile";
 
 export interface WeeklyRecap {
   title: string;
@@ -10,49 +11,56 @@ export interface WeeklyRecap {
   summary: { commits: number; files: number; github: number; notes?: string[] };
 }
 
-function doneBullets(markdown: string): string[] {
-  const lines = markdown.split("\n");
-  const bullets: string[] = [];
-  let inDone = false;
+type RecapItem = { text: string; details: string[] };
 
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (/^\*\*(Done|Yesterday)\*\*$/i.test(line.trim())) {
-      inDone = true;
-      continue;
-    }
-    if (/^\*\*(Next|Today|Blockers|References)\*\*/i.test(line.trim())) {
-      if (inDone) break;
-      continue;
-    }
-    if (inDone && /^-\s+/.test(line)) {
-      const text = line.replace(/^-\s+/, "").replace(/\s*\(inferred\)\s*$/i, "").trim();
-      if (text) bullets.push(text);
-    }
-  }
-
-  if (bullets.length > 0) return bullets;
-
-  // Older/local drafts may not use the standard heading. Fall back to the
-  // top-level bullets before any references section.
-  let fallback = false;
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (/^\*\*References\*\*/i.test(line.trim())) break;
-    if (/^-\s+/.test(line)) {
-      fallback = true;
-      const text = line.replace(/^-\s+/, "").trim();
-      if (text && !/^\[.*\]\(.*\)$/.test(text)) bullets.push(text);
-    }
-  }
-  return fallback ? bullets : [];
-}
-
-function cleanBullet(text: string): string {
+function cleanText(text: string): string {
   return text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\s*\(inferred\)\s*$/i, "")
     .replace(/\s+/g, " ")
+    .replace(/[.;]+$/, "")
     .trim();
+}
+
+// Read one section's top-level bullets and their indented details. Bullets may
+// be "-", "*" or "•"; headings are the fixed "**Label**" form.
+function sectionItems(markdown: string, labels: string[]): RecapItem[] {
+  const wanted = new Set(labels.map((label) => label.trim().toLowerCase()));
+  const items: RecapItem[] = [];
+  let inSection = false;
+  let current: RecapItem | undefined;
+
+  for (const raw of markdown.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    const heading = line.trim().match(/^\*\*(.+?)\*\*$/);
+    if (heading) {
+      if (inSection) break;
+      if (wanted.has(heading[1].trim().toLowerCase())) inSection = true;
+      continue;
+    }
+    if (!inSection) continue;
+
+    const nested = line.match(/^\s{2,}[-*•]\s+(.+)$/);
+    if (nested && current) {
+      const detail = cleanText(nested[1]);
+      if (detail) current.details.push(detail);
+      continue;
+    }
+    const bullet = line.match(/^[-*•]\s+(.+)$/);
+    if (bullet) {
+      const text = cleanText(bullet[1]);
+      if (text) {
+        current = { text, details: [] };
+        items.push(current);
+      }
+    }
+  }
+  return items;
+}
+
+function labelsFor(key: "today" | "yesterday" | "next" | "blockers", fallback: string[]): string[] {
+  const label = getFormatSections().find((section) => section.key === key)?.label;
+  return label ? [label, ...fallback] : fallback;
 }
 
 function rangeLabel(records: StandupRecord[]): string {
@@ -64,10 +72,13 @@ function rangeLabel(records: StandupRecord[]): string {
   return `${start} – ${end}`;
 }
 
+function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 /**
- * Compile the stored daily drafts into a weekly recap. This is deliberately
- * static: no model call, no commits, no filesystem scan, no new activity
- * collection. The daily drafts are the source of truth.
+ * Compile stored daily drafts into a readable weekly story. Static: the daily
+ * drafts are the source of truth; no new activity collection or model call.
  */
 export function buildWeeklyRecap(
   records: StandupRecord[],
@@ -82,20 +93,41 @@ export function buildWeeklyRecap(
 
   if (recent.length === 0) return undefined;
 
-  const byProject = new Map<string, string[]>();
+  const primaryLabels = labelsFor("today", ["Today", "Done"]);
+  const yesterdayLabels = labelsFor("yesterday", ["Yesterday"]);
+  const nextLabels = labelsFor("next", ["Next"]);
+  const blockerLabels = labelsFor("blockers", ["Blockers"]);
+
+  const byProject = new Map<string, RecapItem[]>();
   const seen = new Set<string>();
   let bulletCount = 0;
+
   for (const record of recent) {
     const project = record.projectName?.trim() || "Workspace";
-    for (const raw of doneBullets(record.markdown)) {
-      const text = cleanBullet(raw);
-      const key = text.toLowerCase();
-      if (!text || seen.has(key)) continue;
+    for (const item of sectionItems(record.markdown, primaryLabels)) {
+      const key = item.text.toLowerCase();
+      if (seen.has(key)) continue;
       seen.add(key);
       const bucket = byProject.get(project) ?? [];
-      bucket.push(text);
+      bucket.push(item);
       byProject.set(project, bucket);
       bulletCount++;
+    }
+  }
+
+  // Older drafts may predate the Today section; fall back to Yesterday.
+  if (bulletCount === 0) {
+    for (const record of recent) {
+      const project = record.projectName?.trim() || "Workspace";
+      for (const item of sectionItems(record.markdown, yesterdayLabels)) {
+        const key = item.text.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const bucket = byProject.get(project) ?? [];
+        bucket.push(item);
+        byProject.set(project, bucket);
+        bulletCount++;
+      }
     }
   }
 
@@ -104,19 +136,60 @@ export function buildWeeklyRecap(
   const projects = [...byProject.keys()].sort((a, b) => a.localeCompare(b));
   const sources = unionSources(recent.map((record) => record.sources));
   const range = rangeLabel(recent);
-  const lines: string[] = [
-    `# Weekly recap`,
-    "",
-    `**${range}**`,
-    "",
-    "**What I shipped**",
-  ];
 
+  let commits = 0;
+  let files = 0;
+  let github = 0;
+  let prs = 0;
+  let issues = 0;
+  let prompts = 0;
+  let sessions = 0;
+  for (const record of recent) {
+    commits += record.summary?.commits ?? record.coverage?.git.commits ?? 0;
+    files += record.summary?.files ?? record.coverage?.git.files ?? 0;
+    github += record.summary?.github ?? record.coverage?.github.items ?? 0;
+    prs += record.coverage?.github.prs ?? 0;
+    issues += record.coverage?.github.issues ?? 0;
+    prompts += record.coverage?.agents.prompts ?? 0;
+    sessions += record.coverage?.agents.sessions ?? 0;
+  }
+
+  const latest = recent[recent.length - 1];
+  const nextItems = sectionItems(latest.markdown, nextLabels)
+    .map((item) => item.text)
+    .filter((text) => !/^none\.?$/i.test(text));
+  const blockers = sectionItems(latest.markdown, blockerLabels)
+    .map((item) => item.text)
+    .filter((text) => !/^none\.?$/i.test(text));
+
+  const lines: string[] = ["# Weekly recap", "", `**${range}**`, "", "**Week at a glance**"];
+  lines.push(
+    `- ${plural(recent.length, "daily stand-up")} across ${plural(projects.length, "project")}`,
+  );
+  const countBits: string[] = [];
+  if (commits) countBits.push(plural(commits, "commit"));
+  if (files) countBits.push(`${plural(files, "file")} touched`);
+  if (prs) countBits.push(plural(prs, "merged PR"));
+  if (issues) countBits.push(plural(issues, "closed issue"));
+  if (prs === 0 && issues === 0 && github) countBits.push(plural(github, "GitHub item"));
+  if (prompts) countBits.push(plural(prompts, "AI prompt"));
+  if (sessions) countBits.push(plural(sessions, "AI session"));
+  if (countBits.length) lines.push(`- ${countBits.join(" · ")}`);
+  if (sources.length) lines.push(`- Sources: ${sources.join(", ")}`);
+
+  lines.push("", "**What I shipped**");
   for (const project of projects) {
     if (projects.length > 1) lines.push("", `### ${project}`);
-    for (const bullet of byProject.get(project) ?? []) {
-      lines.push(`- ${bullet}`);
+    for (const item of byProject.get(project) ?? []) {
+      lines.push(`- ${item.text}`);
+      for (const detail of item.details) lines.push(`  - ${detail}`);
     }
+  }
+
+  if (nextItems.length || blockers.length) {
+    lines.push("", "**Carrying forward**");
+    for (const text of nextItems) lines.push(`- ${text}`);
+    for (const text of blockers) lines.push(`- Blocked: ${text}`);
   }
 
   return {
@@ -126,10 +199,10 @@ export function buildWeeklyRecap(
     projects,
     range,
     summary: {
-      commits: 0,
-      files: 0,
-      github: 0,
-      notes: [`Compiled from ${recent.length} daily draft${recent.length === 1 ? "" : "s"}`],
+      commits,
+      files,
+      github,
+      notes: [`Compiled from ${plural(recent.length, "daily draft")}`],
     },
   };
 }

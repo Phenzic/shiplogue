@@ -37,3 +37,52 @@ test("weekly recap compiles stored daily drafts and unions sources", () => {
 test("weekly recap is empty when there are no stored daily drafts", () => {
   assert.equal(buildWeeklyRecap([], new Date("2026-11-06T18:00:00")), undefined);
 });
+
+test("weekly recap uses Today, keeps details, and reports the week's coverage", () => {
+  const recap = buildWeeklyRecap(
+    [
+      {
+        ...record(
+          "2026-11-05",
+          "alpha",
+          [
+            "**Yesterday**",
+            "- Wrapped up auth",
+            "",
+            "**Today**",
+            "- Shipped the billing flow:",
+            "  - src/billing.ts",
+            "  - src/checkout.tsx",
+            "- Fixed the auth race",
+            "",
+            "**Next**",
+            "- Add invoices",
+            "",
+            "**Blockers**",
+            "- Waiting on legal",
+          ].join("\n"),
+          ["vscode"],
+        ),
+        summary: { commits: 4, files: 3, github: 1 },
+        coverage: {
+          window: { kind: "calendar-day", start: "2026-11-05", end: "2026-11-05" },
+          git: { commits: 4, files: 3 },
+          ide: { touchedFiles: 3 },
+          github: { prs: 1, issues: 0, items: 1 },
+          agents: { sessions: 1, prompts: 2, bySource: { vscode: 2 } },
+          uncommitted: { files: 0 },
+        },
+      },
+    ],
+    new Date("2026-11-06T18:00:00"),
+  );
+  assert.ok(recap);
+  assert.match(recap.markdown, /Week at a glance/);
+  assert.match(recap.markdown, /4 commits/);
+  assert.match(recap.markdown, /Shipped the billing flow/);
+  assert.match(recap.markdown, /src\/billing\.ts/);
+  assert.match(recap.markdown, /Carrying forward/);
+  assert.match(recap.markdown, /Add invoices/);
+  assert.match(recap.markdown, /Blocked: Waiting on legal/);
+  assert.doesNotMatch(recap.markdown, /Wrapped up auth/);
+});

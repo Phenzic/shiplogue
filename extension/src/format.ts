@@ -212,3 +212,71 @@ export function verifyGrounding(
   const cleanDraft = cleanLines.join("\n").replace(/\n{3,}/g, "\n\n");
   return { cleanDraft, removed };
 }
+
+/** Return the body of a `**Label**` section (no heading), or undefined. */
+export function extractSection(markdown: string, labels: string[]): string | undefined {
+  const wanted = new Set(labels.map((label) => label.trim().toLowerCase()));
+  let inSection = false;
+  const body: string[] = [];
+  for (const raw of markdown.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    const heading = line.trim().match(/^\*\*(.+?)\*\*$/);
+    if (heading) {
+      if (inSection) break;
+      if (wanted.has(heading[1].trim().toLowerCase())) {
+        inSection = true;
+      }
+      continue;
+    }
+    if (inSection) body.push(line);
+  }
+  const text = body.join("\n").trim();
+  return text || undefined;
+}
+
+/**
+ * Keep a section's top-level bullets to `max` by merging extras. Used for the
+ * Yesterday section: it must be a 1-2 bullet summary, never a copied draft.
+ */
+export function limitSectionBullets(
+  markdown: string,
+  labels: string[],
+  max = 2,
+): string {
+  if (max <= 0) return markdown;
+  const wanted = new Set(labels.map((label) => label.trim().toLowerCase()));
+  const lines = markdown.split("\n");
+  let start = -1;
+  let end = lines.length;
+  for (let i = 0; i < lines.length; i++) {
+    const heading = lines[i].trim().match(/^\*\*(.+?)\*\*$/);
+    if (!heading) continue;
+    if (start === -1) {
+      if (wanted.has(heading[1].trim().toLowerCase())) start = i;
+    } else {
+      end = i;
+      break;
+    }
+  }
+  if (start === -1) return markdown;
+
+  const section = lines.slice(start + 1, end);
+  const bullets = section.filter((line) => /^-\s+/.test(line));
+  if (bullets.length === 0) return markdown;
+
+  const chunkSize = Math.ceil(bullets.length / max);
+  const merged: string[] = [];
+  for (let i = 0; i < bullets.length; i += chunkSize) {
+    const text = bullets
+      .slice(i, i + chunkSize)
+      .map((line) => line.replace(/^-\s+/, "").trim())
+      .filter(Boolean)
+      .join("; ");
+    if (text) merged.push(`- ${text}`);
+  }
+  const replacement = [lines[start], ...merged, ""];
+  return [...lines.slice(0, start), ...replacement, ...lines.slice(end)]
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trimEnd();
+}

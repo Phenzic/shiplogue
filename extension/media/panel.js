@@ -611,7 +611,7 @@
   $("histRestore").onclick = () =>
     vscode.postMessage({ kind: "restore", id: state.history.selected });
   $("histSend").onclick = () =>
-    vscode.postMessage({ kind: "sendStored", id: state.history.selected });
+    vscode.postMessage({ kind: "syncStored", id: state.history.selected });
 
   window.addEventListener("message", (event) => {
     const m = event.data || {};

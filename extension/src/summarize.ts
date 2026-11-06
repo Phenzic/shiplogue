@@ -1,7 +1,7 @@
 import { cfg } from "./config";
 import { StandupContext } from "./types";
 import { contextToText } from "./gather";
-import { enforceSublists } from "./format";
+import { enforceSublists, limitSectionBullets } from "./format";
 import { getFormatSections, type SectionKey } from "./formatProfile";
 import { verifyClaims, Verification } from "./grounding";
 import { BudgetReport, ContextBudgetError, trimForBudget } from "./model/budget";
@@ -59,7 +59,7 @@ function sectionInstruction(key: SectionKey): string[] {
   switch (key) {
     case "yesterday":
       return [
-        "- <one accomplishment per bullet: WHAT changed and WHY, past tense, plain English>",
+        "- <1-2 bullets: a comprehensive summary of yesterday's work, condensed from yesterday's Today section; no file lists, no Next items>",
       ];
     case "today":
       return [
@@ -113,10 +113,10 @@ function buildPrompt(ctx: StandupContext): string {
     "- If there is no clear 'Next', infer one from in-progress (uncommitted) files, or write a brief honest placeholder. Start every inferred Next bullet with '(inferred)'.",
     "- The ACTIVITY window is the current local calendar day only (from local 00:00). Do not treat older activity as today's work.",
     `- If ${primary} has no completed items, write exactly "- No activity yet" under ${primary}; never invent work to fill it.`,
-    `- If there is a saved ${yesterday} stand-up below, use it for ${yesterday}. If there is no saved ${yesterday} stand-up, write "- No saved stand-up for ${yesterday.toLowerCase()}."`,
+    `- ${yesterday}: exactly 1-2 bullets. If a saved ${yesterday} section is provided below, condense it into a comprehensive summary of yesterday's work; if none, summarize yesterday from activity or write "- No saved stand-up for ${yesterday.toLowerCase()}." Never list files or Next items here.`,
     "- If there is no evidence for a Next item, write exactly \"- None\". Do not invent future work.",
     "- If there are no blockers, write exactly \"- None\".",
-    `- If a saved ${yesterday} stand-up is provided below, use it for the ${yesterday} section and do NOT repeat those items under ${primary}.`,
+    `- Do NOT repeat ${yesterday} items under ${primary}.`,
     ...(toneRule ? [toneRule] : []),
     "- Do NOT add a references or links section — that is appended separately.",
     ...(ctx.previousStandup
@@ -283,5 +283,8 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
       `Context trimmed to ${planned.report.estimated}/${planned.report.budget} tokens: dropped ${planned.report.dropped.commits} commits, ${planned.report.dropped.prompts} prompts, ${planned.report.dropped.github} GitHub items, ${planned.report.dropped.touches} files.`,
     );
   }
-  return { text: verification.cleanDraft, warnings, backend: meta, verification, contextReport: planned?.report };
+  const yesterdayLabel =
+    getFormatSections().find((section) => section.key === "yesterday")?.label ?? "Yesterday";
+  const finalText = limitSectionBullets(verification.cleanDraft, [yesterdayLabel], 2);
+  return { text: finalText, warnings, backend: meta, verification, contextReport: planned?.report };
 }
