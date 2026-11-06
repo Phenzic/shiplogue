@@ -261,6 +261,9 @@
     if (c) {
       parts.push(c.git.commits + " commits");
       parts.push(c.git.files + " commit files");
+      if (typeof c.git.additions === "number" && typeof c.git.deletions === "number") {
+        parts.push("+" + c.git.additions + " / −" + c.git.deletions);
+      }
       parts.push(c.ide.touchedFiles + " IDE files");
       parts.push(c.github.items + " GitHub items");
       parts.push(c.agents.sessions + " agent sessions");

@@ -182,6 +182,7 @@ function buildCoverage(ctx: {
   github: { kind: "issue" | "pr" }[];
   agentSessions?: { source: string; prompts: number }[];
   uncommittedFiles?: string[];
+  diffStats?: { additions: number; deletions: number };
 }): StandupCoverage {
   const commitFiles = new Set<string>();
   for (const commit of ctx.commits) {
@@ -198,7 +199,7 @@ function buildCoverage(ctx: {
       end: ctx.until.toISOString(),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
-    git: { commits: ctx.commits.length, files: commitFiles.size },
+    git: { commits: ctx.commits.length, files: commitFiles.size, ...(ctx.diffStats ?? {}) },
     ide: { touchedFiles: ctx.touches.length },
     github: {
       prs: ctx.github.filter((item) => item.kind === "pr").length,

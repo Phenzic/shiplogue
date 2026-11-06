@@ -127,3 +127,46 @@ export async function collectUncommittedFiles(
   return [...out];
 }
 
+/** Local-only aggregate additions/deletions for coverage; no file contents. */
+export async function collectDiffStats(
+  since: Date,
+  until: Date,
+  signal?: AbortSignal,
+  workspaceFolders?: readonly vscode.WorkspaceFolder[],
+): Promise<{ additions: number; deletions: number }> {
+  const folders = workspaceFolders ?? vscode.workspace.workspaceFolders ?? [];
+  let additions = 0;
+  let deletions = 0;
+  for (const folder of folders) {
+    const cwd = folder.uri.fsPath;
+    if (!(await isRepo(cwd, signal))) continue;
+    let author = "";
+    try {
+      author = (await git(cwd, ["config", "user.email"], signal)).trim();
+    } catch {
+      /* all authors */
+    }
+    const args = [
+      "log",
+      "--numstat",
+      `--since=${since.toISOString()}`,
+      `--until=${until.toISOString()}`,
+      "--pretty=format:",
+    ];
+    if (author) args.push(`--author=${author}`);
+    try {
+      const stdout = await git(cwd, args, signal);
+      for (const line of stdout.split("\n")) {
+        const [added, removed, file] = line.split("\t");
+        if (!file || !/^\d+$/.test(added) || !/^\d+$/.test(removed)) continue;
+        if (isPrivatePath(file, cwd)) continue;
+        additions += Number(added);
+        deletions += Number(removed);
+      }
+    } catch {
+      /* stats are best effort */
+    }
+  }
+  return { additions, deletions };
+}
+

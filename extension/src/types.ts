@@ -71,6 +71,7 @@ export interface StandupContext {
   cursorPrompts: CursorPrompt[];
   agentSessions?: AgentSessionSummary[];
   uncommittedFiles?: string[];
+  diffStats?: { additions: number; deletions: number };
   // Pre-cap totals, present only when an input cap actually dropped items, so
   // the prompt and panel can say "showing N of M".
   truncated?: { commits?: number; cursorPrompts?: number; github?: number };

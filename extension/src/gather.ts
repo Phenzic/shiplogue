@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { Store } from "./store";
 import { cfg } from "./config";
-import { collectCommits, collectUncommittedFiles } from "./git";
+import { collectCommits, collectDiffStats, collectUncommittedFiles } from "./git";
 import { collectGitHub, githubToken } from "./github";
 import { collectAllPrompts } from "./promptSources";
 import { ActivityEvent, AgentSessionSummary, FileTouch, StandupContext } from "./types";
@@ -146,6 +146,7 @@ export async function gatherContext(store: Store, opts: GatherOptions = {}): Pro
   onPhase?.("Gathering commits…");
   let commits = await collectCommits(since, until, signal, folders);
   const uncommittedFiles = await collectUncommittedFiles(signal, folders);
+  const diffStats = await collectDiffStats(since, until, signal, folders);
   checkAborted();
   onPhase?.("Gathering GitHub activity…");
   let github = await collectGitHub(token, c.githubRepos, since, signal, folders);
@@ -191,6 +192,7 @@ export async function gatherContext(store: Store, opts: GatherOptions = {}): Pro
     cursorPrompts,
     agentSessions: summarizeAgentSessions(cursorPrompts),
     uncommittedFiles,
+    diffStats,
     ...(noFolder ? { noFolder: true } : {}),
   });
 }
