@@ -257,9 +257,19 @@
     const parts = [];
     if (p.projectName) parts.push("[" + p.projectName + "]");
     const s = p.summary || {};
-    if (s.commits) parts.push(s.commits + " commits");
-    if (s.files) parts.push(s.files + " files");
-    if (s.github) parts.push(s.github + " GitHub items");
+    const c = p.coverage;
+    if (c) {
+      parts.push(c.git.commits + " commits");
+      parts.push(c.git.files + " commit files");
+      parts.push(c.ide.touchedFiles + " IDE files");
+      parts.push(c.github.items + " GitHub items");
+      parts.push(c.agents.sessions + " agent sessions");
+      if (c.uncommitted.files) parts.push(c.uncommitted.files + " uncommitted");
+    } else {
+      if (s.commits) parts.push(s.commits + " commits");
+      if (s.files) parts.push(s.files + " files");
+      if (s.github) parts.push(s.github + " GitHub items");
+    }
     $("metaCounts").textContent = parts.join(" · ");
     $("metaSep").classList.toggle("hidden", !parts.length);
 

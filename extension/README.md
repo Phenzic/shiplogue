@@ -132,7 +132,7 @@ Full details: [PRIVACY.md](https://github.com/Phenzic/shiplogue/blob/main/extens
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
-| `shiplogue.lookbackHours` | `24` | How far back to gather activity |
+| `shiplogue.lookbackHours` | `24` | Legacy debug window; daily generation now uses the local calendar day. |
 | `shiplogue.detail` | `concise` | `concise` / `standard` / `elaborate` |
 | `shiplogue.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
 | `shiplogue.model.backend` | `auto` | `auto` / `provider` / `ollama` |
@@ -153,7 +153,7 @@ All settings are in the editor's Settings UI under **Shiplogue**.
   with **Shiplogue: Set API Key**.
 - **Draft empty or cut off** — raise `shiplogue.ollama.numPredict` (e.g. 4096) or
   use a non-reasoning model such as `llama3.2`.
-- **No activity** — commit or save work, or raise `shiplogue.lookbackHours`.
+- **No activity** — commit or save work; the daily window starts at local midnight.
 
 ## Updates
 

@@ -103,3 +103,27 @@ export async function collectCommits(
   }
   return out;
 }
+
+/** Uncommitted paths only (no contents), local metadata for the coverage strip. */
+export async function collectUncommittedFiles(
+  signal?: AbortSignal,
+  workspaceFolders?: readonly vscode.WorkspaceFolder[],
+): Promise<string[]> {
+  const folders = workspaceFolders ?? vscode.workspace.workspaceFolders ?? [];
+  const out = new Set<string>();
+  for (const folder of folders) {
+    const cwd = folder.uri.fsPath;
+    if (!(await isRepo(cwd, signal))) continue;
+    try {
+      const status = await git(cwd, ["status", "--porcelain"], signal);
+      for (const line of status.split("\n")) {
+        const file = line.slice(3).trim();
+        if (file && !isPrivatePath(file, cwd)) out.add(`${folder.name}/${file}`);
+      }
+    } catch {
+      /* status is best effort */
+    }
+  }
+  return [...out];
+}
+

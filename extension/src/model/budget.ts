@@ -13,7 +13,7 @@ export class ContextBudgetError extends Error {
     public budget: number,
   ) {
     super(
-      `Activity is too large for the configured context (${estimated} > ${budget} tokens even after trimming). Raise shiplogue.model.contextTokens, lower the lookback, or use a shorter detail level.`,
+      `Activity is too large for the configured context (${estimated} > ${budget} tokens even after trimming). Raise shiplogue.model.contextTokens, or use a shorter detail level.`,
     );
     this.name = "ContextBudgetError";
   }

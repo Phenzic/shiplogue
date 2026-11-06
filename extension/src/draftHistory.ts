@@ -16,6 +16,7 @@ import { DetailLevel, Tone } from "./state";
 // back into this view — the cursor-based list() contract supports that now.
 
 import type { PanelVerification } from "./panelVerification";
+import type { StandupCoverage } from "./types";
 
 export interface DraftEntry {
   id: string;
@@ -33,6 +34,7 @@ export interface DraftEntry {
   summary?: { commits: number; files: number; github: number; notes?: string[] };
   stats?: { durationMs?: number; inputTokens?: number; outputTokens?: number };
   windowHours?: number;
+  coverage?: StandupCoverage;
   sentTo: string[];
   scheduled?: { at: string; targets: string[]; status: string };
   copied?: boolean;

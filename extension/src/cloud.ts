@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
+import { currentEditorSource } from "./sources";
 import {
   isPaidPlan,
   normalizeFormatSections,
@@ -78,6 +79,7 @@ export type CloudHistoryEntry = {
   status: string;
   localWorkspace?: { id?: string | null; name?: string | null };
   sources?: string[];
+  coverage?: import("./types").StandupCoverage;
   sent?: { targets: string[]; at: string; status?: string } | null;
   scheduled?: { at: string; targets: string[]; status: string } | null;
 };
@@ -192,6 +194,7 @@ export class CloudClient {
     localWorkspaceId?: string;
     localWorkspaceName?: string;
     sources?: string[];
+    coverage?: import("./types").StandupCoverage;
     standupDate?: string;
     title?: string;
   }): Promise<CloudSyncResult> {
@@ -216,6 +219,7 @@ export class CloudClient {
           localWorkspaceId: input.localWorkspaceId,
           localWorkspaceName: input.localWorkspaceName,
           sources: input.sources,
+          coverage: input.coverage,
           timeSavedMinutes: minutes,
           status: "draft",
           model: input.modelLabel,
@@ -354,6 +358,7 @@ export class CloudClient {
   ): Promise<{ data: T; status: number }> {
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${key}`);
+    headers.set("X-Shiplogue-Platform", currentEditorSource());
     if (init.body) headers.set("Content-Type", "application/json");
 
     const response = await fetch(`${this.baseUrl}${path}`, {

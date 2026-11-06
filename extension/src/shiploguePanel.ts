@@ -3,6 +3,7 @@ import { cfg } from "./config";
 import { DetailLevel, State, Tone } from "./state";
 import type { PanelVerification } from "./panelVerification";
 import type { DraftEntry } from "./draftHistory";
+import type { StandupCoverage } from "./types";
 import { mediaRoot, panelHtml } from "./webview";
 import { getDeliveryState, hasDeliveryTarget } from "./delivery";
 
@@ -26,6 +27,7 @@ export interface DraftPayload {
   stats?: { durationMs?: number; inputTokens?: number; outputTokens?: number };
   generatedAt?: string;
   windowHours?: number;
+  coverage?: StandupCoverage;
 }
 
 export interface HistoryPagePayload {
@@ -119,6 +121,7 @@ export class ShiploguePanel {
       stats: p.stats,
       generatedAt: p.generatedAt,
       windowHours: p.windowHours,
+      coverage: p.coverage,
       // Send is shown only when the connected workspace can post via Shiplogue
       // Cloud (Pro); the label names the route.
       sendLabel: getDeliveryState().label,

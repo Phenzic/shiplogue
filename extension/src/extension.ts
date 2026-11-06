@@ -34,6 +34,7 @@ import { Analytics, initAnalytics } from "./analytics";
 import { activeWorkspace } from "./workspaces";
 import { WeeklyRecapScheduler } from "./weeklyRecap";
 import { sourcesForContext } from "./sources";
+import type { StandupCoverage } from "./types";
 import { PromptWatcher } from "./promptWatcher";
 import { ActiveProviderType } from "./core/providers";
 
@@ -173,6 +174,46 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
+function buildCoverage(ctx: {
+  since: Date;
+  until: Date;
+  commits: { files: string[] }[];
+  touches: { file: string }[];
+  github: { kind: "issue" | "pr" }[];
+  agentSessions?: { source: string; prompts: number }[];
+  uncommittedFiles?: string[];
+}): StandupCoverage {
+  const commitFiles = new Set<string>();
+  for (const commit of ctx.commits) {
+    for (const file of commit.files) commitFiles.add(file);
+  }
+  const bySource: Record<string, number> = {};
+  for (const session of ctx.agentSessions ?? []) {
+    bySource[session.source] = (bySource[session.source] ?? 0) + session.prompts;
+  }
+  return {
+    window: {
+      kind: "calendar-day",
+      start: ctx.since.toISOString(),
+      end: ctx.until.toISOString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
+    git: { commits: ctx.commits.length, files: commitFiles.size },
+    ide: { touchedFiles: ctx.touches.length },
+    github: {
+      prs: ctx.github.filter((item) => item.kind === "pr").length,
+      issues: ctx.github.filter((item) => item.kind === "issue").length,
+      items: ctx.github.length,
+    },
+    agents: {
+      sessions: ctx.agentSessions?.length ?? 0,
+      prompts: ctx.agentSessions?.reduce((count, session) => count + session.prompts, 0) ?? 0,
+      bySource,
+    },
+    uncommitted: { files: ctx.uncommittedFiles?.length ?? 0 },
+  };
+}
+
 function changedFileCount(ctx: { commits: { files: string[] }[]; touches: { file: string }[] }): number {
   const files = new Set<string>();
   for (const commit of ctx.commits) {
@@ -233,10 +274,16 @@ async function runGenerate(
         ...(previous.projectName ? { projectName: previous.projectName } : {}),
       };
     }
-    if (!ctx.commits.length && !ctx.github.length && !ctx.touches.length && !ctx.cursorPrompts.length) {
+    if (
+      !ctx.commits.length &&
+      !ctx.github.length &&
+      !ctx.touches.length &&
+      !ctx.cursorPrompts.length &&
+      !previous
+    ) {
       if (epoch === generationEpoch) {
         panel.setError(
-          `No activity found in the last ${cfg().lookbackHours}h. Commit some work, or increase shiplogue.lookbackHours.`,
+          `No activity found today. Commit some work, then generate again.`,
         );
       }
       return;
@@ -250,6 +297,7 @@ async function runGenerate(
       throw new DOMException("Generation aborted", "AbortError");
     }
     const sources = sourcesForContext(ctx.cursorPrompts);
+    const coverage = buildCoverage(ctx);
     const markdown = draft + buildReferences(ctx);
     // Surface input caps / scope fallbacks next to the activity counts, so a
     // busy day never looks silently incomplete.
@@ -282,8 +330,9 @@ async function runGenerate(
           ...(local?.name ? { projectName: local.name } : {}),
           ...(modelLabel ? { modelLabel } : {}),
           ...(sources.length ? { sources } : {}),
+          coverage,
           ...(panelVerification ? { verification: panelVerification } : {}),
-          windowHours: cfg().lookbackHours,
+          windowHours: Math.max(1, Math.round((ctx.until.getTime() - ctx.since.getTime()) / 3600_000)),
           summary: {
             commits: ctx.commits.length,
             files: changedFileCount(ctx),
@@ -323,7 +372,8 @@ async function runGenerate(
         ...(local ? { projectName: local.name } : {}),
         ...(panelVerification ? { verification: panelVerification } : {}),
         ...(draftEntry ? { draftId: draftEntry.id } : {}),
-        windowHours: cfg().lookbackHours,
+        coverage,
+        windowHours: Math.max(1, Math.round((ctx.until.getTime() - ctx.since.getTime()) / 3600_000)),
         generatedAt,
         stats: {
           durationMs: Date.now() - started,
@@ -351,6 +401,7 @@ async function runGenerate(
         record?.modelLabel ?? modelLabel,
         local,
         sources,
+        coverage,
       );
     }
   } catch (e: any) {
@@ -417,7 +468,14 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
             ...(local?.name ? { projectName: local.name } : {}),
           });
           if (record) {
-            void syncDraftToCloud(record.markdown, record.modelLabel, local, record.sources);
+            const copiedEntry = draftId ? draftHistory.get(draftId) : undefined;
+            void syncDraftToCloud(
+              record.markdown,
+              record.modelLabel,
+              local,
+              record.sources,
+              copiedEntry?.coverage,
+            );
           }
         } catch {
           /* local history must never block copying */
@@ -476,6 +534,7 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
           draftId: entry.id,
           generatedAt: entry.ts,
           ...(entry.windowHours ? { windowHours: entry.windowHours } : {}),
+          ...(entry.coverage ? { coverage: entry.coverage } : {}),
           ...(entry.stats ? { stats: entry.stats } : {}),
         });
         panel.setNote("Restored from history — review before copying.");
@@ -537,6 +596,7 @@ async function sendViaCloud(
     markdown,
     ...(entry?.modelLabel ? { modelLabel: entry.modelLabel } : {}),
     ...(entry?.sources?.length ? { sources: entry.sources } : {}),
+    ...(entry?.coverage ? { coverage: entry.coverage } : {}),
     localWorkspaceId: local?.id,
     localWorkspaceName: local?.name,
     ...(local ? { title: `Standup for ${localDateKey()} — ${local.name}` } : {}),
@@ -646,6 +706,7 @@ async function syncDraftToCloud(
   modelLabel?: string,
   local?: { id: string; name: string },
   sources?: string[],
+  coverage?: StandupCoverage,
 ): Promise<void> {
   if (!cloud) return;
   const result = await cloud.syncStandup({
@@ -653,6 +714,7 @@ async function syncDraftToCloud(
     modelLabel,
     ...(local ? { localWorkspaceId: local.id, localWorkspaceName: local.name } : {}),
     ...(sources && sources.length ? { sources } : {}),
+    ...(coverage ? { coverage } : {}),
     ...(local ? { title: `Standup for ${localDateKey()} — ${local.name}` } : {}),
   });
   if (result.status === "synced") {
@@ -843,7 +905,7 @@ async function runShowActivity(): Promise<void> {
   const ctx = await gatherContext(store);
   const doc = await vscode.workspace.openTextDocument({
     content:
-      `# Shiplogue activity (last ${cfg().lookbackHours}h)\n` +
+      `# Shiplogue activity (today)\n` +
       `# ${ctx.since.toISOString()} → ${ctx.until.toISOString()}\n\n` +
       contextToText(ctx),
     language: "markdown",

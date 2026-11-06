@@ -46,6 +46,22 @@ export interface CursorPrompt {
 }
 
 // Everything gathered for one stand-up generation.
+export interface AgentSessionSummary {
+  source: string;
+  prompts: number;
+  firstAt: string;
+  lastAt: string;
+}
+
+export interface StandupCoverage {
+  window: { kind: "calendar-day" | "rolling"; start: string; end: string; timezone?: string };
+  git: { commits: number; files: number; additions?: number; deletions?: number };
+  ide: { touchedFiles: number };
+  github: { prs: number; issues: number; items: number };
+  agents: { sessions: number; prompts: number; bySource: Record<string, number> };
+  uncommitted: { files: number };
+}
+
 export interface StandupContext {
   since: Date;
   until: Date;
@@ -53,6 +69,8 @@ export interface StandupContext {
   touches: FileTouch[];
   github: GitHubItem[];
   cursorPrompts: CursorPrompt[];
+  agentSessions?: AgentSessionSummary[];
+  uncommittedFiles?: string[];
   // Pre-cap totals, present only when an input cap actually dropped items, so
   // the prompt and panel can say "showing N of M".
   truncated?: { commits?: number; cursorPrompts?: number; github?: number };

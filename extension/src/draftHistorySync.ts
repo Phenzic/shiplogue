@@ -53,6 +53,7 @@ export class CloudDraftSync implements DraftSync {
       ...(entry.localWorkspace?.name ? { projectName: entry.localWorkspace.name } : {}),
       ...(entry.model ? { modelLabel: entry.model } : {}),
       ...(entry.sources?.length ? { sources: entry.sources } : {}),
+      ...(entry.coverage ? { coverage: entry.coverage } : {}),
       ...(entry.scheduled ? { scheduled: entry.scheduled } : {}),
       sentTo: entry.sent?.targets ?? [],
       needsReview: false,

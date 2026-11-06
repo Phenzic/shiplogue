@@ -33,6 +33,18 @@ All notable changes to this project will be documented here. Format follows
   Feedback**, **Star on GitHub**, **Rate on the Marketplace**. Settings:
   `shiplogue.feedback.enabled`, `shiplogue.feedback.promptAfter`.
 
+### Changed
+
+- Daily generation now uses the local calendar day (00:00 → now), not a rolling
+  24-hour window. The saved previous-day draft fills the Yesterday section; an
+  empty Today/Next/Blockers stays honest instead of inventing activity.
+- The panel shows structured coverage metadata: commits, commit files, IDE
+  files, GitHub items, agent sessions, and uncommitted files.
+- Agent session metadata is summarized locally from captured prompts; no
+  terminal output is captured.
+- The install card opens the selected IDE through its protocol and offers a
+  download fallback instead of linking to the marketplace.
+
 ### Fixed
 
 - Draft-mode switching now toggles the actual pane state, so Markdown and Plain

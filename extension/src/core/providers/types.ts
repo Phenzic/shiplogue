@@ -122,7 +122,7 @@ export function mapHttpError(
   }
   if (status === 413 || /context.{0,20}(length|window|too long)/i.test(detail ?? "")) {
     return new ProviderError(
-      `The request is longer than ${label}'s context window. Lower shiplogue.detail or shiplogue.lookbackHours.${hint}`,
+      `The request is longer than ${label}'s context window. Lower shiplogue.detail.${hint}`,
       "context_length",
       status,
     );
