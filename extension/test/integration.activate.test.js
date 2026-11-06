@@ -190,7 +190,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
   // The debug view shows the same raw activity.
   await commands.executeCommand("shiplogue.showActivity");
   const doc = stub.documents.at(-1).getText();
-  assert.match(doc, /# Shiplogue activity \(last 24h\)/);
+  assert.match(doc, /# Shiplogue activity \(today\)/);
   assert.match(doc, /feat\(api\): add health endpoint/);
   assert.match(doc, /## Files worked on/);
   assert.match(doc, /a\.ts/);
@@ -212,7 +212,7 @@ test("no activity: an actionable error instead of an empty stand-up", async (t) 
   await commands.executeCommand("shiplogue.generate");
   const err = stub.panels.at(-1).messages.find((m) => m.kind === "error");
   assert.ok(err);
-  assert.match(err.message, /No activity found in the last 24h/);
+  assert.match(err.message, /No activity found today/);
   assert.equal(
     ollama.requests.filter((r) => r.url === "/api/generate").length,
     0,
