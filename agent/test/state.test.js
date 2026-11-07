@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const { loadState, saveState, STATE_SCHEMA_VERSION } = require("../dist/state");
+const { loadState, saveState, STATE_SCHEMA_VERSION } = require("../dist/agent/src/state");
 
 function tmpFile() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "shiplogue-state-"));

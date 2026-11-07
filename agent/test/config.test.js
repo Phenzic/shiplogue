@@ -11,7 +11,7 @@ const {
   shiplogueHome,
   eventsDir,
   configPath,
-} = require("../dist/config");
+} = require("../dist/agent/src/config");
 
 function withHome(fn) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "shiplogue-home-"));

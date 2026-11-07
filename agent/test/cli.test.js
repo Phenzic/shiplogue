@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
-const CLI = path.join(__dirname, "..", "dist", "cli.js");
+const CLI = path.join(__dirname, "..", "dist", "agent", "src", "cli.js");
 
 function run(args, env) {
   return spawnSync(process.execPath, [CLI, ...args], {

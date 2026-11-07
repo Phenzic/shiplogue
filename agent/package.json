@@ -5,10 +5,10 @@
   "license": "MIT",
   "private": true,
   "bin": {
-    "shiplogue": "./dist/cli.js"
+    "shiplogue": "./dist/agent/src/cli.js"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/agent/src/index.js",
+  "types": "./dist/agent/src/index.d.ts",
   "files": [
     "dist",
     "README.md"
@@ -20,7 +20,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p ./",
     "test": "npm run build && node scripts/run-tests.mjs",
-    "status": "node dist/cli.js status"
+    "status": "node dist/agent/src/cli.js status"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -4,7 +4,7 @@ const {
   computeEventId,
   workspaceIdFor,
   DedupeSet,
-} = require("../dist/events/dedupe");
+} = require("../dist/agent/src/events/dedupe");
 
 const base = {
   ts: "2026-11-07T10:15:00.000Z",

@@ -5,7 +5,7 @@ const {
   redactAndCap,
   shouldSkipPath,
   CAPS,
-} = require("../dist/events/redact");
+} = require("../dist/agent/src/events/redact");
 
 test("redactText removes common provider keys", () => {
   const input =

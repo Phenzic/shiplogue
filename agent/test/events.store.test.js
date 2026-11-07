@@ -6,7 +6,7 @@ const path = require("node:path");
 const {
   EventStore,
   dayKey,
-} = require("../dist/events/store");
+} = require("../dist/agent/src/events/store");
 
 function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "shiplogue-agent-"));

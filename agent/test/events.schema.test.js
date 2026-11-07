@@ -4,7 +4,7 @@ const {
   SCHEMA_VERSION,
   SchemaVersionError,
   parseEventLine,
-} = require("../dist/events/schema");
+} = require("../dist/agent/src/events/schema");
 
 test("parseEventLine accepts a valid event and preserves fields", () => {
   const ev = { schemaVersion: 1, id: "x", ts: "2026-01-01T00:00:00Z" };
