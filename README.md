@@ -1,6 +1,6 @@
 # Shiplogue
 
-**Your daily stand-up, drafted from the work you actually did.**
+**Your daily stand-up, drafted from the work you've already done.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 

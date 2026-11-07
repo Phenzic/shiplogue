@@ -1,6 +1,6 @@
 # Shiplogue
 
-**Your daily stand-up, drafted from the work you actually did.**
+**Your daily stand-up, drafted from the work you've already done.**
 
 [![Marketplace](https://img.shields.io/badge/Marketplace-Shiplogue-1e3a5f.svg)](https://marketplace.visualstudio.com/items?itemName=phenzic.shiplogue)
 [![Open VSX](https://img.shields.io/badge/Open%20VSX-Shiplogue-6b4fbb.svg)](https://open-vsx.org/extension/phenzic/shiplogue)
