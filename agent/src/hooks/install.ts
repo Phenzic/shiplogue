@@ -29,9 +29,7 @@ const CLAUDE_EVENTS = [
   "PreToolUse",
   "PostToolUse",
   "PostToolUseFailure",
-  "PostToolBatch",
   "Stop",
-  "StopFailure",
   "SubagentStop",
   "SessionEnd",
 ];
