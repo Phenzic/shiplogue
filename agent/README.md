@@ -25,10 +25,16 @@ npm test
 node dist/agent/src/cli.js status
 node dist/agent/src/cli.js status --json
 node dist/agent/src/cli.js mcp
+node dist/agent/src/cli.js hooks install --agent claude
+node dist/agent/src/cli.js render --date 2026-11-07
+node dist/agent/src/cli.js drafts
 ```
 
 Use `SHIPLOGUE_HOME` to point the agent at an isolated state directory (tests and
 portable installs). The default is `~/.shiplogue`.
+
+Cloud sync/posting uses a **Shiplogue project key/id** (`SHIPLOGUE_PROJECT_KEY`),
+not a model API key. Capture and agent-authored drafts work locally without it.
 
 ## Store layout
 
