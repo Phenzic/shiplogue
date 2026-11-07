@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "shiplogue": {
+      "command": "shiplogue",
+      "args": ["mcp"]
+    }
+  }
+}

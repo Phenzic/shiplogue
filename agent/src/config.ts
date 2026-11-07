@@ -43,6 +43,10 @@ export function logsDir(): string {
   return path.join(agentDir(), "logs");
 }
 
+export function draftsDir(): string {
+  return path.join(agentDir(), "drafts");
+}
+
 function readFileConfig(): Partial<AgentConfig> {
   try {
     const raw = fs.readFileSync(configPath(), "utf8");

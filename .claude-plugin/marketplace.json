@@ -1,0 +1,22 @@
+{
+  "name": "shiplogue",
+  "owner": {
+    "name": "Shiplogue",
+    "url": "https://shiplogue.dev"
+  },
+  "plugins": [
+    {
+      "name": "shiplogue",
+      "description": "Write today's stand-up from local agent activity using Claude's own model. Cloud sync/posting is optional and project-key based.",
+      "author": {
+        "name": "Shiplogue"
+      },
+      "category": "productivity",
+      "source": "./plugins/shiplogue",
+      "homepage": "https://shiplogue.dev"
+    }
+  ],
+  "metadata": {
+    "description": "Local, agent-native stand-ups from Claude Code, Cursor Agent, and Codex activity."
+  }
+}

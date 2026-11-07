@@ -1,0 +1,14 @@
+{
+  "name": "shiplogue",
+  "version": "0.3.0-dev.0",
+  "description": "Write today's stand-up from local Claude Code, Cursor Agent, and Codex activity using the host model. No model key required; Shiplogue Cloud sync is optional.",
+  "author": {
+    "name": "Shiplogue",
+    "url": "https://shiplogue.dev"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/Phenzic/shiplogue",
+  "homepage": "https://shiplogue.dev",
+  "keywords": ["standup", "stand-up", "claude-code", "cursor", "codex", "mcp"],
+  "mcpServers": "./.mcp.json"
+}

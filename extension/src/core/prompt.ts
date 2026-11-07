@@ -50,6 +50,10 @@ const TONES: Partial<Record<Tone, string>> = {
   senior: "- Voice: write as a senior engineer — lead with impact and decisions; be terse, no fluff.",
 };
 
+export function toneInstruction(tone: Tone): string | undefined {
+  return TONES[tone];
+}
+
 // The fixed structure. Labels/order may come from a paid cloud profile; the
 // content instructions for each semantic section stay ours.
 function sectionInstruction(key: SectionKey): string[] {

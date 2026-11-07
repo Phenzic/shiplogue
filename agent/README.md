@@ -8,18 +8,23 @@ in `../extension`; the shared plan is in `../IMPLEMENTATION_PLAN_5.md` and
 
 ## Current state
 
-- A1 foundation: local config, state, redacted/deduped JSONL event store, and
-  `shiplogue status`.
-- Capture hooks, watcher, MCP server, CLI rendering, and plugins are next (A2–A9).
-- No cloud calls and no bundled model in this package.
+- Local config, state, redacted/deduped JSONL event store, and `shiplogue status`.
+- Hook capture for Claude Code, Cursor Agent, and Codex (`shiplogue hook`).
+- MCP stdio server (`shiplogue mcp`) with `get_activity`, `save_standup`,
+  `render_standup`, `revise_standup`, `get_agent_status`, resources, and the
+  `shiplogue-daily` prompt.
+- Local draft store under `~/.shiplogue/agent/drafts/`.
+- Claude Code plugin/skill, Cursor/Codex installer docs in `../plugins/shiplogue`.
+- No cloud calls and no bundled model. Agent-authored drafts use the host model.
 
 ## Commands
 
 ```bash
 npm run build
 npm test
-node dist/cli.js status
-node dist/cli.js status --json
+node dist/agent/src/cli.js status
+node dist/agent/src/cli.js status --json
+node dist/agent/src/cli.js mcp
 ```
 
 Use `SHIPLOGUE_HOME` to point the agent at an isolated state directory (tests and
@@ -30,8 +35,10 @@ portable installs). The default is `~/.shiplogue`.
 ```
 ~/.shiplogue/agent/
   events/YYYY-MM-DD.jsonl   # append-only, redacted, deduped
+  drafts/YYYY-MM-DD.md      # agent-authored draft
+  drafts/YYYY-MM-DD.json    # revision, quality, warnings
   state.json                # schema/agent version, device id, cursors
-  logs/                     # later
+  logs/agent.log            # hook failures only; no prompt text
 ```
 
 Events never contain full file contents. Sensitive paths (`.env*`, keys, certs,

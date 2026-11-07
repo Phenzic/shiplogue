@@ -20,10 +20,17 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p ./",
     "test": "npm run build && node scripts/run-tests.mjs",
-    "status": "node dist/agent/src/cli.js status"
+    "status": "node dist/agent/src/cli.js status",
+    "mcp": "node dist/agent/src/mcp/run.js",
+    "hooks": "node dist/agent/src/cli.js hooks"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.4.0",
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.4.0",
+    "zod": "^4.6.7"
   }
 }
