@@ -323,3 +323,10 @@ mark.unverified {
 .tag-docs, .tag-test, .tag-chore { color: var(--muted); }
 .verify-strip { padding: 6px 9px; margin-bottom: 10px; font-size: 11px; }
 .verify-strip.bad { background: color-mix(in srgb, var(--warn) 5%, transparent); }
+
+
+/* Loading carousel: keeps long cloud compiles visibly alive. */
+.loading-carousel { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 42px 16px; }
+.loading-orbit { width: 30px; height: 30px; border-radius: 999px; border: 2px solid var(--line-soft); border-top-color: var(--accent); animation: shiplogue-orbit 0.9s linear infinite; }
+@keyframes shiplogue-orbit { to { transform: rotate(360deg); } }
+.loading-carousel .placeholder { margin: 0; }

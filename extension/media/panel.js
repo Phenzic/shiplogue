@@ -453,7 +453,10 @@
     $("txt").value = "";
     $("md").placeholder = label || "Generating…";
     $("preview").textContent = "";
-    $("preview").appendChild(el("div", "placeholder", label || "Generating…"));
+    const placeholder = el("div", "loading-carousel", "");
+    placeholder.appendChild(el("div", "loading-orbit", ""));
+    placeholder.appendChild(el("div", "placeholder", label || "Generating…"));
+    $("preview").appendChild(placeholder);
     show($("verifyStrip"), false);
     show($("verifyDetails"), false);
     show($("sendBtn"), false);
