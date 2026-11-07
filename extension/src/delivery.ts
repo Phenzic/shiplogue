@@ -36,7 +36,7 @@ export async function refreshDelivery(client: CloudClient | undefined): Promise<
     if (!(await client.hasKey())) return state;
     const me = await client.me();
     if (!isPaidPlan(me.workspace.plan)) return state;
-    state = { available: true, label: "Send via Shiplogue Cloud" };
+    state = { available: true, label: "Sync & Review" };
   } catch {
     /* offline or invalid key: keep Send hidden, never block the panel */
   }

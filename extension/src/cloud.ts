@@ -25,6 +25,7 @@ export class CloudError extends Error {
 }
 
 export type CloudMe = {
+  project?: { id: string; name: string; slug: string };
   workspace: {
     id: string;
     name: string;
@@ -250,6 +251,32 @@ export class CloudClient {
       return { status: "synced", standupId: data?.standup?.id ?? "" };
     } catch (error) {
       return { status: "failed", error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /** Compile every source for the project/day into one cloud project story. */
+  async compileProject(date: string = localDateKey()): Promise<{ id?: string; headline?: string } | undefined> {
+    const key = await this.requireKey();
+    const me = await this.meWithKey(key);
+    const project = me.project
+    if (!project) return undefined
+    const { data } = await this.requestWithStatus<{ standup?: { id?: string; headline?: string } }>(
+      key,
+      `/api/v1/projects/${encodeURIComponent(project.id)}/compile`,
+      { method: "POST", body: JSON.stringify({ date }) },
+    )
+    return data.standup
+  }
+
+  async reviewUrl(date: string = localDateKey()): Promise<string | undefined> {
+    const key = await this.getKey()
+    if (!key) return undefined
+    try {
+      const me = await this.meWithKey(key)
+      if (!me.project) return `${this.baseUrl}/dashboard`
+      return `${this.baseUrl}/dashboard/projects/${encodeURIComponent(me.project.id)}?date=${encodeURIComponent(date)}`
+    } catch {
+      return `${this.baseUrl}/dashboard`
     }
   }
 

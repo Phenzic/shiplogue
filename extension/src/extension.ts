@@ -661,7 +661,7 @@ async function sendViaCloud(
   if (!cloud) return;
   if (!(await cloud.hasKey())) {
     const pick = await vscode.window.showInformationMessage(
-      "Posting is a Pro feature handled by Shiplogue Cloud. Connect a connector key to send.",
+      "Connect a Shiplogue project key to sync and review this stand-up in the cloud.",
       "Connect Cloud",
     );
     if (pick === "Connect Cloud") await connectCloud();
@@ -669,14 +669,12 @@ async function sendViaCloud(
   }
 
   const entry = cachedEntry ?? (draftId ? draftHistory.get(draftId) : undefined);
-  panel.setNote("Sending via Shiplogue Cloud…");
+  panel.setNote("Syncing this stand-up to Shiplogue Cloud…");
   const synced = await cloud.syncStandup({
     markdown,
     ...(entry?.modelLabel ? { modelLabel: entry.modelLabel } : {}),
     ...(entry?.sources?.length ? { sources: entry.sources } : {}),
     ...(entry?.coverage ? { coverage: entry.coverage } : {}),
-    ...(entry?.document ? { document: entry.document } : {}),
-    ...(entry?.quality ? { quality: entry.quality } : {}),
     localWorkspaceId: local?.id,
     localWorkspaceName: local?.name,
     ...(local ? { title: `Standup for ${localDateKey()} — ${local.name}` } : {}),
@@ -690,101 +688,15 @@ async function sendViaCloud(
     return;
   }
 
-  const idempotencyKey = crypto
-    .createHash("sha256")
-    .update(`${synced.standupId}|${markdown}|${localDateKey()}`)
-    .digest("hex");
-  const sent = await cloud.sendStandup(synced.standupId, idempotencyKey);
-  if (sent.status === "queued") {
-    panel.setNote("Sending via Shiplogue Cloud…");
-    let final;
-    try {
-      final = sent.deliveryId ? await cloud.waitForDelivery(sent.deliveryId) : undefined;
-    } catch {
-      final = undefined;
-    }
-    if (!final) {
-      panel.setNote("Queued — Shiplogue Cloud will finish sending in the background.");
-      vscode.window.showInformationMessage(
-        "Stand-up queued for delivery. It will appear as Sent when the cloud finishes.",
-      );
-      return;
-    }
-    if (final.status === "failed") {
-      const failed = final.targets.find((target) => target.status === "failed");
-      panel.setNote(`Shiplogue Cloud could not send${failed ? ` to ${failed.target}` : ""}. Check the delivery target.`);
-      return;
-    }
-    const targets = final.targets
-      .filter((target) => target.status === "sent")
-      .map((target) => target.target);
-    const where = targets.length ? ` to ${targets.join(", ")}` : "";
-    panel.setNote(`Posted${where} via Shiplogue Cloud.`);
-    vscode.window.showInformationMessage(`Stand-up posted${where} via Shiplogue Cloud.`);
-    if (draftId) {
-      try {
-        draftHistory.markSent(draftId, targets);
-      } catch {
-        /* history bookkeeping never blocks sending */
-      }
-    }
-    try {
-      history.markReviewed(markdown, {
-        ...(local?.id ? { workspaceId: local.id } : {}),
-        ...(local?.name ? { projectName: local.name } : {}),
-        ...(entry?.sources?.length ? { sources: entry.sources } : {}),
-        ...(entry?.coverage ? { coverage: entry.coverage } : {}),
-        ...(entry?.document ? { document: entry.document } : {}),
-        ...(entry?.quality ? { quality: entry.quality } : {}),
-        ...(entry?.summary ? { summary: entry.summary } : {}),
-      });
-    } catch {
-      /* ignore */
-    }
-    pushHistoryPage(panel, {});
-    return;
+  panel.setNote("Compiling the project story in Shiplogue Cloud…");
+  try {
+    await cloud.compileProject(localDateKey());
+  } catch {
+    /* The review page can retry compilation. */
   }
-  if (sent.status === "sent") {
-    const where = sent.targets && sent.targets.length ? ` to ${sent.targets.join(", ")}` : "";
-    panel.setNote(`Posted${where} via Shiplogue Cloud.`);
-    vscode.window.showInformationMessage(`Stand-up posted${where} via Shiplogue Cloud.`);
-    if (draftId) {
-      try {
-        draftHistory.markSent(draftId, sent.targets ?? []);
-      } catch {
-        /* history bookkeeping never blocks sending */
-      }
-    }
-    try {
-      history.markReviewed(markdown, {
-        ...(local?.id ? { workspaceId: local.id } : {}),
-        ...(local?.name ? { projectName: local.name } : {}),
-        ...(entry?.sources?.length ? { sources: entry.sources } : {}),
-        ...(entry?.coverage ? { coverage: entry.coverage } : {}),
-        ...(entry?.document ? { document: entry.document } : {}),
-        ...(entry?.quality ? { quality: entry.quality } : {}),
-        ...(entry?.summary ? { summary: entry.summary } : {}),
-      });
-    } catch {
-      /* ignore */
-    }
-    pushHistoryPage(panel, {});
-    return;
-  }
-  if (sent.status === "skipped" && sent.reason === "not-pro") {
-    const pick = await vscode.window.showInformationMessage(
-      "Sending is a Pro feature. Upgrade your Shiplogue workspace to post to Slack, Discord or Teams.",
-      "Open dashboard",
-    );
-    if (pick === "Open dashboard") {
-      await vscode.env.openExternal(vscode.Uri.parse(`${cloud.baseUrl}/dashboard`));
-    }
-    panel.setNote("Sending requires a Pro workspace.");
-    return;
-  }
-  panel.setNote(
-    sent.status === "failed" ? `Send failed: ${sent.error}` : "Sending is unavailable right now.",
-  );
+  const url = await cloud.reviewUrl(localDateKey());
+  panel.setNote("Synced. Review and confirm the project stand-up in Shiplogue Cloud.");
+  if (url) await vscode.env.openExternal(vscode.Uri.parse(url));
 }
 
 let cloudWarningShown = false;
