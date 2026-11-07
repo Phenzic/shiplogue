@@ -121,8 +121,17 @@ test("syncStandup posts one draft with auth and the configured time estimate", a
     await ctx.secrets.store(CLOUD_SECRET_KEY, KEY);
     const client = new CloudClient(ctx);
 
-    const markdown = "# Done\n\n- Shipped the connector";
-    const result = await client.syncStandup({ markdown, modelLabel: "Ollama · test" });
+    const markdown = "# Today\n\n### Connector [feature]\nShipped the connector.";
+    const document = {
+      greeting: "Hey team",
+      headline: "Shipped the connector.",
+      labels: { yesterday: "Yesterday", today: "Today", next: "Next", blockers: "Blockers" },
+      yesterday: ["Finished the old work."],
+      today: [{ title: "Connector", tag: "feature", summary: "Shipped the connector.", details: [], files: ["src/connector.ts"] }],
+      next: ["Ship more."],
+      blockers: ["None"],
+    };
+    const result = await client.syncStandup({ markdown, modelLabel: "Ollama · test", document });
     assert.deepEqual(result, { status: "synced", standupId: "s1" });
 
     const rec = server.requests.find((request) => request.url === "/api/v1/standups");
@@ -133,6 +142,10 @@ test("syncStandup posts one draft with auth and the configured time estimate", a
     assert.equal(rec.body.status, "draft");
     assert.equal(rec.body.timeSavedMinutes, 12);
     assert.equal(rec.body.model, "Ollama · test");
+    assert.equal(rec.body.headline, "Shipped the connector.");
+    assert.equal(rec.body.themes[0].title, "Connector");
+    assert.deepEqual(rec.body.themes[0].files, ["connector.ts"]);
+    assert.deepEqual(rec.body.yesterday, ["Finished the old work."]);
     assert.match(rec.body.standupDate, /^\d{4}-\d{2}-\d{2}$/);
     assert.equal(rec.body.title, `Standup for ${rec.body.standupDate}`);
   } finally {

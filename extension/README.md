@@ -27,7 +27,7 @@ you choose a cloud model.
 | Feature | What you get |
 | --- | --- |
 | **Real activity** | Commits, file saves, PRs/issues and AI prompts, scoped to the open workspace. |
-| **Useful format** | Fixed Yesterday / Today / Next / Blockers; 3+ files become sub-bullets. Paid workspaces can relabel/reorder the sections. |
+| **Useful format** | Fixed Yesterday / Today / Next / Blockers, with a 1-2 sentence headline and Today grouped into ranked, tagged workstreams. |
 | **Three detail levels** | Concise (3–4 points), Standard (5–7), Elaborate (6–9). |
 | **Four tones** | Neutral, Junior, Mid, Senior. |
 | **Two model options** | Local Ollama, or BYOK for Anthropic, OpenAI, Google or any OpenAI-compatible endpoint. |

@@ -86,3 +86,31 @@ test("weekly recap uses Today, keeps details, and reports the week's coverage", 
   assert.match(recap.markdown, /Blocked: Waiting on legal/);
   assert.doesNotMatch(recap.markdown, /Wrapped up auth/);
 });
+
+test("weekly recap prefers structured themes and tags", () => {
+  const recap = buildWeeklyRecap(
+    [
+      {
+        ...record("2026-11-05", "alpha", "unused", ["vscode"]),
+        document: {
+          greeting: "Hey team",
+          headline: "Shipped recap and delivery.",
+          labels: { yesterday: "Yesterday", today: "Today", next: "Next", blockers: "Blockers" },
+          yesterday: ["Finished old work."],
+          today: [
+            { title: "Weekly recap", tag: "feature", summary: "Added the recap email.", details: [], files: ["lib/email.ts"] },
+            { title: "Discord delivery", tag: "fix", summary: "Fixed bot delivery.", details: [], files: ["lib/delivery.ts"] },
+          ],
+          next: ["Add invoices."],
+          blockers: ["None"],
+        },
+      },
+    ],
+    new Date("2026-11-06T18:00:00"),
+  );
+  assert.ok(recap);
+  assert.match(recap.markdown, /\*\*Weekly recap\*\* \[feature\]/);
+  assert.match(recap.markdown, /email\.ts/);
+  assert.match(recap.markdown, /Discord delivery/);
+  assert.match(recap.markdown, /Add invoices/);
+});

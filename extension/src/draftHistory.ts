@@ -17,6 +17,8 @@ import { DetailLevel, Tone } from "./state";
 
 import type { PanelVerification } from "./panelVerification";
 import type { StandupCoverage } from "./types";
+import type { StandupDocument } from "./standupDocument";
+import type { StandupQuality } from "./standupQuality";
 
 export interface DraftEntry {
   id: string;
@@ -35,6 +37,8 @@ export interface DraftEntry {
   stats?: { durationMs?: number; inputTokens?: number; outputTokens?: number };
   windowHours?: number;
   coverage?: StandupCoverage;
+  document?: StandupDocument;
+  quality?: StandupQuality;
   sentTo: string[];
   scheduled?: { at: string; targets: string[]; status: string };
   copied?: boolean;

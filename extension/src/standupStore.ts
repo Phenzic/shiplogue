@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import type { StandupCoverage } from "./types";
+import type { StandupDocument } from "./standupDocument";
+import type { StandupQuality } from "./standupQuality";
 
 // Local, durable stand-up history. One JSON file per day under the extension's
 // global storage dir; each file holds at most one record per local workspace.
@@ -16,6 +18,8 @@ export type StandupRecord = {
   projectName?: string;
   sources?: string[];
   coverage?: StandupCoverage;
+  document?: StandupDocument;
+  quality?: StandupQuality;
   summary?: { commits: number; files: number; github: number; notes?: string[] };
   markdown: string;
   status: "generated" | "reviewed";
@@ -31,6 +35,8 @@ export type HistoryOptions = {
   modelLabel?: string;
   sources?: string[];
   coverage?: StandupCoverage;
+  document?: StandupDocument;
+  quality?: StandupQuality;
   summary?: { commits: number; files: number; github: number; notes?: string[] };
 };
 
@@ -126,6 +132,8 @@ export class StandupStore {
       ...(options.modelLabel ? { modelLabel: options.modelLabel } : {}),
       ...(options.sources ? { sources: options.sources } : {}),
       ...(options.coverage ? { coverage: options.coverage } : {}),
+      ...(options.document ? { document: options.document } : {}),
+      ...(options.quality ? { quality: options.quality } : {}),
       ...(options.summary ? { summary: options.summary } : {}),
       markdown,
       status: "generated",
@@ -148,6 +156,8 @@ export class StandupStore {
       ...(options.modelLabel ? { modelLabel: options.modelLabel } : existing?.modelLabel ? { modelLabel: existing.modelLabel } : {}),
       ...(options.sources ? { sources: options.sources } : existing?.sources ? { sources: existing.sources } : {}),
       ...(options.coverage ? { coverage: options.coverage } : existing?.coverage ? { coverage: existing.coverage } : {}),
+      ...(options.document ? { document: options.document } : existing?.document ? { document: existing.document } : {}),
+      ...(options.quality ? { quality: options.quality } : existing?.quality ? { quality: existing.quality } : {}),
       ...(options.summary ? { summary: options.summary } : existing?.summary ? { summary: existing.summary } : {}),
       markdown,
       status: "reviewed",

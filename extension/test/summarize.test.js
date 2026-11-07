@@ -45,6 +45,30 @@ function validDraft(doneCount = 1) {
   ].join("\n");
 }
 
+function themeDraft(themeCount = 2) {
+  return [
+    "Hey team, here's what I worked on today:",
+    "",
+    "Shipped a coherent set of improvements across the app.",
+    "",
+    "**Yesterday**",
+    "- Finished the previous connector work.",
+    "",
+    "**Today**",
+    ...Array.from({ length: themeCount }, (_, i) => [
+      `### Theme ${i + 1} [feature]`,
+      `Shipped meaningful outcome ${i + 1}.`,
+      `  - src/file${i + 1}.ts`,
+      "",
+    ]).flat(),
+    "**Next**",
+    "- Keep going.",
+    "",
+    "**Blockers**",
+    "- None",
+  ].join("\n");
+}
+
 async function withOllama(replyFn, fn) {
   const server = await startServer((req) => ({ body: { response: replyFn(req) } }));
   stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "test-model" });
@@ -148,9 +172,9 @@ test("concise prompt enforces 3-4 short bullets and no file lists", async () => 
     async (server) => {
       await generateStandup(baseCtx());
       const p = server.requests[0].body.prompt;
-      assert.match(p, /3-4 Today bullets MAXIMUM/);
-      assert.match(p, /NO sub-bullet file lists/);
-      assert.doesNotMatch(p, /6-9 Today bullets/);
+      assert.match(p, /2-3 Today workstreams MAXIMUM/);
+      assert.match(p, /NO file lists in the story/);
+      assert.doesNotMatch(p, /4-6 Today workstreams/);
     },
   );
 });
@@ -162,7 +186,7 @@ test("standard prompt asks for 5-7 bullets and names specifics", async () => {
     async (server) => {
       await generateStandup(baseCtx());
       const p = server.requests[0].body.prompt;
-      assert.match(p, /5-7 Today bullets/);
+      assert.match(p, /3-5 Today workstreams/);
       assert.equal(server.requests[0].body.options.num_predict, 900);
     },
   );
@@ -175,14 +199,14 @@ test("elaborate prompt demands every file by name and 6-9 bullets", async () => 
     async (server) => {
       await generateStandup(baseCtx());
       const p = server.requests[0].body.prompt;
-      assert.match(p, /6-9 Today bullets/);
-      assert.match(p, /EVERY file listed/);
+      assert.match(p, /4-6 Today workstreams/);
+      assert.match(p, /Cap at 3 files per workstream/);
       assert.equal(server.requests[0].body.options.num_predict, 1600);
     },
   );
 });
 
-test("under-splitting triggers exactly one repair pass when the work can support it", async () => {
+test("a low-quality theme draft triggers one targeted editorial repair", async () => {
   setDetailGetter(() => "standard");
   let call = 0;
   const commits = Array.from({ length: 6 }, (_, i) => ({
@@ -197,14 +221,15 @@ test("under-splitting triggers exactly one repair pass when the work can support
   await withOllama(
     () => {
       call++;
-      return call === 1 ? validDraft(2) : validDraft(6);
+      return call === 1 ? themeDraft(1) : themeDraft(3);
     },
     async (server) => {
-      const { text: out } = await generateStandup(baseCtx({ commits }));
-      assert.equal(server.requests.length, 2, "one repair call expected");
+      const { text: out, document } = await generateStandup(baseCtx({ commits }));
+      assert.equal(server.requests.length, 2, "one quality repair call expected");
       assert.match(server.requests[1].body.prompt, /Your previous draft/);
-      assert.match(server.requests[1].body.prompt, /at least 5/);
-      assert.equal(out.split("\n").filter((l) => l.startsWith("- Shipped")).length, 6);
+      assert.match(server.requests[1].body.prompt, /at least 2 workstreams/);
+      assert.equal(document.today.length, 3);
+      assert.equal(out.split("\n").filter((line) => line.startsWith("### ")).length, 3);
     },
   );
 });
@@ -227,7 +252,7 @@ test("no repair pass when there isn't enough distinct work to honestly split", a
         "- None",
       ].join("\n"),
     async (server) => {
-      await generateStandup(baseCtx({ commits: [] })); // 0 distinct items
+      await generateStandup(baseCtx({ commits: [] }));
       assert.equal(server.requests.length, 1);
     },
   );
@@ -244,14 +269,15 @@ test("a failed repair keeps the first draft", async () => {
     files: [],
   }));
   const server = await startServer((req) => {
-    if (server.requests.length === 1) return { body: { response: validDraft(2) } };
+    if (server.requests.length === 1) return { body: { response: themeDraft(1) } };
     return { status: 500, body: { error: "boom" } };
   });
   stub.setConfig({ "shiplogue.ollama.url": server.url, "shiplogue.ollama.model": "test-model" });
   try {
-    const { text: out } = await generateStandup(baseCtx({ commits }));
-    assert.equal(out, validDraft(2));
+    const { text: out, document } = await generateStandup(baseCtx({ commits }));
     assert.equal(server.requests.length, 2);
+    assert.equal(document.today.length, 1);
+    assert.match(out, /Theme 1/);
   } finally {
     await server.close();
   }

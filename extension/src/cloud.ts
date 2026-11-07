@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { cfg } from "./config";
+import type { StandupDocument } from "./standupDocument";
 import { currentEditorSource } from "./sources";
 import {
   isPaidPlan,
@@ -80,6 +81,12 @@ export type CloudHistoryEntry = {
   localWorkspace?: { id?: string | null; name?: string | null };
   sources?: string[];
   coverage?: import("./types").StandupCoverage;
+  headline?: string;
+  themes?: unknown[];
+  yesterday?: string[];
+  next?: string[];
+  blockers?: string[];
+  labels?: Record<string, string>;
   sent?: { targets: string[]; at: string; status?: string } | null;
   scheduled?: { at: string; targets: string[]; status: string } | null;
 };
@@ -195,6 +202,8 @@ export class CloudClient {
     localWorkspaceName?: string;
     sources?: string[];
     coverage?: import("./types").StandupCoverage;
+    document?: StandupDocument;
+    quality?: import("./standupQuality").StandupQuality;
     standupDate?: string;
     title?: string;
   }): Promise<CloudSyncResult> {
@@ -220,6 +229,19 @@ export class CloudClient {
           localWorkspaceName: input.localWorkspaceName,
           sources: input.sources,
           coverage: input.coverage,
+          headline: input.document?.headline,
+          themes: input.document?.today.map((theme) => ({
+            title: theme.title,
+            tag: theme.tag,
+            summary: theme.summary,
+            details: theme.details,
+            files: theme.files.map((file) => file.replace(/\\/g, "/").split("/").pop() || file),
+          })),
+          yesterday: input.document?.yesterday,
+          next: input.document?.next,
+          blockers: input.document?.blockers,
+          labels: input.document?.labels,
+          quality: input.quality,
           timeSavedMinutes: minutes,
           status: "draft",
           model: input.modelLabel,

@@ -2,7 +2,7 @@
   "name": "shiplogue",
   "displayName": "Shiplogue",
   "description": "Turn your git, IDE and GitHub activity into a review-ready daily stand-up with Ollama or your own API key.",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "publisher": "phenzic",
   "license": "MIT",
   "repository": {

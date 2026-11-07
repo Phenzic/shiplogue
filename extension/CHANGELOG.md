@@ -3,14 +3,35 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.12] — 2026-11-07
+
+### Fixed
+
+- Changing Detail or Tone now only updates the setting; it no longer triggers a
+  regeneration. The current draft stays until you click Regenerate.
+- File detail now shows only the file name, never the full path, in the panel,
+  weekly recap and cloud payload.
+- Cleaned up the theme-first output: one sentence per workstream, no dangling
+  colons or stray quotes, and files only in collapsed detail.
+
 ## [0.1.11] — 2026-11-06
 
 ### Changed
 
+- Changing Detail or Tone now only updates the setting; it no longer triggers a
+  regeneration. The current draft stays put until you click Regenerate.
+- File details show only the file name, not the full path, in the panel, weekly
+  recap, and cloud payload.
+- Theme-first drafts: a 1-2 sentence headline, Today grouped into ranked
+  workstreams with `feature`/`fix`/`debug`/`security`/`docs` tags, and files
+  shown only in collapsed detail. A deterministic quality score catches flat
+  file lists, duplicated Yesterday text, merge-first ordering, colon artifacts,
+  and unsupported deploy claims; one targeted repair runs when needed, with the
+  old flat format as fallback.
 - The built-in format is now fixed: Yesterday / Today / Next / Blockers, with no
   user-facing format setting. Paid workspaces can relabel/reorder the four
   sections from a cloud profile; free plans always use the built-in format.
-- Yesterday is now a 1-2 bullet summary condensed from yesterday's Today
+- Yesterday is now a 2-4 bullet story synthesized from yesterday's Today
   section. It no longer copies the whole daily draft or its file sub-bullets.
 - Stand-up history: drafts are stored atomically per local day, kept for 7 days,
   and reviewed copies replace the draft text. **Shiplogue: Open Stand-up History**
@@ -18,8 +39,10 @@ All notable changes to this project will be documented here. Format follows
 - History **Send again** is now **Sync**: it pushes the stored draft to Shiplogue
   Cloud without posting it. The draft's **Send via Shiplogue Cloud** button still
   asks the cloud to deliver to connected Slack/Discord/Teams targets.
-- Weekly recap now reads each day's Today section, keeps its details, adds
-  week-level coverage counts, and lists work carried into next week.
+- Weekly recap reads structured themes and tags when available, keeps details,
+  adds week-level coverage counts, and lists work carried into next week.
+- Cloud sync sends the headline and structured themes (title, tag, summary,
+  detail, files) alongside clean Markdown.
 
 ## [0.1.10] — 2026-11-05
 

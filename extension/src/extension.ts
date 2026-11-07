@@ -297,10 +297,14 @@ async function runGenerate(
       return;
     }
     setPhase("Writing your stand-up…");
-    const { text: draft, warnings, backend, verification } = await generateStandup(
-      ctx,
-      controller.signal,
-    );
+    const {
+      text: draft,
+      warnings,
+      backend,
+      verification,
+      document,
+      quality,
+    } = await generateStandup(ctx, controller.signal);
     if (controller.signal.aborted) {
       throw new DOMException("Generation aborted", "AbortError");
     }
@@ -339,6 +343,8 @@ async function runGenerate(
           ...(modelLabel ? { modelLabel } : {}),
           ...(sources.length ? { sources } : {}),
           coverage,
+          ...(document ? { document } : {}),
+          ...(quality ? { quality } : {}),
           ...(panelVerification ? { verification: panelVerification } : {}),
           windowHours: Math.max(1, Math.round((ctx.until.getTime() - ctx.since.getTime()) / 3600_000)),
           summary: {
@@ -364,6 +370,8 @@ async function runGenerate(
           ...(modelLabel ? { modelLabel } : {}),
           ...(sources.length ? { sources } : {}),
           coverage,
+          ...(document ? { document } : {}),
+          ...(quality ? { quality } : {}),
           summary: {
             commits: ctx.commits.length,
             files: changedFileCount(ctx),
@@ -388,6 +396,8 @@ async function runGenerate(
         ...(panelVerification ? { verification: panelVerification } : {}),
         ...(draftEntry ? { draftId: draftEntry.id } : {}),
         coverage,
+        ...(document ? { document } : {}),
+        ...(quality ? { quality } : {}),
         windowHours: Math.max(1, Math.round((ctx.until.getTime() - ctx.since.getTime()) / 3600_000)),
         generatedAt,
         stats: {
@@ -417,6 +427,8 @@ async function runGenerate(
         local,
         sources,
         coverage,
+        record?.document,
+        record?.quality ?? quality,
       );
     }
   } catch (e: any) {
@@ -483,6 +495,8 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
             ...(local?.id ? { workspaceId: local.id } : {}),
             ...(local?.name ? { projectName: local.name } : {}),
             ...(copiedEntry?.coverage ? { coverage: copiedEntry.coverage } : {}),
+            ...(copiedEntry?.document ? { document: copiedEntry.document } : {}),
+            ...(copiedEntry?.quality ? { quality: copiedEntry.quality } : {}),
             ...(copiedEntry?.summary ? { summary: copiedEntry.summary } : {}),
           });
           if (record) {
@@ -492,6 +506,8 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
               local,
               record.sources,
               copiedEntry?.coverage,
+              record.document,
+              record.quality,
             );
           }
         } catch {
@@ -552,6 +568,8 @@ function openPanel(local: { id: string; name: string } | undefined): ShiploguePa
           generatedAt: entry.ts,
           ...(entry.windowHours ? { windowHours: entry.windowHours } : {}),
           ...(entry.coverage ? { coverage: entry.coverage } : {}),
+          ...(entry.document ? { document: entry.document } : {}),
+          ...(entry.quality ? { quality: entry.quality } : {}),
           ...(entry.stats ? { stats: entry.stats } : {}),
         });
         panel.setNote("Restored from history — review before copying.");
@@ -615,6 +633,8 @@ async function syncStoredViaCloud(
     ...(entry.modelLabel ? { modelLabel: entry.modelLabel } : {}),
     ...(entry.sources?.length ? { sources: entry.sources } : {}),
     ...(entry.coverage ? { coverage: entry.coverage } : {}),
+    ...(entry.document ? { document: entry.document } : {}),
+    ...(entry.quality ? { quality: entry.quality } : {}),
     ...(local ? { localWorkspaceId: local.id, localWorkspaceName: local.name } : {}),
   });
   if (result.status === "synced") {
@@ -655,6 +675,8 @@ async function sendViaCloud(
     ...(entry?.modelLabel ? { modelLabel: entry.modelLabel } : {}),
     ...(entry?.sources?.length ? { sources: entry.sources } : {}),
     ...(entry?.coverage ? { coverage: entry.coverage } : {}),
+    ...(entry?.document ? { document: entry.document } : {}),
+    ...(entry?.quality ? { quality: entry.quality } : {}),
     localWorkspaceId: local?.id,
     localWorkspaceName: local?.name,
     ...(local ? { title: `Standup for ${localDateKey()} — ${local.name}` } : {}),
@@ -712,6 +734,8 @@ async function sendViaCloud(
         ...(local?.name ? { projectName: local.name } : {}),
         ...(entry?.sources?.length ? { sources: entry.sources } : {}),
         ...(entry?.coverage ? { coverage: entry.coverage } : {}),
+        ...(entry?.document ? { document: entry.document } : {}),
+        ...(entry?.quality ? { quality: entry.quality } : {}),
         ...(entry?.summary ? { summary: entry.summary } : {}),
       });
     } catch {
@@ -737,6 +761,8 @@ async function sendViaCloud(
         ...(local?.name ? { projectName: local.name } : {}),
         ...(entry?.sources?.length ? { sources: entry.sources } : {}),
         ...(entry?.coverage ? { coverage: entry.coverage } : {}),
+        ...(entry?.document ? { document: entry.document } : {}),
+        ...(entry?.quality ? { quality: entry.quality } : {}),
         ...(entry?.summary ? { summary: entry.summary } : {}),
       });
     } catch {
@@ -769,6 +795,8 @@ async function syncDraftToCloud(
   local?: { id: string; name: string },
   sources?: string[],
   coverage?: StandupCoverage,
+  document?: import("./standupDocument").StandupDocument,
+  quality?: import("./standupQuality").StandupQuality,
 ): Promise<void> {
   if (!cloud) return;
   const result = await cloud.syncStandup({
@@ -777,6 +805,8 @@ async function syncDraftToCloud(
     ...(local ? { localWorkspaceId: local.id, localWorkspaceName: local.name } : {}),
     ...(sources && sources.length ? { sources } : {}),
     ...(coverage ? { coverage } : {}),
+    ...(document ? { document } : {}),
+    ...(quality ? { quality } : {}),
     ...(local ? { title: `Standup for ${localDateKey()} — ${local.name}` } : {}),
   });
   if (result.status === "synced") {

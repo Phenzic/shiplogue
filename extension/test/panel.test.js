@@ -149,7 +149,7 @@ test("needs-review drafts are flagged and unverified claims are highlighted inli
   assert.equal(ui.els.verdict.classList.contains("bad"), true);
   assert.match(ui.text("verdictLabel"), /Needs review/);
   assert.equal(ui.els.verifyStrip.classList.contains("bad"), true);
-  assert.match(ui.text("verifyText"), /2 unverified claims/);
+  assert.match(ui.text("verifyText"), /2 claims to check/);
   const marks = [];
   (function walk(node) {
     if (node.className === "unverified") marks.push(node.textContent);
@@ -334,6 +334,7 @@ test("panel messages: regenerate, cancel, detail, tone, settings and feedback", 
     (u) => u.key === "shiplogue.detail" || u.key === "shiplogue.tone",
   );
   assert.deepEqual(upd.map((u) => u.value), ["elaborate", "senior"]);
+  assert.equal(calls.regen, 1, "changing detail/tone must not regenerate");
 
   await webview.messageHandler({ kind: "feedback", value: "down", backend: "Ollama" });
   assert.deepEqual(calls.feedback, [["down", "Ollama"]]);
@@ -459,4 +460,38 @@ test("a delivery update appears live in an open panel", () => {
   ui.sendMessage({ kind: "delivery", available: true, label: "Send via Shiplogue Cloud" });
   assert.equal(ui.visible("sendBtn"), true);
   assert.equal(ui.text("sendLabel"), "Send via Shiplogue Cloud");
+});
+
+test("structured drafts render the headline, tags, and theme details", () => {
+  const { webview, boot } = freshPanel();
+  const ui = boot();
+  ui.sendMessage({
+    kind: "draft",
+    markdown: "**Today**\n### Weekly recap [feature]\nAdded a recap.",
+    summary: {},
+    detail: "concise",
+    tone: "neutral",
+    document: {
+      greeting: "Hey team",
+      headline: "Shipped the weekly recap and delivery.",
+      labels: { yesterday: "Yesterday", today: "Today", next: "Next", blockers: "Blockers" },
+      yesterday: ["Finished the connector work."],
+      today: [
+        {
+          title: "Weekly recap",
+          tag: "feature",
+          summary: "Added an opt-in recap email.",
+          details: ["Shows the last seven days."],
+          files: ["lib/email.ts"],
+        },
+      ],
+      next: ["Add invoices."],
+      blockers: ["None"],
+    },
+  });
+  assert.match(ui.text("preview"), /Shipped the weekly recap and delivery/);
+  assert.match(ui.text("preview"), /Weekly recap/);
+  assert.match(ui.text("preview"), /feature/);
+  assert.match(ui.text("preview"), /email\.ts/);
+  assert.doesNotMatch(ui.text("preview"), /lib\/email\.ts/);
 });

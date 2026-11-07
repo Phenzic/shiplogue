@@ -1,6 +1,7 @@
 import { DraftEntry, HistoryPage } from "./draftHistory";
 import type { CloudClient } from "./cloud";
 import { cfg } from "./config";
+import type { StandupDocument } from "./standupDocument";
 
 // Cloud sync seam for the per-draft history (Pro). Free users are local-only: the
 // store keeps 7 days (configurable) and prunes. Pro users will sync every draft
@@ -42,7 +43,19 @@ export class CloudDraftSync implements DraftSync {
 
   async fetchPage(opts: { cursor?: string; limit: number }): Promise<HistoryPage> {
     const page = await this.cloud.listHistory({ before: opts.cursor, limit: opts.limit });
-    const entries: DraftEntry[] = page.entries.map((entry) => ({
+    const entries: DraftEntry[] = page.entries.map((entry) => {
+      const document: StandupDocument | undefined = entry.headline && entry.themes
+        ? {
+            greeting: "",
+            headline: entry.headline,
+            labels: entry.labels as StandupDocument["labels"],
+            yesterday: entry.yesterday ?? [],
+            today: entry.themes as StandupDocument["today"],
+            next: entry.next ?? [],
+            blockers: entry.blockers ?? [],
+          }
+        : undefined;
+      return {
       id: entry.id,
       ts: entry.createdAt,
       markdown: entry.bodyMarkdown,
@@ -57,7 +70,9 @@ export class CloudDraftSync implements DraftSync {
       ...(entry.scheduled ? { scheduled: entry.scheduled } : {}),
       sentTo: entry.sent?.targets ?? [],
       needsReview: false,
-    }));
+      ...(document ? { document } : {}),
+      };
+    });
     return { entries, cursor: page.cursor, total: page.total ?? entries.length };
   }
 }

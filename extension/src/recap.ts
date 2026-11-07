@@ -11,7 +11,11 @@ export interface WeeklyRecap {
   summary: { commits: number; files: number; github: number; notes?: string[] };
 }
 
-type RecapItem = { text: string; details: string[] };
+type RecapItem = { text: string; details: string[]; title?: string; tag?: string };
+
+function shortFile(path: string): string {
+  return path.replace(/\\/g, "/").split("/").pop() || path;
+}
 
 function cleanText(text: string): string {
   return text
@@ -104,8 +108,16 @@ export function buildWeeklyRecap(
 
   for (const record of recent) {
     const project = record.projectName?.trim() || "Workspace";
-    for (const item of sectionItems(record.markdown, primaryLabels)) {
-      const key = item.text.toLowerCase();
+    const items: RecapItem[] = record.document
+      ? record.document.today.map((theme) => ({
+          text: theme.summary,
+          title: theme.title,
+          tag: theme.tag,
+          details: [...theme.details, ...theme.files.map(shortFile)],
+        }))
+      : sectionItems(record.markdown, primaryLabels);
+    for (const item of items) {
+      const key = (item.title ? `${item.title}: ` : "") + item.text.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
       const bucket = byProject.get(project) ?? [];
@@ -155,11 +167,9 @@ export function buildWeeklyRecap(
   }
 
   const latest = recent[recent.length - 1];
-  const nextItems = sectionItems(latest.markdown, nextLabels)
-    .map((item) => item.text)
+  const nextItems = (latest.document?.next ?? sectionItems(latest.markdown, nextLabels).map((item) => item.text))
     .filter((text) => !/^none\.?$/i.test(text));
-  const blockers = sectionItems(latest.markdown, blockerLabels)
-    .map((item) => item.text)
+  const blockers = (latest.document?.blockers ?? sectionItems(latest.markdown, blockerLabels).map((item) => item.text))
     .filter((text) => !/^none\.?$/i.test(text));
 
   const lines: string[] = ["# Weekly recap", "", `**${range}**`, "", "**Week at a glance**"];
@@ -181,7 +191,10 @@ export function buildWeeklyRecap(
   for (const project of projects) {
     if (projects.length > 1) lines.push("", `### ${project}`);
     for (const item of byProject.get(project) ?? []) {
-      lines.push(`- ${item.text}`);
+      const lead = item.title
+        ? `**${item.title}**${item.tag ? ` [${item.tag}]` : ""} — `
+        : "";
+      lines.push(`- ${lead}${item.text}`);
       for (const detail of item.details) lines.push(`  - ${detail}`);
     }
   }

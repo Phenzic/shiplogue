@@ -26,6 +26,30 @@ function memorySecrets() {
   };
 }
 
+function themeDraft(count) {
+  return [
+    "Hey team, here's what I worked on today:",
+    "",
+    "Shipped a coherent set of provider improvements.",
+    "",
+    "**Yesterday**",
+    "- Finished the last connector change.",
+    "",
+    "**Today**",
+    ...Array.from({ length: count }, (_, i) => [
+      `### Theme ${i + 1} [feature]`,
+      `Shipped provider outcome ${i + 1}.`,
+      `  - src/provider${i + 1}.ts`,
+      "",
+    ]).flat(),
+    "**Next**",
+    "- Continue.",
+    "",
+    "**Blockers**",
+    "- None",
+  ].join("\n");
+}
+
 async function useProvider(url, overrides = {}) {
   const store = memorySecrets();
   setSecretStorage(store);
@@ -102,10 +126,9 @@ test("generateStandup uses the configured provider and reports backend metadata"
   }
 });
 
-test("the repair pass runs through the provider backend too", async () => {
+test("the quality repair runs through the provider backend too", async () => {
   const server = await startServer(() => {
-    // First draft under-delivers; the repair returns a compliant one.
-    return server.requests.length === 1 ? openAiReply(draft(1)) : openAiReply(draft(5));
+    return server.requests.length === 1 ? openAiReply(themeDraft(1)) : openAiReply(themeDraft(3));
   });
   try {
     await useProvider(server.url, { "shiplogue.detail": "standard" });
@@ -121,8 +144,8 @@ test("the repair pass runs through the provider backend too", async () => {
     });
     const res = await generateStandup(ctx);
     assert.equal(server.requests.length, 2);
-    assert.equal(res.text, draft(5));
-    assert.match(server.requests[1].body.messages[0].content, /at least 5 bullets/);
+    assert.equal(res.document.today.length, 3);
+    assert.match(server.requests[1].body.messages[0].content, /at least 2 workstreams/);
     assert.equal(res.backend.provider, "openai");
   } finally {
     await server.close();

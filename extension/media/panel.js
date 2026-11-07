@@ -253,6 +253,67 @@
     return "Send to " + payload.target;
   }
 
+  function shortFile(path) {
+    return String(path).replace(/\\/g, "/").split("/").pop() || String(path);
+  }
+
+  function renderStandup(container, doc, highlights) {
+    container.textContent = "";
+    if (doc.headline) container.appendChild(el("p", "standup-headline", doc.headline));
+    const labels = doc.labels || {};
+    const section = (label) => {
+      const h = el("div", "section", label);
+      container.appendChild(h);
+    };
+    const bullets = (items) => {
+      if (!items || !items.length) return;
+      const ul = el("ul");
+      for (const item of items) {
+        const li = el("li");
+        inlineNodes(item, highlights || []).forEach((n) => li.appendChild(n));
+        ul.appendChild(li);
+      }
+      container.appendChild(ul);
+    };
+
+    section(labels.yesterday || "Yesterday");
+    bullets(doc.yesterday);
+    section(labels.today || "Today");
+    for (const theme of doc.today || []) {
+      const row = el("div", "theme");
+      const head = el("div", "theme-head");
+      head.appendChild(el("span", "tag tag-" + theme.tag, theme.tag));
+      head.appendChild(el("span", "theme-title", theme.title));
+      row.appendChild(head);
+      row.appendChild(el("p", "theme-summary", theme.summary));
+      const files = (theme.files || []).map(shortFile);
+      const details = (theme.details || []).concat(files);
+      if (details.length) {
+        const toggle = el("button", "theme-toggle", "Details (" + details.length + ")");
+        const body = el("div", "theme-detail hidden");
+        const ul = el("ul");
+        for (const detail of details) {
+          const li = el("li");
+          if (files.includes(detail)) li.className = "file";
+          li.textContent = detail;
+          ul.appendChild(li);
+        }
+        body.appendChild(ul);
+        toggle.onclick = () => {
+          const open = body.classList.toggle("hidden");
+          toggle.textContent = (open ? "Details" : "Hide details") + " (" + details.length + ")";
+        };
+        row.appendChild(toggle);
+        row.appendChild(body);
+      }
+      container.appendChild(row);
+    }
+    section(labels.next || "Next");
+    bullets(doc.next);
+    section(labels.blockers || "Blockers");
+    bullets(doc.blockers);
+  }
+
   function renderMeta(p) {
     const parts = [];
     if (p.projectName) parts.push("[" + p.projectName + "]");
@@ -325,8 +386,8 @@
       warnSvg.classList.toggle("hidden", !v.needsReview);
     }
     if (v.needsReview) {
-      $("verifyText").textContent = v.violations.length + " unverified claim" + (v.violations.length === 1 ? "" : "s");
-      $("verifyRemovals").textContent = "left after a repair pass";
+      $("verifyText").textContent = v.violations.length + " claim" + (v.violations.length === 1 ? "" : "s") + " to check";
+      $("verifyRemovals").textContent = "review before sending";
     } else {
       $("verifyText").textContent = v.checkedClaims + " claims verified";
       const extra = [];
@@ -365,7 +426,8 @@
 
     $("md").value = p.markdown || "";
     syncPlain();
-    renderMarkdown($("preview"), p.markdown || "", highlightClaims(p));
+    if (p.document) renderStandup($("preview"), p.document, highlightClaims(p));
+    else renderMarkdown($("preview"), p.markdown || "", highlightClaims(p));
     renderMeta(p);
     renderVerify(p);
 
@@ -482,7 +544,8 @@
         ? e.verification.violations.length + " unverified claims"
         : e.verification.checkedClaims + " claims verified") : "",
     ].filter(Boolean).join(" · ");
-    renderMarkdown($("histDraft"), e.markdown || "", highlightClaims(e));
+    if (e.document) renderStandup($("histDraft"), e.document, []);
+    else renderMarkdown($("histDraft"), e.markdown || "", highlightClaims(e));
     show($("histFoot"), true);
     const sent = e.sentTo && e.sentTo.length;
     $("histSent").textContent = sent ? "Sent to " + e.sentTo.join(", ") : e.copied ? "Copied" : "Not sent";

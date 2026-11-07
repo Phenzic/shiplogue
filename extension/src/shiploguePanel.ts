@@ -4,6 +4,8 @@ import { DetailLevel, State, Tone } from "./state";
 import type { PanelVerification } from "./panelVerification";
 import type { DraftEntry } from "./draftHistory";
 import type { StandupCoverage } from "./types";
+import type { StandupDocument } from "./standupDocument";
+import type { StandupQuality } from "./standupQuality";
 import { mediaRoot, panelHtml } from "./webview";
 import { getDeliveryState, hasDeliveryTarget } from "./delivery";
 
@@ -28,6 +30,8 @@ export interface DraftPayload {
   generatedAt?: string;
   windowHours?: number;
   coverage?: StandupCoverage;
+  document?: StandupDocument;
+  quality?: StandupQuality;
 }
 
 export interface HistoryPagePayload {
@@ -122,6 +126,8 @@ export class ShiploguePanel {
       generatedAt: p.generatedAt,
       windowHours: p.windowHours,
       coverage: p.coverage,
+      document: p.document,
+      quality: p.quality,
       // Send is shown only when the connected workspace can post via Shiplogue
       // Cloud (Pro); the label names the route.
       sendLabel: getDeliveryState().label,
@@ -194,7 +200,6 @@ export class ShiploguePanel {
         await vscode.workspace
           .getConfiguration("shiplogue")
           .update("detail", detail, vscode.ConfigurationTarget.Global);
-        this.callbacks.onRegenerate();
         break;
       }
       case "setTone": {
@@ -203,7 +208,6 @@ export class ShiploguePanel {
         await vscode.workspace
           .getConfiguration("shiplogue")
           .update("tone", tone, vscode.ConfigurationTarget.Global);
-        this.callbacks.onRegenerate();
         break;
       }
       case "ready":
