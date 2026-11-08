@@ -37,6 +37,7 @@ import { WeeklyRecapScheduler } from "./weeklyRecap";
 import { sourcesForContext } from "./sources";
 import type { StandupCoverage } from "./types";
 import { PromptWatcher } from "./promptWatcher";
+import { ActivitySync } from "./activitySync";
 import { ActiveProviderType } from "./core/providers";
 
 let store: Store;
@@ -49,6 +50,7 @@ let reminder: Reminder | undefined;
 let cloud: CloudClient | undefined;
 let analytics: Analytics | undefined;
 let weeklyRecap: WeeklyRecapScheduler | undefined;
+let activitySync: ActivitySync | undefined;
 const cloudHistoryCache = new Map<string, DraftEntry>();
 let feedback: Feedback;
 
@@ -107,6 +109,8 @@ export function activate(context: vscode.ExtensionContext) {
     tracker = new Tracker(store);
     tracker.start();
   }
+  activitySync = new ActivitySync(context, store, cloud);
+  activitySync.start();
 
   // Continuous prompt capture across Cursor/VS Code/Antigravity-compatible
   // hosts. The watcher is silent; failures never block activation.
@@ -919,6 +923,7 @@ async function runShowActivity(): Promise<void> {
 
 export function deactivate() {
   tracker?.dispose();
+  activitySync?.dispose();
   promptWatcher?.dispose();
   reminder?.dispose();
   weeklyRecap?.dispose();

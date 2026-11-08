@@ -291,6 +291,11 @@
           "default": true,
           "description": "Track IDE activity (which files you edit and save). Stored locally only."
         },
+        "shiplogue.activitySync.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sync metadata-only activity (paths, event type, project, timestamp, source) to Shiplogue Cloud. Never includes file contents, prompts, or terminal output."
+        },
         "shiplogue.generate.timeoutSeconds": {
           "type": "number",
           "default": 180,
