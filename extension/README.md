@@ -12,6 +12,15 @@ and your AI chat context — into a review-ready stand-up. It runs with a local
 Ollama model or your own API key, and never sends your activity anywhere unless
 you choose a cloud model.
 
+## Commands
+
+Open the Command Palette first:
+
+- **macOS:** `Cmd + Shift + P`
+- **Windows / Linux:** `Ctrl + Shift + P`
+
+Then type `Shiplogue:` to see every command.
+
 ## What it does
 
 - **Writes the first draft for you.** Yesterday / Today / Next / Blockers, in
@@ -34,7 +43,7 @@ you choose a cloud model.
 | **Review panel** | Rendered preview (or raw Markdown / Plain text), a verification strip (claims checked, removed, inferred, needs-review highlights), one-click Copy, Regenerate, Cancel, and inline Detail/Tone. |
 | **Draft history** | A searchable History tab in the panel: every draft with its model, detail/tone, verification state and send status; preview, copy or restore any of them. |
 | **Local history** | Every draft is kept on-device for 7 days; **Shiplogue: Open Stand-up History** shows the last week, and yesterday's reviewed copy feeds the next Yesterday section. |
-| **Weekly recap** | Compiles the week’s Today sections, details, coverage counts and open threads. |
+| **Weekly recap (Pro)** | Compiles the week’s Today sections, details, coverage counts and open threads. Requires a Pro plan. |
 | **Daily reminder** | A local-time nudge, with Generate now / Snooze 1h. |
 | **Shortcut** | `Cmd+Shift+'` (macOS) / `Ctrl+Shift+'` (Windows/Linux). Rebind from the Command Palette. |
 | **Cloud sync (optional)** | Connect a connector key to sync generated stand-ups to your private Shiplogue dashboard; copying a reviewed draft upserts the final text. |
@@ -62,16 +71,18 @@ editors use git, file and GitHub activity.
 - **Open VSX:** [open-vsx.org/extension/phenzic/shiplogue](https://open-vsx.org/extension/phenzic/shiplogue).
 - **Cursor / Antigravity:** search for **Shiplogue**; if it is not in the gallery,
   download the VSIX from either listing and use **Install from VSIX**.
-- **From source:** see [Development](#development).
 
 ## Quick start
 
-1. Pick a model:
-   - **Ollama** — install [Ollama](https://ollama.com), then `ollama pull llama3.2`.
-   - **Your own key** — run **Shiplogue: Set API Key**, pick a provider and model.
+1. Install Shiplogue from your editor's Extensions view.
 2. Open a project with today's work.
-3. Press `Cmd+Shift+'` / `Ctrl+Shift+'` or run **Shiplogue: Generate Today's Update**.
-4. Review and edit, then **Copy**.
+3. Open the Command Palette with `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P`
+   (Windows / Linux), then choose a model:
+   - **Ollama** — install [Ollama](https://ollama.com), run `ollama pull llama3.2`,
+     then select `Shiplogue: Set API Key` and choose Ollama.
+   - **Your own key** — run `Shiplogue: Set API Key`, pick a provider and model.
+4. Run `Shiplogue: Generate Today's Update`, or press `Cmd+Shift+'` / `Ctrl+Shift+'`.
+5. Review and edit the draft, then **Copy**.
 
 ## Cloud sync (optional)
 
@@ -82,7 +93,7 @@ working without an account.
 
 1. Sign in at [shiplogue.dev](https://shiplogue.dev), create a connector key, and
    copy it (it is shown once).
-2. In VS Code, run **Shiplogue: Connect Cloud** and paste the key.
+2. Open the Command Palette, run `Shiplogue: Connect Cloud`, and paste the key.
 3. Generate a stand-up as usual. The draft is synced with the current date.
 
 Each open project is a separate local workspace. Generation scopes to the active
@@ -92,6 +103,9 @@ default) Shiplogue compiles the stored daily drafts into a weekly recap, adds it
 to draft history, and prompts you to view it. Change the day/time with
 `shiplogue.weeklyRecap.day` and `shiplogue.weeklyRecap.time`; run
 **Shiplogue: Generate Weekly Recap Now** to do it immediately.
+
+**Weekly recap is a Pro feature.** Local drafts and the basic extension remain
+free, but the weekly recap requires a Pro plan.
 
 The key lives in the OS keychain (VS Code SecretStorage), never in settings. Raw
 activity and prompts are not uploaded; the extension sends the finished draft and
@@ -163,19 +177,6 @@ Marketplace and Open VSX installs update with the editor's normal auto-update.
 Manual VSIX installs have no update channel, so Shiplogue checks both listings at
 startup and shows a notice once per version with **Update now**, **Open listing**
 and **Enable auto-update**. Run **Shiplogue: Check for Update** any time.
-
-## Development
-
-```bash
-cd extension
-npm install
-npm run compile      # or: npm run watch
-npm test             # compile + tests
-npm run test:e2e     # gated real-Ollama tests
-```
-
-Press **F5** in VS Code/Cursor/Antigravity to launch the Extension Development
-Host. See [CONTRIBUTING.md](https://github.com/Phenzic/shiplogue/blob/main/CONTRIBUTING.md).
 
 ## Links
 

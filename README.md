@@ -25,6 +25,22 @@ Shiplogue account and no telemetry.
 > Planned: the hosted Shiplogue provider and paid plans. Pricing below is a
 > proposal — no paid tier or hosted service exists yet.
 
+## Install and run
+
+Install Shiplogue from your editor's Extensions view, or install the VSIX from
+the latest release.
+
+1. Open the Command Palette with `Cmd + Shift + P` (macOS) or `Ctrl + Shift + P`
+   (Windows / Linux).
+2. Pick a model:
+   - **Ollama** — install [Ollama](https://ollama.com) and run `ollama pull llama3.2`.
+   - **Your own key** — run `Shiplogue: Set API Key`.
+3. Open a project with today's work.
+4. Run `Shiplogue: Generate Today's Update`.
+5. Review and copy the draft.
+
+Every `Shiplogue:` command is available from the Command Palette.
+
 ## Why
 
 Stand-up tools still ask you to type the update yourself. But the evidence of
@@ -146,66 +162,15 @@ Model backend today: Ollama or your own API key. Planned: the hosted Shiplogue p
    panel.
 5. **Review** — you edit and copy. Nothing is posted anywhere.
 
-## Plans and pricing (planned — not live)
+## Plans
 
-The intended model is freemium: free local summaries, paid hosted quality and
-automation, and an enterprise/on-prem option. **No billing exists yet; all
-current features are free and MIT-licensed.**
+Free covers local drafting with Ollama or your own API key. Pro adds weekly
+recap, cloud history, project destinations, and automatic posting.
 
-| Tier | Planned features | Planned price |
+| Tier | Features | Price |
 | --- | --- | --- |
-| **Free** | Ollama or your own API key, review/copy, custom prompt templates | $0 |
-| **Pro** | Hosted Shiplogue provider, advanced analytics, API access | $5–$10/month (indicative) |
-| **Enterprise** | Unlimited users, dedicated instance, SLA, on-prem/Docker option | Custom quote |
-
-- Prices and packaging are **proposals** and may change before launch.
-- Any Pro analytics will be opt-in, aggregate and free of repository contents or
-  PII; the local build has no analytics.
-- The extension is open source; the hosted service is a separate product. A paid
-  plan is not required to use Ollama or BYOK.
-- Marketplace installs cannot process payment; entitlements will be enforced by
-  the hosted service, not by client-side checks.
-
-## Quick start
-
-Requirements for the **current build**:
-
-- VS Code **1.85+**, Cursor, Antigravity or another VS Code-compatible editor.
-- **A model backend**, either:
-  - [Ollama](https://ollama.com) running locally with a model pulled:
-    `ollama pull llama3.2`; or
-  - an API key for Anthropic, OpenAI, Google Gemini, or an OpenAI-compatible
-    endpoint (DeepSeek, Kimi, OpenRouter, Groq, LM Studio…).
-- Node/npm for the development install (not needed for the VSIX).
-- Optional: `sqlite3` on `PATH` for Cursor prompt context.
-- Optional: GitHub sign-in or a personal access token for PR/issue context.
-
-**Install the VSIX:** download the latest `shiplogue-*.vsix` from the GitHub
-release, then Extensions view → `…` → **Install from VSIX** (or
-`code --install-extension shiplogue-<version>.vsix`).
-
-**Run from source:**
-
-```bash
-git clone https://github.com/Phenzic/shiplogue.git
-cd shiplogue/extension
-npm install
-npm run compile
-```
-
-Open the `extension/` folder in VS Code or Cursor and press **F5** to launch the
-Extension Development Host. In that window:
-
-1. Run **Shiplogue: Generate Today's Update**.
-2. Pick a backend: keep Ollama running, or run **Shiplogue: Set API Key** → pick a
-   provider → paste the key (stored in the OS keychain) → pick a model. For
-   `openai-compatible`, enter the base URL too, e.g. `https://api.deepseek.com`.
-3. Run **Shiplogue: Test Provider** to prove key, endpoint and model.
-4. Review the draft, then **Copy**.
-
-Shiplogue is not published on a marketplace yet. Full settings, troubleshooting
-and development notes live in [`extension/README.md`](extension/README.md). For
-project layout and contribution guidance, see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+| **Free** | Local drafting, review/copy, one cloud project, local history | $0 |
+| **Pro** | Unlimited projects, weekly recap, cloud history, sending, automatic posting | See [shiplogue.dev/pricing](https://shiplogue.dev/pricing) |
 
 ## Key settings
 
