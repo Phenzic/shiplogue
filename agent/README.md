@@ -15,7 +15,8 @@ in `../extension`; the shared plan is in `../IMPLEMENTATION_PLAN_5.md` and
   `shiplogue-daily` prompt.
 - Local draft store under `~/.shiplogue/agent/drafts/`.
 - Claude Code plugin/skill, Cursor/Codex installer docs in `../plugins/shiplogue`.
-- No cloud calls and no bundled model. Agent-authored drafts use the host model.
+- Project-key cloud client: `shiplogue cloud status|sync|post`.
+- No bundled model. Agent-authored drafts use the host model.
 
 ## Commands
 
@@ -28,6 +29,9 @@ node dist/agent/src/cli.js mcp
 node dist/agent/src/cli.js hooks install --agent claude
 node dist/agent/src/cli.js render --date 2026-11-07
 node dist/agent/src/cli.js drafts
+node dist/agent/src/cli.js cloud status
+node dist/agent/src/cli.js cloud sync --date 2026-11-09
+node dist/agent/src/cli.js cloud post --date 2026-11-09
 ```
 
 Use `SHIPLOGUE_HOME` to point the agent at an isolated state directory (tests and

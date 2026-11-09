@@ -53,7 +53,7 @@ async function withHome(fn) {
 async function connect() {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "shiplogue-test", version: "1.0.0" });
-  const server = createServer("0.3.0-dev.0");
+  const server = createServer("0.3.0-dev.1");
   await Promise.all([
     client.connect(clientTransport),
     server.connect(serverTransport),
@@ -140,7 +140,7 @@ test("MCP server lists the agent-native tool set and saves a draft", async () =>
       arguments: {},
     });
     const parsed = JSON.parse(status.content[0].text);
-    assert.equal(parsed.agent, "0.3.0-dev.0");
+    assert.equal(parsed.agent, "0.3.0-dev.1");
     assert.ok(parsed.paths.events);
 
     await client.close();

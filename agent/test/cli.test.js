@@ -23,7 +23,7 @@ test("status --json reports agent, paths, capture, and counts", () => {
   });
   assert.equal(res.status, 0, res.stderr);
   const info = JSON.parse(res.stdout);
-  assert.equal(info.agent, "0.3.0-dev.0");
+  assert.equal(info.agent, "0.3.0-dev.1");
   assert.equal(info.schemaVersion, 1);
   assert.equal(info.workspace, workspace);
   assert.equal(info.paths.events, path.join(home, "agent", "events"));
@@ -38,7 +38,7 @@ test("status prints a human summary", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "shiplogue-cli-"));
   const res = run(["status"], { SHIPLOGUE_HOME: home });
   assert.equal(res.status, 0, res.stderr);
-  assert.match(res.stdout, /Shiplogue agent v0\.3\.0-dev\.0/);
+  assert.match(res.stdout, /Shiplogue agent v0\.3\.0-dev\.1/);
   assert.match(res.stdout, /Events today: 0/);
   assert.match(res.stdout, /Capture: prompts on/);
 });

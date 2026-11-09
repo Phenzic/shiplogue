@@ -3,6 +3,30 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.12] — 2026-11-09
+
+### Added
+
+- **Activity sync:** opt-in metadata-only sync of file edits, commits, GitHub
+  items, AI sessions and prompts, and token usage. No file contents, prompt
+  text, or terminal output are uploaded.
+- **Sync & Review:** the cloud send action now syncs and compiles the project
+  story, then opens the review page instead of posting immediately.
+- Project-aware cloud compile/review URLs.
+- Loading carousel while cloud compilation runs.
+- Activity sync setting and project-key-aware activity metadata.
+
+### Changed
+
+- Delivery destinations, posting settings, and project keys are project-scoped.
+- Activity records include source, local workspace, AI markers, files, and
+  token/cost metadata when the tool reports them.
+
+### Fixed
+
+- Activity page and cloud contract support for richer activity records.
+- Project key selection and cloud review flow.
+
 ## [0.1.12] — 2026-11-07
 
 ### Fixed

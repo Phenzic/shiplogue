@@ -21,8 +21,9 @@ import { eventsFor, installHooks } from "./hooks/install";
 import { agentVersion } from "./version";
 import { currentAgentStatus } from "./status";
 import { renderStandup } from "./mcp/tools";
-import { listDrafts } from "./drafts/store";
+import { latestDraftDate, listDrafts } from "./drafts/store";
 import { runMcp } from "./mcp/run";
+import { cloudStatus, postAgentDraft, syncAgentActivity, syncAgentDraft } from "./cloud";
 
 const VERSION = agentVersion();
 const HOOK_AGENTS: HookAgent[] = ["claude", "cursor", "codex"];
@@ -227,6 +228,28 @@ function drafts(args: string[], json: boolean): void {
   );
 }
 
+async function cloud(args: string[], json: boolean): Promise<void> {
+  const sub = args.find((a) => a === "status" || a === "sync" || a === "post");
+  if (sub === "sync") {
+    const date = flag(args, "--date") ?? undefined;
+    const activity = await syncAgentActivity(date)
+    let draft: unknown = null
+    try { draft = await syncAgentDraft(date) } catch (error) { draft = { skipped: (error as Error).message } }
+    const result = { activity, draft }
+    process.stdout.write(json ? `${JSON.stringify(result, null, 2)}\n` : `Synced activity: ${activity.accepted} accepted, ${activity.duplicates} duplicates.\nDraft: ${draft && typeof draft === "object" && "revision" in draft ? `revision ${(draft as { revision: number }).revision}` : "not synced"}.\n`)
+    return
+  }
+  if (sub === "post") {
+    const date = flag(args, "--date") ?? latestDraftDate()
+    if (!date) throw new Error("No local draft found.")
+    const result = await postAgentDraft(date)
+    process.stdout.write(json ? `${JSON.stringify(result, null, 2)}\n` : `Posted ${date}; delivery ${result.delivery.id} ${result.delivery.status}.\n`)
+    return
+  }
+  const status = await cloudStatus()
+  process.stdout.write(json ? `${JSON.stringify(status, null, 2)}\n` : `Project: ${status.project.name} (${status.plan})\nTargets: ${status.targets.length}\n`)
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const json = args.includes("--json");
@@ -251,6 +274,9 @@ async function main(): Promise<void> {
         break;
       case "drafts":
         drafts(args, json);
+        break;
+      case "cloud":
+        await cloud(args, json);
         break;
       case "init":
         init(args, json);

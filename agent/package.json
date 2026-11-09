@@ -1,6 +1,6 @@
 {
   "name": "@phenzic/shiplogue-agent",
-  "version": "0.3.0-dev.0",
+  "version": "0.3.0-dev.1",
   "description": "Local, agent-native stand-up worker for AI coding agents.",
   "license": "MIT",
   "private": true,

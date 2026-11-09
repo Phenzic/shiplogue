@@ -109,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
     tracker = new Tracker(store);
     tracker.start();
   }
-  activitySync = new ActivitySync(context, store, cloud);
+  activitySync = new ActivitySync(context, store, cloud, draftHistory);
   activitySync.start();
 
   // Continuous prompt capture across Cursor/VS Code/Antigravity-compatible
