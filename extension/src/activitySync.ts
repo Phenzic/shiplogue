@@ -6,6 +6,7 @@ import { Store } from "./store";
 import { currentEditorSource } from "./sources";
 import { normalizeFolderPath } from "./paths";
 import { gatherContext } from "./gather";
+import { collectCommitActivity } from "./git";
 import type { DraftHistory } from "./draftHistory";
 
 const LAST_SYNC_KEY = "shiplogue.activitySync.lastAt";
@@ -51,7 +52,7 @@ export class ActivitySync {
     this.running = true;
     try {
       const last = this.context.globalState.get<string>(LAST_SYNC_KEY);
-      const since = last ? new Date(new Date(last).getTime() - 5 * 60_000) : new Date(Date.now() - 7 * 24 * 60 * 60_000);
+      const since = last ? new Date(new Date(last).getTime() - 5 * 60_000) : new Date(Date.now() - 30 * 24 * 60 * 60_000);
       const until = new Date();
       const localEvents = this.store.readRange(since, until).map((event) => {
           const id = crypto
@@ -81,22 +82,26 @@ export class ActivitySync {
 
       const extra: Record<string, unknown>[] = [];
       try {
-        const ctx = await gatherContext(this.store);
-        for (const commit of ctx.commits) {
+        for (const commit of await collectCommitActivity(since, until)) {
           extra.push({
-            id: `commit:${commit.hash}`,
+            id: `commit:${commit.repo}:${commit.hash}`,
             source: "git",
             type: "commit",
             occurredAt: commit.date || new Date().toISOString(),
             title: commit.subject,
             summary: commit.body || undefined,
             project: commit.repo,
-            files: commit.files.map((path) => ({ path })),
+            files: commit.files,
             producer: "git",
             aiAssisted: false,
-            metadata: { hash: commit.hash },
+            metadata: { hash: commit.hash, repo: commit.repo },
           });
         }
+      } catch {
+        /* commit history collection is best effort */
+      }
+      try {
+        const ctx = await gatherContext(this.store);
         for (const item of ctx.github) {
           extra.push({
             id: `github:${item.kind}:${item.number}:${item.url}`,

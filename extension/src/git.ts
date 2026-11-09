@@ -6,6 +6,7 @@ import {
   collectCommits as coreCollectCommits,
   collectDiffStats as coreCollectDiffStats,
   collectUncommittedFiles as coreCollectUncommittedFiles,
+  collectCommitActivity as coreCollectCommitActivity,
 } from "./core/gather/git";
 
 export { repoSlug } from "./core/gather/git";
@@ -27,6 +28,16 @@ export function collectCommits(
   workspaceFolders?: readonly vscode.WorkspaceFolder[],
 ) {
   return coreCollectCommits(folderRefs(workspaceFolders), since, until, signal);
+}
+
+/** Commit history with per-file numstat for Activity; metadata only. */
+export function collectCommitActivity(
+  since: Date,
+  until: Date,
+  signal?: AbortSignal,
+  workspaceFolders?: readonly vscode.WorkspaceFolder[],
+) {
+  return coreCollectCommitActivity(folderRefs(workspaceFolders), since, until, signal);
 }
 
 /** Uncommitted paths only (no contents), local metadata for the coverage strip. */

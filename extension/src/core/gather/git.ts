@@ -120,6 +120,73 @@ export async function collectCommits(
   return out;
 }
 
+export type CommitActivityFile = { path: string; additions?: number; deletions?: number }
+export type CommitActivity = Omit<Commit, "files"> & { files: CommitActivityFile[] }
+
+/**
+ * Commit history with per-file numstat for the activity log. Uses one git log
+ * per repo, all open workspace folders, and never reads file contents.
+ */
+export async function collectCommitActivity(
+  folders: readonly FolderRef[],
+  since: Date,
+  until: Date,
+  signal?: AbortSignal,
+): Promise<CommitActivity[]> {
+  const RS = "\x1e";
+  const US = "\x1f";
+  const GS = "\x1d";
+  const out: CommitActivity[] = [];
+  for (const folder of folders) {
+    const cwd = folder.path;
+    if (!(await isRepo(cwd, signal))) continue;
+    let author = "";
+    try {
+      author = (await git(cwd, ["config", "user.email"], signal)).trim();
+    } catch {
+      /* all authors */
+    }
+    const slug = (await repoSlug(cwd, signal)) ?? folder.name;
+    const args = [
+      "log",
+      "--numstat",
+      `--since=${since.toISOString()}`,
+      `--until=${until.toISOString()}`,
+      `--pretty=format:${RS}%H${US}%aI${US}%s${US}%b${GS}`,
+    ];
+    if (author) args.push(`--author=${author}`);
+    try {
+      const stdout = await git(cwd, args, signal);
+      for (const rec of stdout.split(RS)) {
+        if (!rec.trim()) continue;
+        const [header, numstat = ""] = rec.split(GS);
+        const [hash, date, subject, body = ""] = header.split(US);
+        if (!hash?.trim()) continue;
+        const files: CommitActivityFile[] = [];
+        for (const line of numstat.split("\n")) {
+          const [added, removed, file] = line.split("\t");
+          if (!file || !file.trim()) continue;
+          if (isPrivatePath(file, cwd)) continue;
+          const additions = /^\d+$/.test(added) ? Number(added) : undefined;
+          const deletions = /^\d+$/.test(removed) ? Number(removed) : undefined;
+          files.push({ path: file.trim(), ...(additions !== undefined ? { additions } : {}), ...(deletions !== undefined ? { deletions } : {}) });
+        }
+        out.push({
+          hash: hash.trim().slice(0, 8),
+          date: date ?? "",
+          subject: subject ?? "",
+          body: body.trim(),
+          repo: slug,
+          files,
+        });
+      }
+    } catch (error) {
+      console.error(`[shiplogue] git activity log failed in ${cwd}:`, error);
+    }
+  }
+  return out;
+}
+
 /** Uncommitted paths only (no contents), local metadata for the coverage strip. */
 export async function collectUncommittedFiles(
   folders: readonly FolderRef[],

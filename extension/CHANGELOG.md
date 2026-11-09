@@ -34,6 +34,8 @@ All notable changes to this project will be documented here. Format follows
   multiple tags per item and section headers.
 - Activity sync is enabled by default; `Shiplogue: Enable Activity Sync`
   re-enables it explicitly.
+- Activity sync backfills 30 days of commits across all open local workspace
+  folders, with per-file additions/deletions.
 
 ### Fixed
 
