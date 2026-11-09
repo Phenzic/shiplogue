@@ -27,8 +27,6 @@ All notable changes to this project will be documented here. Format follows
 - Activity page and cloud contract support for richer activity records.
 - Project key selection and cloud review flow.
 
-## [0.1.12] — 2026-11-07
-
 ### Fixed
 
 - Changing Detail or Tone now only updates the setting; it no longer triggers a
