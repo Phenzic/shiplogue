@@ -3,6 +3,12 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.12-b] — 2026-11-09
+
+### Fixed
+
+- Republished the 0.1.12 release as a semver-compatible pre-release.
+
 ## [0.1.12] — 2026-11-09
 
 ### Added
