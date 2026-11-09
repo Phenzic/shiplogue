@@ -42,6 +42,7 @@ function clean(value: string): string {
 
 function tagOf(raw: string): StandupTag {
   const value = raw.trim().toLowerCase().replace(/[`"'[\]]/g, "");
+  if (value === "feat") return "feature";
   if (value === "bug") return "fix";
   if (value === "perf") return "performance";
   return TAGS.has(value) ? (value as StandupTag) : "chore";
@@ -96,7 +97,7 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
       if (!text) continue;
       // Theme-first headers before Today are malformed model output, not a
       // headline. Never leak them into copied Markdown.
-      if (/^###\s+/.test(text)) continue;
+      if (/^#{1,6}\s+/.test(text)) continue;
       if (/^hey team\b/i.test(text) && !greeting) {
         greeting = text;
       } else {
@@ -106,13 +107,20 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
     }
 
     if (section === "today") {
-      const theme = line.trim().match(/^###\s+(.+?)((?:\s+\[[^\]]+\])+)\s*$/);
+      const theme = line.trim().match(/^###\s+(.+?)((?:\s+\[[^\]]+\])*)\s*$/);
       if (theme) {
-        const title = clean(theme[1]);
+        let title = clean(theme[1]);
+        let parsedTags = [...theme[2].matchAll(/\[([^\]]+)\]/g)].map((match) => tagOf(match[1]));
+        // Models often emit "### feat: commit subject" without a bracket tag.
+        const prefix = title.match(/^(feat|feature|fix|bug|docs|refactor|test|security|debug|chore|perf|performance):\s*(.+)$/i);
+        if (prefix) {
+          const mapped = tagOf(prefix[1]);
+          title = clean(prefix[2]);
+          parsedTags = [mapped, ...parsedTags.filter((tag) => tag !== mapped)];
+        }
         // Some models emit the tag as the heading ("### feature [chore]").
         // Prefer that explicit tag instead of defaulting everything to chore.
         const titleTag = title.toLowerCase();
-        const parsedTags = [...theme[2].matchAll(/\[([^\]]+)\]/g)].map((match) => tagOf(match[1]));
         const titleIsTag =
           TAGS.has(titleTag) &&
           (parsedTags.length === 0 || (parsedTags.length === 1 && parsedTags[0] === "chore"));
@@ -120,7 +128,7 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
           ? [titleTag as StandupTag, ...parsedTags.filter((tag) => tag !== titleTag)]
           : parsedTags;
         currentTheme = {
-          title,
+          title: title || "Update",
           tag: tags[0] ?? "chore",
           ...(tags.length > 1 ? { tags } : {}),
           summary: "",
@@ -143,6 +151,13 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
       const bullet = line.match(/^[-*•]\s+(.+)$/);
       if (bullet) {
         const text = clean(bullet[1]);
+        const files = text.match(/^files?:\s*(.+)$/i);
+        if (files) {
+          for (const file of files[1].split(/,\s*/).map((value) => value.trim()).filter(Boolean)) {
+            currentTheme.files.push(file);
+          }
+          continue;
+        }
         if (!currentTheme.summary) currentTheme.summary = text;
         else currentTheme.details.push(text);
         continue;

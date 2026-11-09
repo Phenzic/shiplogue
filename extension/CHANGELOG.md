@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.14] — 2026-11-09
+
+### Fixed
+
+- Preview now recognizes untagged model headings such as `### feat: ...` and
+  renders the structured stand-up UI instead of falling back to raw Markdown.
+- `feat:` headings map to the `feature` tag.
+- `files:` lines are parsed separately from prose and no longer appear in the
+  stand-up preview or copied text; files remain in Activity.
+- `•` bullet output is normalized into the structured list.
+
 ## [0.1.12 / 0.1.13] — 2026-11-09
 
 Stable Marketplace release. 0.1.12-b was rejected by the Marketplace

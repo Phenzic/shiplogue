@@ -303,15 +303,14 @@
         const summary = el("span", "theme-summary");
         inlineNodes(theme.summary || "", highlights || []).forEach((n) => summary.appendChild(n));
         row.appendChild(summary);
-        const files = (theme.files || []).map(shortFile);
-        const details = (theme.details || []).concat(files);
+        const details = theme.details || [];
         if (details.length) {
           const toggle = el("button", "theme-toggle", "Details (" + details.length + ")");
           const body = el("div", "theme-detail hidden");
           const ul = el("ul");
           for (const detail of details) {
             const li = el("li");
-            if (files.includes(detail)) li.className = "file";
+            if (false) li.className = "file";
             li.textContent = detail;
             ul.appendChild(li);
           }
