@@ -490,7 +490,8 @@ test("structured drafts render the headline, tags, and theme details", () => {
     },
   });
   assert.match(ui.text("preview"), /Shipped the weekly recap and delivery/);
-  assert.match(ui.text("preview"), /Weekly recap/);
+  assert.match(ui.text("preview"), /Added an opt-in recap email/);
+  assert.doesNotMatch(ui.text("preview"), /Weekly recap/);
   assert.match(ui.text("preview"), /feature/);
   assert.match(ui.text("preview"), /email\.ts/);
   assert.doesNotMatch(ui.text("preview"), /lib\/email\.ts/);

@@ -279,13 +279,16 @@
     section(labels.yesterday || "Yesterday");
     bullets(doc.yesterday);
     section(labels.today || "Today");
+    const todayList = el("ul", "theme-list");
     for (const theme of doc.today || []) {
-      const row = el("div", "theme");
-      const head = el("div", "theme-head");
-      head.appendChild(el("span", "tag tag-" + theme.tag, theme.tag));
-      head.appendChild(el("span", "theme-title", theme.title));
-      row.appendChild(head);
-      row.appendChild(el("p", "theme-summary", theme.summary));
+      if (/^no activity yet$/i.test(String(theme.title || "").trim())) continue;
+      const row = el("li", "theme");
+      if (theme.tag && theme.tag !== "chore") {
+        row.appendChild(el("span", "tag tag-" + theme.tag, theme.tag));
+      }
+      const summary = el("span", "theme-summary");
+      inlineNodes(theme.summary || "", highlights || []).forEach((n) => summary.appendChild(n));
+      row.appendChild(summary);
       const files = (theme.files || []).map(shortFile);
       const details = (theme.details || []).concat(files);
       if (details.length) {
@@ -306,8 +309,9 @@
         row.appendChild(toggle);
         row.appendChild(body);
       }
-      container.appendChild(row);
+      todayList.appendChild(row);
     }
+    container.appendChild(todayList);
     section(labels.next || "Next");
     bullets(doc.next);
     section(labels.blockers || "Blockers");

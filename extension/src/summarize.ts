@@ -1,7 +1,7 @@
 import { cfg } from "./config";
 import { StandupContext } from "./types";
 import { enforceSublists, limitSectionBullets } from "./format";
-import { parseStandupDocument, renderStandupDocument, type StandupDocument } from "./standupDocument";
+import { parseStandupDocument, renderStandupCopy, type StandupDocument } from "./standupDocument";
 import { scoreStandupDocument, type StandupQuality } from "./standupQuality";
 import { getFormatSections } from "./formatProfile";
 import { verifyClaims, Verification } from "./grounding";
@@ -184,7 +184,7 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
   const yesterdayLabel =
     getFormatSections().find((section) => section.key === "yesterday")?.label ?? "Yesterday";
   const finalText = document
-    ? renderStandupDocument(document)
+    ? renderStandupCopy(document)
     : limitSectionBullets(verification.cleanDraft, [yesterdayLabel], 4);
   return {
     text: finalText,

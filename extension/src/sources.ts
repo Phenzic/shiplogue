@@ -55,16 +55,13 @@ function promptSource(source: string | undefined, editor: SourceId): SourceId | 
 }
 
 export function sourcesForContext(
-  prompts: { source?: string }[],
+  _prompts: { source?: string }[],
   appName = vscode.env?.appName ?? "",
 ): SourceId[] {
-  const editor = currentEditorSource(appName);
-  const seen = new Set<SourceId>([editor]);
-  for (const prompt of prompts) {
-    const source = promptSource(prompt.source, editor);
-    if (source) seen.add(source);
-  }
-  return [...seen];
+  // A stand-up is produced by the editor/agent hosting this session. Prompt
+  // context may come from another tool, but it must not be credited as a
+  // producing source (for example Cursor prompts inside Antigravity).
+  return [currentEditorSource(appName)];
 }
 
 export function unionSources(lists: (readonly string[] | undefined)[]): SourceId[] {

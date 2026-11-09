@@ -93,6 +93,9 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
     if (!section) {
       const text = line.trim();
       if (!text) continue;
+      // Theme-first headers before Today are malformed model output, not a
+      // headline. Never leak them into copied Markdown.
+      if (/^###\s+/.test(text)) continue;
       if (/^hey team\b/i.test(text) && !greeting) {
         greeting = text;
       } else {
@@ -104,9 +107,13 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
     if (section === "today") {
       const theme = line.trim().match(/^###\s+(.+?)\s+\[([^\]]+)\]\s*$/);
       if (theme) {
+        const title = clean(theme[1]);
+        // Some models emit the tag as the heading ("### feature [chore]").
+        // Prefer that explicit tag instead of defaulting everything to chore.
+        const titleTag = title.toLowerCase();
         currentTheme = {
-          title: clean(theme[1]),
-          tag: tagOf(theme[2]),
+          title,
+          tag: TAGS.has(titleTag) ? (titleTag as StandupTag) : tagOf(theme[2]),
           summary: "",
           details: [],
           files: [],
@@ -153,6 +160,34 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
 }
 
 /** Render the clean story Markdown. File/detail metadata stays in the document. */
+/** Copy-friendly rendering: Today is a list, never a tag heading. */
+export function renderStandupCopy(doc: StandupDocument): string {
+  const sections = getFormatSections();
+  const label = (key: SectionKey, fallback: string) =>
+    doc.labels?.[key] ?? sections.find((section) => section.key === key)?.label ?? fallback;
+  const lines: string[] = [doc.greeting, "", doc.headline, ""];
+  lines.push(`**${label("yesterday", "Yesterday")}**`);
+  for (const item of doc.yesterday.length ? doc.yesterday : ["None"]) lines.push(`- ${item}`);
+  lines.push("");
+  const themes = doc.today.filter((theme) => !/^no activity yet$/i.test(theme.title.trim()));
+  if (themes.length > 0) {
+    lines.push(`**${label("today", "Today")}**`);
+    for (const theme of themes) {
+      const tag = theme.tag && theme.tag !== "chore" ? ` [${theme.tag}]` : "";
+      lines.push(`- ${theme.summary}${tag}`);
+      for (const detail of theme.details) lines.push(`  - ${detail}`);
+      for (const file of theme.files) lines.push(`  - ${file}`);
+    }
+    lines.push("");
+  }
+  lines.push(`**${label("next", "Next")}**`);
+  for (const item of doc.next.length ? doc.next : ["None"]) lines.push(`- ${item}`);
+  lines.push("");
+  lines.push(`**${label("blockers", "Blockers")}**`);
+  for (const item of doc.blockers.length ? doc.blockers : ["None"]) lines.push(`- ${item}`);
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+}
+
 export function renderStandupDocument(doc: StandupDocument): string {
   const sections = getFormatSections();
   const label = (key: SectionKey, fallback: string) =>

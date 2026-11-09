@@ -295,14 +295,14 @@ mark.unverified {
 .standup-headline {
   margin: 0 0 14px; font-size: 13.5px; line-height: 1.6; color: var(--fg);
 }
-.theme {
-  border-top: 1px solid var(--line-soft);
-  padding: 10px 0 8px;
+.theme-list { margin: 4px 0 0; padding-left: 18px; }
+.theme-list .theme {
+  border-top: 0;
+  padding: 3px 0;
 }
-.theme:first-of-type { border-top: 0; }
 .theme-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.theme-title { font-size: 13px; font-weight: 600; color: var(--fg-strong); }
-.theme-summary { margin: 4px 0 6px; font-size: 13px; line-height: 1.55; color: var(--fg); }
+.theme-summary { font-size: 13px; line-height: 1.55; color: var(--fg); }
+.theme-list .tag { margin-right: 6px; }
 .theme-toggle {
   background: transparent; border: 0; padding: 0; cursor: pointer;
   color: var(--accent); font-size: 11.5px;

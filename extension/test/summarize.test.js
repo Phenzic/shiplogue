@@ -229,7 +229,8 @@ test("a low-quality theme draft triggers one targeted editorial repair", async (
       assert.match(server.requests[1].body.prompt, /Your previous draft/);
       assert.match(server.requests[1].body.prompt, /at least 2 workstreams/);
       assert.equal(document.today.length, 3);
-      assert.equal(out.split("\n").filter((line) => line.startsWith("### ")).length, 3);
+      assert.match(out, /\*\*Today\*\*\n- Shipped meaningful outcome 1/);
+      assert.doesNotMatch(out, /^### /m);
     },
   );
 });
@@ -277,7 +278,7 @@ test("a failed repair keeps the first draft", async () => {
     const { text: out, document } = await generateStandup(baseCtx({ commits }));
     assert.equal(server.requests.length, 2);
     assert.equal(document.today.length, 1);
-    assert.match(out, /Theme 1/);
+    assert.match(out, /Shipped meaningful outcome 1/);
   } finally {
     await server.close();
   }

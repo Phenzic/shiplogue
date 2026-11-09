@@ -26,6 +26,10 @@ All notable changes to this project will be documented here. Format follows
 
 - Activity page and cloud contract support for richer activity records.
 - Project key selection and cloud review flow.
+- Copy Markdown and plain text now use list items for Today, with no
+  per-workstream tag headers.
+- Stand-up source attribution now uses the host editor/agent, so Antigravity
+  reports no longer show Cursor as a second source.
 
 ### Fixed
 
