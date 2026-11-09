@@ -279,39 +279,54 @@
     section(labels.yesterday || "Yesterday");
     bullets(doc.yesterday);
     section(labels.today || "Today");
-    const todayList = el("ul", "theme-list");
+    const groups = new Map();
     for (const theme of doc.today || []) {
       if (/^no activity yet$/i.test(String(theme.title || "").trim())) continue;
-      const row = el("li", "theme");
-      if (theme.tag && theme.tag !== "chore") {
-        row.appendChild(el("span", "tag tag-" + theme.tag, theme.tag));
-      }
-      const summary = el("span", "theme-summary");
-      inlineNodes(theme.summary || "", highlights || []).forEach((n) => summary.appendChild(n));
-      row.appendChild(summary);
-      const files = (theme.files || []).map(shortFile);
-      const details = (theme.details || []).concat(files);
-      if (details.length) {
-        const toggle = el("button", "theme-toggle", "Details (" + details.length + ")");
-        const body = el("div", "theme-detail hidden");
-        const ul = el("ul");
-        for (const detail of details) {
-          const li = el("li");
-          if (files.includes(detail)) li.className = "file";
-          li.textContent = detail;
-          ul.appendChild(li);
-        }
-        body.appendChild(ul);
-        toggle.onclick = () => {
-          const open = body.classList.toggle("hidden");
-          toggle.textContent = (open ? "Details" : "Hide details") + " (" + details.length + ")";
-        };
-        row.appendChild(toggle);
-        row.appendChild(body);
-      }
-      todayList.appendChild(row);
+      const folders = [...new Set((theme.files || []).map(function (file) {
+        const parts = String(file).replace(/\\/g, "/").split("/").filter(Boolean);
+        if (parts.length < 2) return "";
+        return (parts[0] === "src" || parts[0] === "packages") && parts[1] ? parts[1] : parts[0];
+      }).filter(Boolean))];
+      const section = folders.length === 1 ? folders[0] : "";
+      if (!groups.has(section)) groups.set(section, []);
+      groups.get(section).push(theme);
     }
-    container.appendChild(todayList);
+    for (const entry of groups) {
+      if (entry[0]) container.appendChild(el("div", "theme-section", entry[0]));
+      const todayList = el("ul", "theme-list");
+      for (const theme of entry[1]) {
+        const row = el("li", "theme");
+        const tags = Array.isArray(theme.tags) && theme.tags.length ? theme.tags : (theme.tag ? [theme.tag] : []);
+        for (const tag of tags) {
+          row.appendChild(el("span", "tag tag-" + tag, tag));
+        }
+        const summary = el("span", "theme-summary");
+        inlineNodes(theme.summary || "", highlights || []).forEach((n) => summary.appendChild(n));
+        row.appendChild(summary);
+        const files = (theme.files || []).map(shortFile);
+        const details = (theme.details || []).concat(files);
+        if (details.length) {
+          const toggle = el("button", "theme-toggle", "Details (" + details.length + ")");
+          const body = el("div", "theme-detail hidden");
+          const ul = el("ul");
+          for (const detail of details) {
+            const li = el("li");
+            if (files.includes(detail)) li.className = "file";
+            li.textContent = detail;
+            ul.appendChild(li);
+          }
+          body.appendChild(ul);
+          toggle.onclick = () => {
+            const open = body.classList.toggle("hidden");
+            toggle.textContent = (open ? "Details" : "Hide details") + " (" + details.length + ")";
+          };
+          row.appendChild(toggle);
+          row.appendChild(body);
+        }
+        todayList.appendChild(row);
+      }
+      container.appendChild(todayList);
+    }
     section(labels.next || "Next");
     bullets(doc.next);
     section(labels.blockers || "Blockers");

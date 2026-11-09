@@ -30,6 +30,10 @@ All notable changes to this project will be documented here. Format follows
   per-workstream tag headers.
 - Stand-up source attribution now uses the host editor/agent, so Antigravity
   reports no longer show Cursor as a second source.
+- Copy/preview group Today by major folder when files identify one, with
+  multiple tags per item and section headers.
+- Activity sync is enabled by default; `Shiplogue: Enable Activity Sync`
+  re-enables it explicitly.
 
 ### Fixed
 

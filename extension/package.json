@@ -67,6 +67,10 @@
         "title": "Shiplogue: Show Tracked Activity (debug)"
       },
       {
+        "command": "shiplogue.enableActivitySync",
+        "title": "Shiplogue: Enable Activity Sync"
+      },
+      {
         "command": "shiplogue.setProviderKey",
         "title": "Shiplogue: Set API Key (Bring Your Own)"
       },
@@ -293,7 +297,7 @@
         },
         "shiplogue.activitySync.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Sync metadata-only activity (paths, event type, project, timestamp, source) to Shiplogue Cloud. Never includes file contents, prompts, or terminal output."
         },
         "shiplogue.generate.timeoutSeconds": {

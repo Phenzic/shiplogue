@@ -56,7 +56,11 @@ export interface GenerateResult {
   quality?: StandupQuality;
 }
 
-export async function generateStandup(ctx: StandupContext, signal?: AbortSignal): Promise<GenerateResult> {
+export async function generateStandup(
+  ctx: StandupContext,
+  signal?: AbortSignal,
+  options: { section?: string } = {},
+): Promise<GenerateResult> {
   const c = cfg();
   const level = DETAIL_LEVELS[c.detail] ?? DETAIL_LEVELS.concise;
   const budget = c.modelContextTokens > 0 ? c.modelContextTokens - level.predict - 256 : 0;
@@ -184,7 +188,7 @@ export async function generateStandup(ctx: StandupContext, signal?: AbortSignal)
   const yesterdayLabel =
     getFormatSections().find((section) => section.key === "yesterday")?.label ?? "Yesterday";
   const finalText = document
-    ? renderStandupCopy(document)
+    ? renderStandupCopy(document, options.section)
     : limitSectionBullets(verification.cleanDraft, [yesterdayLabel], 4);
   return {
     text: finalText,

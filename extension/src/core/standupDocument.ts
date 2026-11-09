@@ -17,6 +17,7 @@ export type StandupTag = (typeof STANDUP_TAGS)[number];
 export type StandupTheme = {
   title: string;
   tag: StandupTag;
+  tags?: StandupTag[];
   summary: string;
   details: string[];
   files: string[];
@@ -105,15 +106,23 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
     }
 
     if (section === "today") {
-      const theme = line.trim().match(/^###\s+(.+?)\s+\[([^\]]+)\]\s*$/);
+      const theme = line.trim().match(/^###\s+(.+?)((?:\s+\[[^\]]+\])+)\s*$/);
       if (theme) {
         const title = clean(theme[1]);
         // Some models emit the tag as the heading ("### feature [chore]").
         // Prefer that explicit tag instead of defaulting everything to chore.
         const titleTag = title.toLowerCase();
+        const parsedTags = [...theme[2].matchAll(/\[([^\]]+)\]/g)].map((match) => tagOf(match[1]));
+        const titleIsTag =
+          TAGS.has(titleTag) &&
+          (parsedTags.length === 0 || (parsedTags.length === 1 && parsedTags[0] === "chore"));
+        const tags = titleIsTag
+          ? [titleTag as StandupTag, ...parsedTags.filter((tag) => tag !== titleTag)]
+          : parsedTags;
         currentTheme = {
           title,
-          tag: TAGS.has(titleTag) ? (titleTag as StandupTag) : tagOf(theme[2]),
+          tag: tags[0] ?? "chore",
+          ...(tags.length > 1 ? { tags } : {}),
           summary: "",
           details: [],
           files: [],
@@ -160,8 +169,22 @@ export function parseStandupDocument(markdown: string): StandupDocument | undefi
 }
 
 /** Render the clean story Markdown. File/detail metadata stays in the document. */
-/** Copy-friendly rendering: Today is a list, never a tag heading. */
-export function renderStandupCopy(doc: StandupDocument): string {
+function topFolder(file: string): string | undefined {
+  const parts = file.replace(/\\/g, "/").replace(/^\.\//, "").split("/").filter(Boolean);
+  if (parts.length < 2) return undefined;
+  const first = parts[0];
+  if ((first === "src" || first === "packages") && parts[2]) return parts[1];
+  return first;
+}
+
+function themeSection(theme: StandupTheme, fallback?: string): string | undefined {
+  const folders = [...new Set(theme.files.map(topFolder).filter((value): value is string => Boolean(value)))];
+  if (folders.length === 1) return folders[0];
+  return fallback;
+}
+
+/** Copy-friendly rendering: Today is grouped by major folder/section. */
+export function renderStandupCopy(doc: StandupDocument, fallbackSection?: string): string {
   const sections = getFormatSections();
   const label = (key: SectionKey, fallback: string) =>
     doc.labels?.[key] ?? sections.find((section) => section.key === key)?.label ?? fallback;
@@ -172,11 +195,19 @@ export function renderStandupCopy(doc: StandupDocument): string {
   const themes = doc.today.filter((theme) => !/^no activity yet$/i.test(theme.title.trim()));
   if (themes.length > 0) {
     lines.push(`**${label("today", "Today")}**`);
+    const groups = new Map<string, StandupTheme[]>();
     for (const theme of themes) {
-      const tag = theme.tag && theme.tag !== "chore" ? ` [${theme.tag}]` : "";
-      lines.push(`- ${theme.summary}${tag}`);
-      for (const detail of theme.details) lines.push(`  - ${detail}`);
-      for (const file of theme.files) lines.push(`  - ${file}`);
+      const section = themeSection(theme, fallbackSection) ?? "";
+      groups.set(section, [...(groups.get(section) ?? []), theme]);
+    }
+    for (const [section, items] of groups) {
+      if (section) lines.push(`### ${section}`);
+      for (const theme of items) {
+        const tags = (theme.tags?.length ? theme.tags : [theme.tag]).filter(Boolean);
+        const suffix = tags.map((tag) => ` [${tag}]`).join("");
+        lines.push(`- ${theme.summary}${suffix}`);
+        for (const detail of theme.details) lines.push(`  - ${detail}`);
+      }
     }
     lines.push("");
   }

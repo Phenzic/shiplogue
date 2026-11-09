@@ -155,6 +155,20 @@ export function activate(context: vscode.ExtensionContext) {
       await showHistory();
     }),
     vscode.commands.registerCommand("shiplogue.showActivity", () => runShowActivity()),
+    vscode.commands.registerCommand("shiplogue.enableActivitySync", async () => {
+      await vscode.workspace
+        .getConfiguration("shiplogue")
+        .update("activitySync.enabled", true, vscode.ConfigurationTarget.Global);
+      await activitySync?.flush();
+      void vscode.window.showInformationMessage(
+        "Activity sync enabled. Shiplogue uploads metadata only — no file contents, prompts, or terminal output.",
+      );
+    }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("shiplogue.activitySync.enabled") && cfg().activitySyncEnabled) {
+        void activitySync?.flush();
+      }
+    }),
     vscode.commands.registerCommand("shiplogue.setProviderKey", () => setProviderKey()),
     vscode.commands.registerCommand("shiplogue.clearProviderKey", () => clearProviderKey()),
     vscode.commands.registerCommand("shiplogue.testProvider", () => testProvider()),
@@ -308,7 +322,7 @@ async function runGenerate(
       verification,
       document,
       quality,
-    } = await generateStandup(ctx, controller.signal);
+    } = await generateStandup(ctx, controller.signal, { section: local?.name });
     if (controller.signal.aborted) {
       throw new DOMException("Generation aborted", "AbortError");
     }

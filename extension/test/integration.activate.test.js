@@ -131,6 +131,7 @@ test("happy path: save → commit + GitHub + Ollama → draft panel with referen
       "shiplogue.connectCloud",
       "shiplogue.connectGitHub",
       "shiplogue.disconnectCloud",
+      "shiplogue.enableActivitySync",
       "shiplogue.feedback",
       "shiplogue.generate",
       "shiplogue.generateWeeklyRecap",

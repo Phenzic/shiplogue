@@ -234,6 +234,7 @@ export class CloudClient {
           themes: input.document?.today.map((theme) => ({
             title: theme.title,
             tag: theme.tag,
+            ...(theme.tags?.length ? { tags: theme.tags } : {}),
             summary: theme.summary,
             details: theme.details,
             files: theme.files.map((file) => file.replace(/\\/g, "/").split("/").pop() || file),

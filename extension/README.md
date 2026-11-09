@@ -134,7 +134,7 @@ Full details: [PRIVACY.md](https://github.com/Phenzic/shiplogue/blob/main/extens
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `shiplogue.lookbackHours` | `24` | Legacy debug window; daily generation now uses the local calendar day. |
-| `shiplogue.activitySync.enabled` | `false` | Opt-in metadata-only activity sync (paths, commits, sessions, tokens). No file contents or prompt text. |
+| `shiplogue.activitySync.enabled` | `true` | Opt-in metadata-only activity sync (paths, commits, sessions, tokens). No file contents or prompt text. |
 | `shiplogue.detail` | `concise` | `concise` / `standard` / `elaborate` |
 | `shiplogue.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
 | `shiplogue.model.backend` | `auto` | `auto` / `provider` / `ollama` |

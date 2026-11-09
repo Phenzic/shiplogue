@@ -317,10 +317,15 @@ mark.unverified {
   background: var(--chrome); color: var(--muted);
   border: 1px solid var(--line-soft);
 }
-.tag-feature { color: var(--accent); }
-.tag-fix, .tag-debug { color: var(--warn); }
-.tag-security { color: var(--bad); }
-.tag-docs, .tag-test, .tag-chore { color: var(--muted); }
+.tag-feature, .tag-refactor, .tag-chore, .tag-docs, .tag-performance { color: var(--accent); }
+.tag-fix { color: var(--warn); }
+.tag-debug { color: var(--err); }
+.tag-security { color: var(--warn); }
+.tag-test { color: var(--ok); }
+.theme-section {
+  margin: 10px 0 4px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted);
+}
 .verify-strip { padding: 6px 9px; margin-bottom: 10px; font-size: 11px; }
 .verify-strip.bad { background: color-mix(in srgb, var(--warn) 5%, transparent); }
 
