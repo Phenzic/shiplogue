@@ -302,7 +302,7 @@ mark.unverified {
 }
 .theme-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .theme-summary { font-size: 13px; line-height: 1.55; color: var(--fg); }
-.theme-list .tag { margin-right: 6px; }
+.theme-list .tag { margin-left: 6px; }
 .theme-toggle {
   background: transparent; border: 0; padding: 0; cursor: pointer;
   color: var(--accent); font-size: 11.5px;

@@ -297,12 +297,12 @@
       for (const theme of entry[1]) {
         const row = el("li", "theme");
         const tags = Array.isArray(theme.tags) && theme.tags.length ? theme.tags : (theme.tag ? [theme.tag] : []);
-        for (const tag of tags) {
-          row.appendChild(el("span", "tag tag-" + tag, tag));
-        }
         const summary = el("span", "theme-summary");
         inlineNodes(theme.summary || "", highlights || []).forEach((n) => summary.appendChild(n));
         row.appendChild(summary);
+        for (const tag of tags) {
+          row.appendChild(el("span", "tag tag-" + tag, tag));
+        }
         const details = theme.details || [];
         if (details.length) {
           const toggle = el("button", "theme-toggle", "Details (" + details.length + ")");
