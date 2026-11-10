@@ -493,5 +493,10 @@ test("structured drafts render the headline, tags, and theme details", () => {
   assert.match(ui.text("preview"), /Added an opt-in recap email/);
   assert.doesNotMatch(ui.text("preview"), /Weekly recap/);
   assert.match(ui.text("preview"), /feature/);
+  assert.ok(
+    ui.text("preview").indexOf("Added an opt-in recap email") <
+      ui.text("preview").indexOf("feature"),
+    "tag should follow the item summary",
+  );
   assert.doesNotMatch(ui.text("preview"), /email\.ts/);
 });
