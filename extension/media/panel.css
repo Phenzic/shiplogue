@@ -129,7 +129,7 @@ h1 { font-size: 15px; margin: 0; font-weight: 600; color: var(--fg-strong); }
 .verify-strip .ok svg { width: 10px; height: 10px; }
 .verify-strip .removed { color: var(--warn); }
 .verify-strip .spacer { flex: 1; }
-#verifyRemovals { display: none; }
+#verifyRemovals, .verify-strip .removed { display: none; }
 .verify-strip a { color: var(--accent); text-decoration: none; font-size: 10px; }
 .verify-strip.bad { border-color: color-mix(in srgb, var(--warn) 30%, transparent); background: color-mix(in srgb, var(--warn) 7%, transparent); }
 .verify-strip.bad .warn-ic { color: var(--warn); display: inline-flex; align-items: center; gap: 5px; }
