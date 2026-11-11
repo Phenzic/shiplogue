@@ -33,6 +33,7 @@ export function cfg() {
     githubRepos: c.get<string[]>("github.repos", []),
     trackEnabled: c.get<boolean>("track.enabled", true),
     activitySyncEnabled: c.get<boolean>("activitySync.enabled", false),
+    installTelemetryEnabled: c.get<boolean>("installTelemetry.enabled", true),
     reminderEnabled: c.get<boolean>("reminder.enabled", true),
     reminderTime: c.get<string>("reminder.time", "16:00"),
     cursorEnabled: c.get<boolean>("cursor.enabled", true),

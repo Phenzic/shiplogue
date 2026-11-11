@@ -32,6 +32,7 @@ import { configureShortcut } from "./commands/shortcuts";
 import { cloudStatus, connectCloud, disconnectCloud, initCloud } from "./commands/cloud";
 import { localDateKey, type CloudClient } from "./cloud";
 import { Analytics, initAnalytics } from "./analytics";
+import { reportInstall } from "./installTelemetry";
 import { activeWorkspace } from "./workspaces";
 import { WeeklyRecapScheduler } from "./weeklyRecap";
 import { sourcesForContext } from "./sources";
@@ -83,6 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
     .catch(() => {});
   analytics = initAnalytics(context, cloud);
+  void reportInstall(context);
   cloudWarningShown = false;
   void analytics.track("extension.activated");
   // Provider keys live only in SecretStorage (OS keychain). Guard because a

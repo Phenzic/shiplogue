@@ -139,7 +139,7 @@ and never includes stand-up content. Settings:
   provider wins under `auto`; there is no silent fallback.
 - With BYOK, the assembled activity context is sent to that provider. Use Ollama
   if activity must stay on-device.
-- No telemetry by default. Anonymous product metadata is opt-in, requires a connector key, and never includes stand-up text, prompts, paths, repositories, or errors. Cloud sync is optional and inactive until you connect a key; local generation works without an account. This build stores a draft, but does not post it anywhere.
+- One anonymous install presence ping is sent per version by default: a random install ID, version, and platform. It contains no IP address, account, workspace, prompts, paths, or activity, respects the editor telemetry setting, and can be disabled with `shiplogue.installTelemetry.enabled`. Product-usage telemetry remains opt-in and requires a connector key. Cloud sync is optional; local generation works without an account.
 
 Full details: [PRIVACY.md](https://github.com/Phenzic/shiplogue/blob/main/extension/PRIVACY.md).
 
@@ -148,7 +148,8 @@ Full details: [PRIVACY.md](https://github.com/Phenzic/shiplogue/blob/main/extens
 | Setting | Default | Purpose |
 | --- | --- | --- |
 | `shiplogue.lookbackHours` | `24` | Legacy debug window; daily generation now uses the local calendar day. |
-| `shiplogue.activitySync.enabled` | `true` | Opt-in metadata-only activity sync (paths, commits, sessions, tokens). No file contents or prompt text. |
+| `shiplogue.activitySync.enabled` | `true` | Metadata-only activity sync (paths, commits, sessions, tokens). No file contents or prompt text. |
+| `shiplogue.installTelemetry.enabled` | `true` | One anonymous install ID + version per version; no IP/account/activity. Respects editor telemetry. |
 | `shiplogue.detail` | `concise` | `concise` / `standard` / `elaborate` |
 | `shiplogue.tone` | `neutral` | `neutral` / `junior` / `mid` / `senior` |
 | `shiplogue.model.backend` | `auto` | `auto` / `provider` / `ollama` |

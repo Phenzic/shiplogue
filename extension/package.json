@@ -300,6 +300,12 @@
           "default": true,
           "description": "Sync metadata-only activity (paths, event type, project, timestamp, source) to Shiplogue Cloud. Never includes file contents, prompts, or terminal output."
         },
+        "shiplogue.installTelemetry.enabled": {
+          "type": "boolean",
+          "default": true,
+          "tags": ["telemetry", "usesOnlineServices"],
+          "description": "Send one anonymous install ID and extension version per version. No IP address, account, workspace, or activity data. Respects the editor telemetry setting."
+        },
         "shiplogue.generate.timeoutSeconds": {
           "type": "number",
           "default": 180,

@@ -67,6 +67,17 @@ Shiplogue is **local-first**. Here is exactly what happens to your data.
 - GitHub API calls go only to `api.github.com`, only when GitHub collection is
   possible (token present).
 
+## Install presence
+
+On activation, Shiplogue sends one anonymous presence request per extension
+version: a random install ID stored in the editor's local state, the extension
+version, and the operating system platform. It does not send an IP address,
+account, workspace, project, prompt, file path, repository, or activity content.
+
+The request respects the editor's telemetry setting and can be disabled with
+`shiplogue.installTelemetry.enabled`. The cloud stores the unique install ID only
+to count active installations; this is not a download counter.
+
 ## Telemetry
 
 Optional and **off by default**. Cloud-connected users can opt in with
