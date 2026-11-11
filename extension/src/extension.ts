@@ -892,7 +892,7 @@ async function runUpdateCheck(context: vscode.ExtensionContext, force = false): 
     );
     const listing =
       result.source === "openvsx" ||
-      /cursor|antigravity|vscodium|windsurf/i.test(vscode.env?.appName ?? "")
+      /cursor|antigravity|vscodium|windsurf|devin/i.test(vscode.env?.appName ?? "")
         ? OPEN_VSX_URL
         : MARKETPLACE_URL;
 

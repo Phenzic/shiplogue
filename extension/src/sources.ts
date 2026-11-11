@@ -5,6 +5,7 @@ export type SourceId =
   | "cursor"
   | "antigravity"
   | "windsurf"
+  | "devin"
   | "vscodium"
   | "trae"
   | "kiro"
@@ -20,6 +21,7 @@ export const SOURCE_LABELS: Record<SourceId, string> = {
   cursor: "Cursor",
   antigravity: "Antigravity",
   windsurf: "Windsurf",
+  devin: "Devin",
   vscodium: "VSCodium",
   trae: "Trae",
   kiro: "Kiro",
@@ -35,6 +37,7 @@ export function currentEditorSource(appName = vscode.env?.appName ?? ""): Source
   const value = appName.toLowerCase();
   if (value.includes("cursor")) return "cursor";
   if (value.includes("antigravity")) return "antigravity";
+  if (value.includes("devin")) return "devin";
   if (value.includes("windsurf")) return "windsurf";
   if (value.includes("vscodium")) return "vscodium";
   if (value.includes("trae")) return "trae";
