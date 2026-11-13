@@ -8,9 +8,9 @@
 [![Website](https://img.shields.io/badge/website-shiplogue.dev-1e3a5f.svg)](https://shiplogue.dev)
 
 Shiplogue turns your real work — commits, changed files, GitHub PRs and issues,
-and your AI chat context — into a review-ready stand-up. It runs with a local
-Ollama model or your own API key, and never sends your activity anywhere unless
-you choose a cloud model.
+and your AI chat context — into a review-ready stand-up. It runs locally with
+Ollama or your own API key. Cloud sync is optional: share the reviewed draft, or
+send it to Slack, Discord or Teams on a schedule.
 
 ## Commands
 
@@ -27,7 +27,7 @@ Then type `Shiplogue:` to see every command.
   plain English, grouped from the work you actually did.
 - **Uses your evidence.** Git commits and changed files, saved files, merged PRs,
   closed issues, and AI prompts from Cursor, Copilot or Antigravity where available.
-- **Keeps you in control.** Review, edit and copy the draft. Nothing is posted.
+- **Keeps you in control.** Review, edit and copy the draft. Nothing posts unless you choose **Send via Shiplogue Cloud** or enable scheduled posting.
 - **Keeps your data local by default.** Ollama runs on your machine; API keys live
   in the OS keychain; private and `.gitignore`d paths are never recorded.
 
@@ -50,7 +50,7 @@ Then type `Shiplogue:` to see every command.
 | **Send via Shiplogue Cloud (Pro)** | From the panel or history, ask Shiplogue Cloud to post your stand-up to the targets you configured in the dashboard (Slack/Discord/Teams). Scheduled auto-posting also runs cloud-side. The extension never talks to a webhook directly. |
 | **Feedback & rating** | One question per version after a few drafts, a 👍-triggered GitHub star nudge, and Share Feedback / Star / Rate commands. |
 
-The built-in format is fixed. Custom section labels/order are a paid-plan option delivered from the cloud; free plans always get Yesterday / Today / Next / Blockers.
+The local core is open source under MIT. The built-in format is fixed; optional cloud delivery, history and weekly recap are Pro features.
 
 ## Compatibility
 

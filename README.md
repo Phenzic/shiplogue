@@ -5,9 +5,10 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Shiplogue is a local-first extension for VS Code-compatible editors. It watches the
-commits, saved files, GitHub activity and (in Cursor) AI prompts that make up your
-day, then asks a model to write the first draft of your stand-up. You review and
-edit it and copy it.
+commits, saved files, GitHub activity and AI sessions that make up your day, then
+asks a model to write the first draft of your stand-up. Review it, copy it, or
+optionally sync it and post it to Slack, Discord or Teams. Your code and prompts
+stay on your machine; the local core is MIT open source.
 
 It runs with your own [Ollama](https://ollama.com), your own API key for
 Anthropic, OpenAI, Google Gemini, or any OpenAI-compatible endpoint (DeepSeek,
