@@ -47,7 +47,7 @@ test("connect validates a key and stores it only in SecretStorage", async () => 
   }
 });
 
-test("paid cloud profiles apply custom labels/order; free plans ignore them", async () => {
+test("cloud profiles apply custom labels/order on every plan", async () => {
   const sections = [
     { key: "today", label: "Accomplishments" },
     { key: "yesterday", label: "Since last time" },
@@ -84,7 +84,7 @@ test("paid cloud profiles apply custom labels/order; free plans ignore them", as
     await free.connect(KEY);
     assert.deepEqual(
       getFormatSections().map((section) => section.label),
-      ["Yesterday", "Today", "Next", "Blockers"],
+      ["Accomplishments", "Since last time", "Up next", "Blocked by"],
     );
   } finally {
     resetFormatSections();

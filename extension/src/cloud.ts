@@ -32,6 +32,11 @@ export type CloudMe = {
     plan: string;
     syncActivity: boolean;
     format?: { sections?: unknown };
+    summarySettings?: {
+      detail?: 'concise' | 'standard' | 'elaborate';
+      tone?: 'neutral' | 'junior' | 'mid' | 'senior';
+      format?: unknown;
+    };
     features?: {
       posting?: boolean;
       scheduledPosting?: boolean;
@@ -135,23 +140,37 @@ export class CloudClient {
     const cached = this.context.globalState.get<{ plan?: string; sections?: unknown }>(
       CLOUD_PROFILE_KEY,
     );
-    if (cached && isPaidPlan(cached.plan)) {
+    if (cached && cached.sections) {
       setFormatSections(cached.sections);
     } else {
       resetFormatSections();
     }
   }
 
-  /** Paid cloud profiles may customise section labels/order. Free is ignored. */
+  /** Cloud settings may customise section labels/order for every plan. */
   private applyProfile(me: CloudMe): void {
-    const sections = isPaidPlan(me.workspace.plan)
-      ? normalizeFormatSections(me.workspace.format?.sections)
-      : undefined;
-    setFormatSections(sections);
-    void this.context.globalState.update(CLOUD_PROFILE_KEY, {
-      plan: me.workspace.plan,
-      sections,
-    });
+    const settings = me.workspace.summarySettings
+    const sections = normalizeFormatSections(settings?.format ?? me.workspace.format?.sections)
+    setFormatSections(sections)
+    void this.context.globalState.update(CLOUD_PROFILE_KEY, { plan: me.workspace.plan, sections })
+    if (settings?.detail || settings?.tone) {
+      const config = vscode.workspace.getConfiguration("shiplogue")
+      if (settings.detail && config.get("detail") !== settings.detail) {
+        void config.update("detail", settings.detail, vscode.ConfigurationTarget.Global)
+      }
+      if (settings.tone && config.get("tone") !== settings.tone) {
+        void config.update("tone", settings.tone, vscode.ConfigurationTarget.Global)
+      }
+    }
+  }
+
+  async updateSummarySettings(input: { detail?: string; tone?: string }): Promise<void> {
+    const key = await this.getKey()
+    if (!key) return
+    await this.request(key, "/api/v1/summary-settings", {
+      method: "PUT",
+      body: JSON.stringify(input),
+    })
   }
 
   get baseUrl(): string {

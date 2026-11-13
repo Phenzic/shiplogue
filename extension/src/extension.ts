@@ -170,6 +170,9 @@ export function activate(context: vscode.ExtensionContext) {
       if (event.affectsConfiguration("shiplogue.activitySync.enabled") && cfg().activitySyncEnabled) {
         void activitySync?.flush();
       }
+      if (event.affectsConfiguration("shiplogue.detail") || event.affectsConfiguration("shiplogue.tone")) {
+        void cloud?.updateSummarySettings({ detail: cfg().detail, tone: cfg().tone });
+      }
     }),
     vscode.commands.registerCommand("shiplogue.setProviderKey", () => setProviderKey()),
     vscode.commands.registerCommand("shiplogue.clearProviderKey", () => clearProviderKey()),
