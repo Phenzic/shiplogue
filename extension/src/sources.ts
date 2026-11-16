@@ -33,11 +33,16 @@ export const SOURCE_LABELS: Record<SourceId, string> = {
   unknown: "Editor",
 };
 
-export function currentEditorSource(appName = vscode.env?.appName ?? ""): SourceId {
-  const value = appName.toLowerCase();
+export function currentEditorSource(
+  appName = vscode.env?.appName ?? "",
+  appRoot = (vscode.env as { appRoot?: string } | undefined)?.appRoot ?? "",
+): SourceId {
+  // Some VS Code forks keep the upstream app name but expose their own install
+  // path. Check both so Devin is not reduced to the generic "Editor" fallback.
+  const value = `${appName} ${appRoot}`.toLowerCase();
+  if (value.includes("devin")) return "devin";
   if (value.includes("cursor")) return "cursor";
   if (value.includes("antigravity")) return "antigravity";
-  if (value.includes("devin")) return "devin";
   if (value.includes("windsurf")) return "windsurf";
   if (value.includes("vscodium")) return "vscodium";
   if (value.includes("trae")) return "trae";
