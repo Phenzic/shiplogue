@@ -17,19 +17,21 @@ Version, changelog, release notes, and VSIX are already prepared:
 1. Commit and push:
    ```bash
    git add extension/package.json extension/package-lock.json \
-     extension/CHANGELOG.md RELEASE_NOTES_0.1.15.md \
-     extension/shiplogue-0.1.15.vsix
+     extension/CHANGELOG.md RELEASE_NOTES_0.1.15.md
    git commit -m "release: 0.1.15"
    git push origin main
+   git push origin v0.1.15     # tag is already created locally
    ```
 2. GitHub → **Actions** → **Publish to Visual Studio Marketplace** → **Run workflow** on `main`.
-3. The workflow:
+3. The workflow builds its own VSIX (the local `extension/shiplogue-0.1.15.vsix`
+is gitignored and only for manual testing). It:
    - runs tests,
    - publishes to the VS Code Marketplace via OIDC,
    - packages and publishes to Open VSX with `OVSX_TOKEN`,
    - creates the GitHub release from `RELEASE_NOTES_0.1.15.md`.
 
-No manual tag is needed; the workflow creates `v0.1.15` with the release.
+The `v0.1.15` tag is already created locally; pushing it anchors the GitHub
+release to this commit. The workflow creates the GitHub release from the notes.
 
 ### Manual fallback
 
