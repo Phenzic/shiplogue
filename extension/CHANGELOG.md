@@ -3,6 +3,24 @@
 All notable changes to this project will be documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.15] — 2026-11-18
+
+### Added
+
+- **Anonymous install presence:** one random install ID + extension version per
+  version, only when editor telemetry is enabled. No IP address, account,
+  workspace, prompt, or activity data. Setting: `shiplogue.installTelemetry.enabled`.
+- **Cloud-synced stand-up style:** cloud profiles can supply the detail level,
+  tone, and section labels/order; changing Detail or Tone in the extension now
+  updates the cloud summary settings.
+
+### Changed
+
+- **Devin support:** Devin is recognized as a source from either its app name or
+  its install path, and update checks use the Open VSX listing for Devin.
+- Stand-up tags now appear after the item text.
+- The verification banner is more compact, and warning-pill copy is trimmed.
+
 ## [0.1.14] — 2026-11-09
 
 ### Fixed

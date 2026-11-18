@@ -1,0 +1,161 @@
+# Publishing Shiplogue
+
+This is the release checklist for the extension and the Shiplogue Agent/plugin.
+
+## 1. Extension 0.1.15
+
+Version, changelog, release notes, and VSIX are already prepared:
+
+- `extension/package.json` — `0.1.15`
+- `extension/CHANGELOG.md` — `[0.1.15]`
+- `RELEASE_NOTES_0.1.15.md`
+- `extension/shiplogue-0.1.15.vsix` (SHA-256 in the release notes)
+- checks: `npm test` = **263 pass / 0 fail / 10 skipped**, `tsc` clean.
+
+### Publish with GitHub Actions (recommended)
+
+1. Commit and push:
+   ```bash
+   git add extension/package.json extension/package-lock.json \
+     extension/CHANGELOG.md RELEASE_NOTES_0.1.15.md \
+     extension/shiplogue-0.1.15.vsix
+   git commit -m "release: 0.1.15"
+   git push origin main
+   ```
+2. GitHub → **Actions** → **Publish to Visual Studio Marketplace** → **Run workflow** on `main`.
+3. The workflow:
+   - runs tests,
+   - publishes to the VS Code Marketplace via OIDC,
+   - packages and publishes to Open VSX with `OVSX_TOKEN`,
+   - creates the GitHub release from `RELEASE_NOTES_0.1.15.md`.
+
+No manual tag is needed; the workflow creates `v0.1.15` with the release.
+
+### Manual fallback
+
+```bash
+cd extension
+npx --yes @vscode/vsce@4.1.0 publish
+npx --yes ovsx publish shiplogue-0.1.15.vsix -p "$OVSX_TOKEN"
+```
+
+Then create the GitHub release and attach `extension/shiplogue-0.1.15.vsix`.
+
+## 2. Shiplogue Agent + Claude Code plugin
+
+The plugin is **validation-ready**, but the npm package is not published yet.
+
+### Current blockers
+
+- `agent/package.json` has `"private": true`.
+- npm is not authenticated on this machine (`npm whoami` fails).
+- The `@phenzic` npm scope does not resolve (404); create/claim it first.
+- Plugin version is `0.3.0-dev.0`; agent is `0.3.0-dev.1`. Align both before release.
+- `plugins/shiplogue/.mcp.json` runs `shiplogue mcp`, so users need the global
+  binary on `PATH`.
+- Agent cloud endpoints (`/api/v1/agent/reports`, `/events`, `/summary-settings`)
+  still need cloud confirmation.
+
+### Publish the agent package
+
+1. Log in and create/claim the scope:
+   ```bash
+   npm login
+   npm org create phenzic        # if it does not exist
+   ```
+2. In `agent/package.json`:
+   - remove `"private": true`,
+   - set `"version": "0.3.0"` (or a dev tag),
+   - add `"publishConfig": { "access": "public" }`,
+   - confirm `repository`, `homepage`, `bugs`, `keywords`.
+3. Build and test:
+   ```bash
+   cd agent
+   npm run build
+   npm test
+   npm pack --dry-run
+   ```
+4. Publish:
+   ```bash
+   npm publish --access public --provenance
+   ```
+5. Verify:
+   ```bash
+   npm install -g @phenzic/shiplogue-agent
+   shiplogue status
+   shiplogue mcp
+   ```
+   `shiplogue mcp` is a local stdio server. **Do not host an MCP server.**
+
+### Publish the Claude Code plugin
+
+1. Align `plugins/shiplogue/.claude-plugin/plugin.json` `version` with the agent
+   (`0.3.0`).
+2. Decide the MCP launch mode:
+   - global install: keep `"command": "shiplogue"`, or
+   - zero-install: use `"command": "npx", "args": ["-y", "@phenzic/shiplogue-agent", "mcp"]`.
+   Hooks still need the installed binary, so recommend the global install.
+3. Validate and test:
+   ```bash
+   claude plugin validate ./plugins/shiplogue
+   claude plugin validate .
+   ```
+4. Push the repo (the marketplace reads `.claude-plugin/marketplace.json`).
+5. Install from the public repo:
+   ```bash
+   claude plugin marketplace add Phenzic/shiplogue
+   claude plugin install shiplogue@shiplogue
+   ```
+6. In Claude Code, run `/shiplogue:daily`.
+
+### Cursor Agent
+
+No marketplace publish is required:
+
+```bash
+shiplogue hooks install --agent cursor
+```
+
+Add the MCP server to Cursor's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "shiplogue": { "command": "shiplogue", "args": ["mcp"] }
+  }
+}
+```
+
+### Codex CLI
+
+```bash
+shiplogue hooks install --agent codex
+```
+
+Optional notify hook:
+
+```toml
+# ~/.codex/config.toml
+notify = ["shiplogue", "hook", "codex", "--notify"]
+```
+
+MCP config:
+
+```toml
+[mcp_servers.shiplogue]
+command = "shiplogue"
+args = ["mcp"]
+```
+
+## 3. Release order
+
+1. Extension `0.1.15` (Marketplace + Open VSX + GitHub release).
+2. npm `@phenzic/shiplogue-agent` `0.3.0`.
+3. Claude plugin version alignment + public repo.
+4. Cursor/Codex docs/config verification.
+5. Cloud endpoint confirmation.
+
+## 4. Version ladder
+
+`0.1.x` continues through **0.1.20**. The next minor after that is **0.2.1**,
+not `0.2.0`. See `ROADMAP.md`.
