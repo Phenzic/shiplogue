@@ -9,7 +9,7 @@ Version, changelog, release notes, and VSIX are already prepared:
 - `extension/package.json` — `0.1.15`
 - `extension/CHANGELOG.md` — `[0.1.15]`
 - `RELEASE_NOTES_0.1.15.md`
-- `extension/shiplogue-0.1.15.vsix` (SHA-256 in the release notes)
+- `extension/shiplogue-0.1.15.vsix`
 - checks: `npm test` = **263 pass / 0 fail / 10 skipped**, `tsc` clean.
 
 ### Publish with GitHub Actions (recommended)

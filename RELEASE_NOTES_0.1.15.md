@@ -33,11 +33,3 @@
 - **Open VSX / Cursor / Antigravity / Devin:** search for **Shiplogue**, or
   install the VSIX from Open VSX / Marketplace.
 - **Manual VSIX:** `extension/shiplogue-0.1.15.vsix`.
-
-## Checksums
-
-SHA-256 for `shiplogue-0.1.15.vsix`:
-
-```
-0271c19894f261e759f53308e8a9455246f1a0938b59f29eedfe79b3a60c72bc
-```
