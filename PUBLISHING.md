@@ -49,14 +49,15 @@ The plugin is **validation-ready**, but the npm package is not published yet.
 
 ### Current blockers
 
-- `agent/package.json` has `"private": true`.
 - npm is not authenticated on this machine (`npm whoami` fails).
 - The `@phenzic` npm scope does not resolve (404); create/claim it first.
-- Plugin version is `0.3.0-dev.0`; agent is `0.3.0-dev.1`. Align both before release.
 - `plugins/shiplogue/.mcp.json` runs `shiplogue mcp`, so users need the global
-  binary on `PATH`.
+  binary on `PATH` (or switch it to `npx`).
 - Agent cloud endpoints (`/api/v1/agent/reports`, `/events`, `/summary-settings`)
   still need cloud confirmation.
+
+Already prepared: agent/plugin version **0.3.0**, `private` removed, and
+`publishConfig.access` set to `public`.
 
 ### Publish the agent package
 
@@ -65,11 +66,8 @@ The plugin is **validation-ready**, but the npm package is not published yet.
    npm login
    npm org create phenzic        # if it does not exist
    ```
-2. In `agent/package.json`:
-   - remove `"private": true`,
-   - set `"version": "0.3.0"` (or a dev tag),
-   - add `"publishConfig": { "access": "public" }`,
-   - confirm `repository`, `homepage`, `bugs`, `keywords`.
+2. Confirm `agent/package.json` has version `0.3.0`, no `private` flag, and
+   `publishConfig.access: "public"` (all already set).
 3. Build and test:
    ```bash
    cd agent
@@ -91,8 +89,7 @@ The plugin is **validation-ready**, but the npm package is not published yet.
 
 ### Publish the Claude Code plugin
 
-1. Align `plugins/shiplogue/.claude-plugin/plugin.json` `version` with the agent
-   (`0.3.0`).
+1. Plugin manifest is already aligned at `0.3.0`.
 2. Decide the MCP launch mode:
    - global install: keep `"command": "shiplogue"`, or
    - zero-install: use `"command": "npx", "args": ["-y", "@phenzic/shiplogue-agent", "mcp"]`.

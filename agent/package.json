@@ -1,9 +1,11 @@
 {
   "name": "@phenzic/shiplogue-agent",
-  "version": "0.3.0-dev.1",
+  "version": "0.3.0",
   "description": "Local, agent-native stand-up worker for AI coding agents.",
   "license": "MIT",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "shiplogue": "./dist/agent/src/cli.js"
   },

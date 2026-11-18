@@ -5,6 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { Client, InMemoryTransport } = require("@modelcontextprotocol/client");
+const { version: AGENT_VERSION } = require("../package.json");
 
 const { createServer } = require("../dist/agent/src/mcp/server");
 const { EventStore } = require("../dist/agent/src/events/store");
@@ -53,7 +54,7 @@ async function withHome(fn) {
 async function connect() {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "shiplogue-test", version: "1.0.0" });
-  const server = createServer("0.3.0-dev.1");
+  const server = createServer();
   await Promise.all([
     client.connect(clientTransport),
     server.connect(serverTransport),
@@ -140,7 +141,7 @@ test("MCP server lists the agent-native tool set and saves a draft", async () =>
       arguments: {},
     });
     const parsed = JSON.parse(status.content[0].text);
-    assert.equal(parsed.agent, "0.3.0-dev.1");
+    assert.equal(parsed.agent, AGENT_VERSION);
     assert.ok(parsed.paths.events);
 
     await client.close();
