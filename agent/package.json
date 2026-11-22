@@ -24,7 +24,9 @@
     "test": "npm run build && node scripts/run-tests.mjs",
     "status": "node dist/agent/src/cli.js status",
     "mcp": "node dist/agent/src/mcp/run.js",
-    "hooks": "node dist/agent/src/cli.js hooks"
+    "hooks": "node dist/agent/src/cli.js hooks",
+    "sync:skill": "node scripts/sync-skill.mjs",
+    "check:skill": "node scripts/sync-skill.mjs --check"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.4.0",

@@ -68,11 +68,12 @@ Already prepared: agent/plugin version **0.3.0**, `private` removed, and
    ```
 2. Confirm `agent/package.json` has version `0.3.0`, no `private` flag, and
    `publishConfig.access: "public"` (all already set).
-3. Build and test:
+3. Build and test (the skill check must pass):
    ```bash
    cd agent
    npm run build
    npm test
+   npm run check:skill
    npm pack --dry-run
    ```
 4. Publish:

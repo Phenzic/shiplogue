@@ -3,18 +3,16 @@
 // provider or API key is needed for that path.
 import * as fs from "fs";
 import {
+  buildInstructions,
   buildReferences,
   contextToText,
-  DETAIL_LEVELS,
   enforceSublists,
-  getFormatSections,
   limitSectionBullets,
   parseStandupDocument,
   renderStandupDocument,
   scoreStandupDocument,
   toPlainText,
   verifyClaims,
-  toneInstruction,
   type DetailLevel,
   type Tone,
 } from "../core";
@@ -185,27 +183,7 @@ export function getAgentStatus() {
 }
 
 export function dailyPromptInstructions(detail: DetailLevel = "standard", tone: Tone = "neutral"): string {
-  const sections = getFormatSections().map((section) => section.label).join(" / ");
-  const detailRules = DETAIL_LEVELS[detail]?.rules ?? [];
-  return [
-    "You are writing the user's own developer daily stand-up.",
-    "",
-    "1. Call get_activity to read their local activity for the lookback window.",
-    "2. Write the stand-up yourself, using only that activity. Do not invent work, files, or numbers.",
-    "3. Keep the fixed sections: " + sections + ".",
-    "4. Each Today item is a workstream: '### <title> [feature]', one outcome sentence, then optional indented detail/files.",
-    "5. Allowed tags: feature, fix, debug, security, docs, refactor, test, performance, chore.",
-    "6. Put file paths only in indented detail, max 3 per workstream and 8 total.",
-    "7. Never claim a deployment, merge, or completion the activity does not prove.",
-    "8. If Next has no evidence, write '- None'. If there are no blockers, write '- None'.",
-    "9. Start inferred Next bullets with '(inferred)'.",
-    "10. Call save_standup with the finished Markdown. The user should not have to save separately.",
-    "",
-    ...detailRules,
-    ...(toneInstruction(tone) ? [toneInstruction(tone)!] : []),
-    "",
-    `Detail: ${detail}; tone: ${tone}.`,
-  ].join("\n");
+  return buildInstructions({ detail, tone });
 }
 
 export function hooksInstalledStatus(home?: string) {
