@@ -11,7 +11,7 @@
 ## Current release
 
 - Extension: **0.1.15** prepared (version, changelog, release notes, VSIX).
-- Agent: **0.3.0-dev.1**, private/unpublished.
+- Agent: **0.3.1** prepared; **0.3.0** published on npm.
 - Claude plugin: validated, not publicly published; see `PUBLISHING.md`.
 - Cloud agent contract: `AGENT_CLOUD_CONTRACT.md`.
 

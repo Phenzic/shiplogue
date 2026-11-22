@@ -56,7 +56,7 @@ The plugin is **validation-ready**, but the npm package is not published yet.
 - Agent cloud endpoints (`/api/v1/agent/reports`, `/events`, `/summary-settings`)
   still need cloud confirmation.
 
-Already prepared: agent/plugin version **0.3.0**, `private` removed, and
+Already prepared: agent/plugin version **0.3.1**, `private` removed, and
 `publishConfig.access` set to `public`.
 
 ### Publish the agent package
@@ -66,7 +66,7 @@ Already prepared: agent/plugin version **0.3.0**, `private` removed, and
    npm login
    npm org create phenzic        # if it does not exist
    ```
-2. Confirm `agent/package.json` has version `0.3.0`, no `private` flag, and
+2. Confirm `agent/package.json` has version `0.3.1`, no `private` flag, and
    `publishConfig.access: "public"` (all already set).
 3. Build and test (the skill check must pass):
    ```bash
@@ -90,7 +90,7 @@ Already prepared: agent/plugin version **0.3.0**, `private` removed, and
 
 ### Publish the Claude Code plugin
 
-1. Plugin manifest is already aligned at `0.3.0`.
+1. Plugin manifest is already aligned at `0.3.1`.
 2. Decide the MCP launch mode:
    - global install: keep `"command": "shiplogue"`, or
    - zero-install: use `"command": "npx", "args": ["-y", "@phenzic/shiplogue-agent", "mcp"]`.
@@ -150,7 +150,7 @@ args = ["mcp"]
 ## 3. Release order
 
 1. Extension `0.1.15` (Marketplace + Open VSX + GitHub release).
-2. npm `@phenzic/shiplogue-agent` `0.3.0`.
+2. npm `@phenzic/shiplogue-agent` `0.3.1`.
 3. Claude plugin version alignment + public repo.
 4. Cursor/Codex docs/config verification.
 5. Cloud endpoint confirmation.
