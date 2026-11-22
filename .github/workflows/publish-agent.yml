@@ -1,0 +1,98 @@
+name: Publish Shiplogue Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run npm publish --dry-run instead of publishing"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-agent
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    defaults:
+      run:
+        working-directory: agent
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: agent/package-lock.json
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check package and plugin versions match
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          PLUGIN_VERSION="$(node -p "require('../plugins/shiplogue/.claude-plugin/plugin.json').version")"
+          echo "Agent version:  $VERSION"
+          echo "Plugin version: $PLUGIN_VERSION"
+          if [ "$VERSION" != "$PLUGIN_VERSION" ]; then
+            echo "::error::agent/package.json and plugin.json versions must match"
+            exit 1
+          fi
+
+      - name: Refuse to overwrite an already-published version
+        if: ${{ !inputs.dry_run }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "@phenzic/shiplogue-agent@${VERSION}" version >/dev/null 2>&1; then
+            echo "::error::@phenzic/shiplogue-agent@${VERSION} is already published. Bump the version first."
+            exit 1
+          fi
+
+      - name: Build and test
+        run: |
+          npm run build
+          npm test
+          npm run check:skill
+          npm pack --dry-run
+
+      - name: Verify npm authentication
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm whoami
+
+      - name: Publish to npm (dry run)
+        if: ${{ inputs.dry_run }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --dry-run
+
+      - name: Publish to npm
+        if: ${{ !inputs.dry_run }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+
+      - name: Verify published package
+        if: ${{ !inputs.dry_run }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          npm view "@phenzic/shiplogue-agent@${VERSION}" version

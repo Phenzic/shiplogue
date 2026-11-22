@@ -59,7 +59,23 @@ The plugin is **validation-ready**, but the npm package is not published yet.
 Already prepared: agent/plugin version **0.3.1**, `private` removed, and
 `publishConfig.access` set to `public`.
 
-### Publish the agent package
+### Publish the agent package with GitHub Actions (recommended)
+
+The workflow is [`.github/workflows/publish-agent.yml`](.github/workflows/publish-agent.yml).
+
+1. Add a repository secret **`NPM_TOKEN`**: GitHub → Settings → Secrets and
+   variables → Actions → New repository secret. Use an npm automation token that
+   can publish `@phenzic/*`.
+2. Bump **both** `agent/package.json` and
+   `plugins/shiplogue/.claude-plugin/plugin.json` to the same version.
+3. Commit and push.
+4. GitHub → **Actions** → **Publish Shiplogue Agent** → **Run workflow**.
+   - Run once with `dry_run: true` to verify.
+   - Run again with `dry_run: false` to publish with provenance.
+5. The workflow refuses to overwrite an existing version, runs tests,
+   `check:skill`, `npm pack --dry-run`, then publishes and verifies the version.
+
+### Manual publish fallback
 
 1. Log in and create/claim the scope:
    ```bash

@@ -3,6 +3,22 @@
   "version": "0.3.1",
   "description": "Local, agent-native stand-up worker for AI coding agents.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phenzic/shiplogue.git",
+    "directory": "agent"
+  },
+  "homepage": "https://shiplogue.dev",
+  "bugs": "https://github.com/Phenzic/shiplogue/issues",
+  "keywords": [
+    "standup",
+    "stand-up",
+    "claude-code",
+    "cursor",
+    "codex",
+    "mcp",
+    "agent"
+  ],
   "publishConfig": {
     "access": "public"
   },
