@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 require("./helpers").installVscodeStub();
 
-const { parseStandupDocument, renderStandupDocument } = require("../out/standupDocument");
+const { normalizeSectionHeadings, parseStandupDocument, renderStandupDocument } = require("../out/standupDocument");
 const { scoreStandupDocument } = require("../out/standupQuality");
 
 const SAMPLE = [
@@ -41,6 +41,18 @@ test("parses the theme-first format into a structured document", () => {
   assert.equal(doc.today[0].tag, "feature");
   assert.deepEqual(doc.today[0].files, ["lib/email.ts", "app/settings/recap/page.tsx"]);
   assert.equal(doc.today[1].summary, "Fixed Discord posting to use the bot token.");
+});
+
+test("accepts Markdown ATX section headings and normalizes them", () => {
+  const atx = SAMPLE.replace(/\*\*(Yesterday|Today|Next|Blockers)\*\*/g, "## $1");
+  const doc = parseStandupDocument(atx);
+  assert.ok(doc);
+  assert.equal(doc.yesterday.length, 1);
+  assert.equal(doc.today.length, 2);
+  const normalized = normalizeSectionHeadings(atx);
+  assert.match(normalized, /\*\*Yesterday\*\*/);
+  assert.match(normalized, /\*\*Today\*\*/);
+  assert.match(normalized, /### Weekly recap email \[feature\]/);
 });
 
 test("renders the clean story without file paths", () => {

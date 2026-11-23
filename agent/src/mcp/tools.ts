@@ -128,6 +128,9 @@ export async function saveStandup(input: SaveStandupInput) {
     draft.markdown,
     ...(final.warnings.length ? ["", ...final.warnings] : []),
     ...(final.quality.issues.length ? ["", "Editorial suggestions:", ...final.quality.issues.map((issue) => `- ${issue}`)] : []),
+    ...(final.quality.issues.length
+      ? ["", "Show these suggestions to the user. Do not rewrite and save again automatically."]
+      : []),
     "",
     "Cloud sync/posting is disabled until a Shiplogue project key is configured.",
   ].join("\n");

@@ -53,12 +53,33 @@ function isFile(value: string): boolean {
 }
 
 /**
+ * Convert Markdown ATX section headings (`## Yesterday`, `### Today`) into the
+ * canonical bold form (`**Yesterday**`). Theme headings such as `### Feature`
+ * are not section labels and are left alone.
+ */
+export function normalizeSectionHeadings(markdown: string): string {
+  const labels = new Set(
+    getFormatSections().map((section) => section.label.trim().toLowerCase()),
+  );
+  return markdown
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) => {
+      const match = line.match(/^(#{2,3})\s+(.+?)\s*$/);
+      if (!match) return line;
+      const label = match[2].trim();
+      return labels.has(label.toLowerCase()) ? `**${label}**` : line;
+    })
+    .join("\n");
+}
+
+/**
  * Parse the theme-first Markdown contract into the canonical document.
  * Returns undefined when the model used the old flat format, so callers can
  * keep the previous formatter as a compatibility fallback.
  */
 export function parseStandupDocument(markdown: string): StandupDocument | undefined {
-  const lines = markdown.replace(/\r/g, "").split("\n");
+  const lines = normalizeSectionHeadings(markdown).split("\n");
   const labels = new Map<string, SectionKey>();
   for (const section of getFormatSections()) {
     labels.set(section.label.trim().toLowerCase(), section.key);

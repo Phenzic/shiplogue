@@ -7,6 +7,7 @@ import {
   enforceSublists,
   getFormatSections,
   limitSectionBullets,
+  normalizeSectionHeadings,
   parseStandupDocument,
   renderStandupDocument,
   scoreStandupDocument,
@@ -87,7 +88,11 @@ export function finalizeDraft(
     "Yesterday";
   const body = document
     ? renderStandupDocument(document)
-    : limitSectionBullets(verification.cleanDraft, [yesterdayLabel], 4);
+    : limitSectionBullets(
+        normalizeSectionHeadings(verification.cleanDraft),
+        [yesterdayLabel],
+        4,
+      );
   const references = buildReferences(ctx);
   const markdown = references ? `${body}\n${references}` : body;
 
@@ -207,11 +212,13 @@ export function reviseSection(
   const label =
     getFormatSections().find((item) => item.key === section)?.label ??
     section.charAt(0).toUpperCase() + section.slice(1);
-  const lines = markdown.split("\n");
+  // Accept `## Yesterday`/`## Today` drafts as well as canonical bold headings.
+  const normalized = normalizeSectionHeadings(markdown);
+  const lines = normalized.split("\n");
   const heading = `**${label}**`;
   const start = lines.findIndex((line) => line.trim() === heading);
   if (start < 0) {
-    return `${markdown.trimEnd()}\n\n${heading}\n${text.trim()}\n`;
+    return `${normalized.trimEnd()}\n\n${heading}\n${text.trim()}\n`;
   }
   let end = lines.length;
   for (let i = start + 1; i < lines.length; i++) {

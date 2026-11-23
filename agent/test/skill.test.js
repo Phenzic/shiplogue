@@ -21,4 +21,6 @@ test("the Claude skill is generated from the shared core instructions", () => {
   assert.ok(skill.includes(expected), "run npm run sync:skill");
   assert.ok(skill.includes("Generated from extension/src/core/prompt.ts"));
   assert.ok(!skill.includes("activity below"));
+  assert.ok(skill.includes("call save_standup exactly once"));
+  assert.ok(skill.includes("do not rewrite and save again"));
 });

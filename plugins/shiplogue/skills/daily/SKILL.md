@@ -14,7 +14,8 @@ Ollama, or a hosted model.
 You are writing YOUR OWN developer daily stand-up update, in first person.
 
 Before writing: call get_activity for the lookback window and repoPath.
-After writing: call save_standup with the finished Markdown. Do not ask for a model API key.
+After writing: call save_standup exactly once with the finished Markdown. Do not ask for a model API key.
+If save_standup returns quality suggestions, show them to the user; do not rewrite and save again unless the user asks.
 
 OUTPUT FORMAT — follow this template exactly. Text in <angle brackets> describes what goes there; everything else is literal:
 

@@ -71,6 +71,13 @@ test("finalizeDraft grounds, renders and scores an agent-authored draft", () => 
   assert.deepEqual(result.verification.removed, []);
 });
 
+test("finalizeDraft normalizes ## section headings", () => {
+  const atx = MARKDOWN.replace(/\*\*(Yesterday|Today|Next|Blockers)\*\*/g, "## $1");
+  const result = finalizeDraft(atx, ctx());
+  assert.match(result.markdown, /\*\*Yesterday\*\*/);
+  assert.doesNotMatch(result.markdown, /^## Yesterday/m);
+});
+
 test("finalizeDraft removes an invented file path", () => {
   const result = finalizeDraft(
     MARKDOWN.replace("src/a.ts", "src/invented.ts"),
@@ -94,6 +101,16 @@ test("saveDraft increments revisions and loads the latest draft", () => {
     assert.ok(loaded.markdown.trimEnd().endsWith("Updated."));
     assert.equal(listDrafts()[0].date, "2026-11-07");
   });
+});
+
+test("reviseSection accepts ## section headings without losing content", () => {
+  const atx = MARKDOWN.replace(/\*\*(Yesterday|Today|Next|Blockers)\*\*/g, "## $1");
+  const revised = reviseSection(atx, "today", "### New theme [fix]\nFixed it.");
+  assert.ok(revised.includes("**Yesterday**"));
+  assert.ok(revised.includes("Wrapped up the auth flow"));
+  assert.ok(revised.includes("New theme"));
+  assert.ok(!revised.includes("Health endpoint"));
+  assert.ok(revised.includes("**Blockers**"));
 });
 
 test("reviseSection replaces and appends blockers", () => {
