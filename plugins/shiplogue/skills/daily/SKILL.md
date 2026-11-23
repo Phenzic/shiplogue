@@ -1,6 +1,6 @@
 ---
 name: daily
-description: Write the user's daily Shiplogue stand-up from local Claude Code/Cursor/Codex activity, using this model. No model API key is required.
+description: Write the user's daily Shiplogue stand-up from local agent activity, using this model. No model API key is required.
 ---
 
 <!-- Generated from extension/src/core/prompt.ts. Run npm run sync:skill after changing the shared rules. -->
