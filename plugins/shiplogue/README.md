@@ -90,6 +90,26 @@ args = ["mcp"]
 
 Codex hooks may require review in `/hooks`; project-level hooks must be trusted.
 
+## Antigravity
+
+The Antigravity plugin lives in [`../shiplogue-antigravity`](../shiplogue-antigravity).
+
+```bash
+agy plugin validate ./plugins/shiplogue-antigravity
+agy plugin install ./plugins/shiplogue-antigravity
+agy plugin list
+```
+
+Then in Antigravity:
+
+```text
+/shiplogue-daily
+```
+
+The Antigravity plugin ships the same MCP server, skill instructions, and rules.
+It currently relies on the extension/IDE prompt capture plus git for activity;
+native Antigravity lifecycle hooks are not installed yet.
+
 ## What gets stored
 
 ```

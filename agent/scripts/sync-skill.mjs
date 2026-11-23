@@ -10,12 +10,15 @@ import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
-const skillPath = join(here, "..", "..", "plugins", "shiplogue", "skills", "daily", "SKILL.md");
+const skills = [
+  { name: "daily", path: join(here, "..", "..", "plugins", "shiplogue", "skills", "daily", "SKILL.md") },
+  { name: "shiplogue-daily", path: join(here, "..", "..", "plugins", "shiplogue-antigravity", "skills", "shiplogue-daily", "SKILL.md") },
+];
 const { buildInstructions } = require("../dist/extension/src/core/prompt.js");
 
-const frontmatter = `---
-name: daily
-description: Write the user's daily Shiplogue stand-up from local Claude Code/Cursor/Codex activity, using this model. No model API key is required.
+const frontmatter = (name) => `---
+name: ${name}
+description: Write the user's daily Shiplogue stand-up from local agent activity, using this model. No model API key is required.
 ---
 `;
 
@@ -37,21 +40,25 @@ ${buildInstructions({ detail: "standard", tone: "neutral" })}
   keep the draft local and say so. Do not ask for a model key.
 `;
 
-const content = `${frontmatter}\n${body}`;
+const contentFor = (name) => `${frontmatter(name)}\n${body}`;
 const check = process.argv.includes("--check");
 if (check) {
-  try {
-    const existing = readFileSync(skillPath, "utf8");
-    if (existing !== content) {
-      console.error(`Skill is stale: ${skillPath}\nRun: npm run sync:skill`);
+  for (const skill of skills) {
+    try {
+      const existing = readFileSync(skill.path, "utf8");
+      if (existing !== contentFor(skill.name)) {
+        console.error(`Skill is stale: ${skill.path}\nRun: npm run sync:skill`);
+        process.exit(1);
+      }
+      console.log(`Skill is in sync: ${skill.path}`);
+    } catch (error) {
+      console.error(`Cannot read skill: ${skill.path}\n${error.message}`);
       process.exit(1);
     }
-    console.log(`Skill is in sync: ${skillPath}`);
-  } catch (error) {
-    console.error(`Cannot read skill: ${skillPath}\n${error.message}`);
-    process.exit(1);
   }
 } else {
-  writeFileSync(skillPath, content);
-  console.log(`Wrote ${skillPath}`);
+  for (const skill of skills) {
+    writeFileSync(skill.path, contentFor(skill.name));
+    console.log(`Wrote ${skill.path}`);
+  }
 }

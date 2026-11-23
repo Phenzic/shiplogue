@@ -168,8 +168,9 @@ args = ["mcp"]
 1. Extension `0.1.15` (Marketplace + Open VSX + GitHub release).
 2. npm `@phenzic/shiplogue-agent` `0.3.2`.
 3. Claude plugin version alignment + public repo.
-4. Cursor/Codex docs/config verification.
-5. Cloud endpoint confirmation.
+4. Antigravity plugin validation/install.
+5. Cursor/Codex docs/config verification.
+6. Cloud endpoint confirmation.
 
 ## 4. Version ladder
 

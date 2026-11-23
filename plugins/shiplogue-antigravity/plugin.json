@@ -1,0 +1,10 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "shiplogue",
+  "displayName": "Shiplogue",
+  "version": "0.3.2",
+  "description": "Write today's stand-up from local Antigravity, Claude Code, Cursor, and Codex activity using the agent's own model.",
+  "suggestedPrompts": [
+    "Write today's Shiplogue stand-up from my recent activity"
+  ]
+}
