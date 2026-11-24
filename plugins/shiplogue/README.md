@@ -5,20 +5,17 @@ activity. The stand-up is written by the **agent's own model**; no model API key
 BYOK key, or local model is required. A Shiplogue Cloud project key is only
 needed for cloud sync/posting.
 
-## Install the agent CLI
+## Installation
+
+**Claude Code and Antigravity** use `npx` and need **no global install** and no
+manual build. The plugin config runs
+`npx -y @phenzic/shiplogue-agent@0.3.2 mcp`, so the agent is fetched on first use.
+
+**Cursor/Codex hooks** need the CLI on `PATH`:
 
 ```bash
-cd agent
-npm install
-npm run build
-npm link          # puts `shiplogue` on PATH
-```
-
-Verify:
-
-```bash
+npm install -g @phenzic/shiplogue-agent@0.3.2
 shiplogue status
-shiplogue mcp     # starts the local stdio MCP server; Ctrl-C to exit
 ```
 
 The MCP server is local stdio. **No server hosting is required.**
@@ -42,7 +39,7 @@ The plugin ships:
   `revise_standup`, `get_agent_status`
 - the `shiplogue-daily` prompt
 - the `daily` skill and `/shiplogue:daily` command
-- Claude Code hooks in `hooks/hooks.json` (requires `shiplogue` on PATH)
+- Claude Code hooks in `hooks/hooks.json` (run through `npx`)
 
 If a hook command fails, it exits 0 and logs under
 `~/.shiplogue/agent/logs/agent.log`; it never blocks Claude.

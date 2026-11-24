@@ -107,10 +107,9 @@ The workflow is [`.github/workflows/publish-agent.yml`](.github/workflows/publis
 ### Publish the Claude Code plugin
 
 1. Plugin manifest is already aligned at `0.3.2`.
-2. Decide the MCP launch mode:
-   - global install: keep `"command": "shiplogue"`, or
-   - zero-install: use `"command": "npx", "args": ["-y", "@phenzic/shiplogue-agent", "mcp"]`.
-   Hooks still need the installed binary, so recommend the global install.
+2. The Claude plugin now uses `npx -y @phenzic/shiplogue-agent@<version>` for
+   MCP and hooks, so Claude users need no global install. Antigravity uses the
+   same npx config.
 3. Validate and test:
    ```bash
    claude plugin validate ./plugins/shiplogue

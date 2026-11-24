@@ -1,8 +1,12 @@
 {
   "mcpServers": {
     "shiplogue": {
-      "command": "shiplogue",
-      "args": ["mcp"]
+      "command": "npx",
+      "args": [
+        "-y",
+        "@phenzic/shiplogue-agent@0.3.2",
+        "mcp"
+      ]
     }
   }
 }
