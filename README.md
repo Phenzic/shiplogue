@@ -4,6 +4,19 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+## Downloads
+
+| Product | Latest | Install |
+| --- | --- | --- |
+| **VS Code / Cursor extension** | [`0.1.15`](https://github.com/Phenzic/shiplogue/releases/tag/v0.1.15) | [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=phenzic.shiplogue) · [Open VSX](https://open-vsx.org/extension/phenzic/shiplogue) |
+| **Shiplogue Agent** | [`0.3.2`](https://github.com/Phenzic/shiplogue/releases/tag/agent-v0.3.2) | [npm](https://www.npmjs.com/package/@phenzic/shiplogue-agent) · [GitHub release](https://github.com/Phenzic/shiplogue/releases/tag/agent-v0.3.2) |
+| **Claude Code plugin** | [`0.3.2`](https://github.com/Phenzic/shiplogue/tree/main/plugins/shiplogue) | `claude plugin marketplace add Phenzic/shiplogue` |
+| **Antigravity plugin** | [`0.3.2`](https://github.com/Phenzic/shiplogue/tree/main/plugins/shiplogue-antigravity) | `agy plugin install ./plugins/shiplogue-antigravity` |
+
+Each package has its own GitHub release. GitHub only allows one release to carry
+the **Latest** badge, so the extension release keeps it; the agent release is
+tagged `agent-v*` and is linked above.
+
 Shiplogue is a local-first extension for VS Code-compatible editors. It watches the
 commits, saved files, GitHub activity and AI sessions that make up your day, then
 asks a model to write the first draft of your stand-up. Review it, copy it, or
@@ -22,7 +35,7 @@ Shiplogue account and no telemetry.
 -->
 
 > **Current build vs planned.** This README describes the current development
-> tree. Today (0.1.7 beta): local Ollama or your own API key, manual review.
+> tree. Today (0.1.15): local Ollama or your own API key, manual review.
 > Planned: the hosted Shiplogue provider and paid plans. Pricing below is a
 > proposal — no paid tier or hosted service exists yet.
 
