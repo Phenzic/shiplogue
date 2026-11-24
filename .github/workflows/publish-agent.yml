@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
 
     defaults:
@@ -96,3 +96,25 @@ jobs:
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           npm view "@phenzic/shiplogue-agent@${VERSION}" version
+
+      - name: Package release tarball
+        if: ${{ !inputs.dry_run }}
+        run: |
+          mkdir -p release
+          npm pack --pack-destination release
+
+      - name: Create or update GitHub release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="agent-v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release/*.tgz --clobber
+          else
+            gh release create "$TAG" release/*.tgz \
+              --title "Shiplogue Agent v${VERSION}" \
+              --notes-file "../AGENT_RELEASE_NOTES_${VERSION}.md" \
+              --latest=false
+          fi
