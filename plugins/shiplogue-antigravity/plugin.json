@@ -6,5 +6,21 @@
   "description": "Write today's stand-up from local Antigravity, Claude Code, Cursor, and Codex activity using the agent's own model.",
   "suggestedPrompts": [
     "Write today's Shiplogue stand-up from my recent activity"
+  ],
+  "logo": "assets/logo.png",
+  "author": {
+    "name": "Shiplogue",
+    "url": "https://shiplogue.dev"
+  },
+  "homepage": "https://shiplogue.dev",
+  "repository": "https://github.com/Phenzic/shiplogue",
+  "license": "MIT",
+  "keywords": [
+    "standup",
+    "stand-up",
+    "claude-code",
+    "cursor",
+    "codex",
+    "mcp"
   ]
 }
